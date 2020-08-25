@@ -195,9 +195,9 @@ def get_cifar(PARS):
 
     data_set=PARS['data_set']
     if 'Linux' in os.uname():
-        pre = '/ME/My Drive/LSDA_data/CIFAR/_CIFAR/'
+        pre = '/ME/My Drive/LSDA_data/CIFAR/'
     else:
-        pre = '/Users/amit/Box Sync/URFB/_CIFAR/'
+        pre = '/Users/amit/Google Drive/LSDA_data/CIFAR/'
     filename = pre+data_set+'_train.hdf5'
     print(filename)
     f = h5py.File(filename, 'r')
@@ -230,7 +230,7 @@ def get_letters(PARS):
     if 'Linux' in os.uname():
         pre = '/ME/My Drive/LSDA_data/mnist/'
     else:
-        pre = '/Users/amit/Desktop/Dropbox/Python/MNIST/'
+        pre = '/Users/amit/Google Drive/LSDA_data/mnist/'
 
     filename = data_set+'.npy'
     print(filename)
