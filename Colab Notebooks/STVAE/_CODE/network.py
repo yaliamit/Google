@@ -5,6 +5,7 @@ from torch import nn, optim
 import contextlib
 from models_transforms import Edge, rgb_to_hsv, hsv_to_rgb
 import sys
+from model_layers import FALinear, FAConv2d
 from models_residual_block import residual_block, residual_block_small
 @contextlib.contextmanager
 def dummy_context_mgr():
@@ -13,7 +14,7 @@ def dummy_context_mgr():
 
 # Network module
 class network(nn.Module):
-    def __init__(self, device,  args, layers, lnti):
+    def __init__(self, device,  args, layers, lnti, sh=None, first=1):
         super(network, self).__init__()
 
         self.trans=args.transformation
@@ -21,7 +22,7 @@ class network(nn.Module):
         self.embedd=args.embedd
         self.embedd_layer=args.embedd_layer
         self.del_last=args.del_last
-        self.first=1
+        self.first=first
         self.bsz=args.mb_size # Batch size - gets multiplied by number of shifts so needs to be quite small.
         #self.full_dim=args.full_dim
         self.dv=device
@@ -35,6 +36,7 @@ class network(nn.Module):
         self.optimizer_type=args.optimizer
         self.lr=args.lr
         self.layer_text=layers
+        self.fa=args.fa
         self.lnti=lnti
         if (hasattr(args,'fout')):
             self.fout=args.fout
@@ -50,6 +52,10 @@ class network(nn.Module):
         self.u_dim = 6
         self.idty = torch.cat((torch.eye(2), torch.zeros(2).unsqueeze(1)), dim=1)
         self.id = self.idty.expand((self.bsz,) + self.idty.size()).to(self.dv)
+        if sh is not None:
+            temp = torch.zeros(1, sh[1], sh[2], sh[3]).to(device)
+            # Run the network once on dummy data to get the correct dimensions.
+            bb = self.forward(temp)
 
     def do_nonlinearity(self,ll,out):
 
@@ -131,8 +137,7 @@ class network(nn.Module):
                 if ('conv' in ll['name']):
                     if self.first:
                         pd=tuple(np.int32(np.floor(np.array(ll['filter_size'])/2)))
-                        self.layers.add_module(ll['name'],torch.nn.Conv2d(inp_feats,ll['num_filters'],ll['filter_size'],stride=1,padding=pd).to(self.dv))
-                        #self.layers+=[torch.nn.Conv2d(inp_feats,ll['num_filters'],ll['filter_size'],stride=1,padding=pd).to(self.dv)]
+                        self.layers.add_module(ll['name'],FAConv2d(inp_feats,ll['num_filters'],ll['filter_size'],stride=1,padding=pd, fa=self.fa).to(self.dv))
                     out=getattr(self.layers, ll['name'])(OUTS[inp_ind])
                     #OUTS += [self.do_nonlinearity(ll,out)]
                     OUTS[ll['name']]=self.do_nonlinearity(ll,out)
@@ -142,10 +147,9 @@ class network(nn.Module):
                         bis=True
                         if ('nb' in ll):
                             bis=False
-                        self.layers.add_module(ll['name']+'a',nn.Linear(loc_in_dims[0],out_dim,bias=bis).to(self.dv))
-                        self.layers.add_module(ll['name']+'b',nn.Linear(loc_in_dims[1],out_dim,bias=bis).to(self.dv))
-                        #getattr(self.layers, ll['name'] + 'b').weight.requires_grad=False
-                        #getattr(self.layers, ll['name'] + 'b').bias.requires_grad=False
+                        self.layers.add_module(ll['name']+'a',FALinear(loc_in_dims[0],out_dim,bias=bis, fa=self.fa).to(self.dv))
+                        self.layers.add_module(ll['name']+'b',FALinear(loc_in_dims[1],out_dim,bias=bis, fa=self.fa).to(self.dv))
+
 
                     outa = OUTS[inp_ind[0]]
                     outa=outa.reshape(outa.shape[0],-1)
@@ -182,7 +186,7 @@ class network(nn.Module):
                         bis=True
                         if ('nb' in ll):
                             bis=False
-                        self.layers.add_module(ll['name'],nn.Linear(in_dim,out_dim,bias=bis).to(self.dv))
+                        self.layers.add_module(ll['name'],FALinear(in_dim,out_dim,bias=bis, fa=self.fa).to(self.dv))
                     out=OUTS[inp_ind]
                     out = out.reshape(out.shape[0], -1)
                     out = getattr(self.layers, ll['name'])(out)
