@@ -13,6 +13,19 @@ import aux
 from get_net_text import get_network
 
 
+def copy_from_old_to_new(net_model_old, net_model, args, fout):
+    params_old = net_model_old.named_parameters()
+    params = net_model.named_parameters()
+    dict_params = dict(params)
+    # Loop over parameters of N1
+    print('In reinit, cont training:', args.cont_training)
+    for name, param_old in params_old:
+        if name in dict_params and (args.cont_training or name.split('.')[1] not in args.update_layers):
+            fout.write('copying ' + name + '\n')
+            dict_params[name].data.copy_(param_old.data)
+    net_model.load_state_dict(dict_params)
+    return net_model
+
 def main_loc(par_file):
 
   if 'Linux' in os.uname():
@@ -40,25 +53,24 @@ def main_loc(par_file):
   fout, device= mprep.setups(args, EX_FILES)
   args.fout=fout
   print(fout)
+  # Get data
   DATA=mprep.get_data_pre(args,args.dataset)
-  if not hasattr(args,'opt_jump'):
-      args.opt_jump=1
-      args.enc_conv=False
 
+  # Training an autoencoder.
   if 'vae' in args.type:
       models=mprep.get_models(device, fout, DATA[0][0].shape,STRINGS,ARGS,locals())
+  # Training a feedforward embedding or classification network
   if args.network:
       sh=DATA[0][0].shape
       # parse the existing network coded in ARGS[0]
       arg=ARGS[0]
       if args.reinit: # Parse the new network
           arg=args
+      # Layers defining the new network.
       if arg.layers is not None:
           arg.lnti, arg.layers_dict = get_network(arg.layers,nf=sh[1])
-          model = network.network(device, arg, arg.layers_dict, arg.lnti).to(device)
-          temp = torch.zeros(1, sh[1], sh[2], sh[3]).to(device)
-          bb = model.forward(temp)
-          net_models = [model]
+          # Initialize the network
+          net_models = [network.network(device, arg, arg.layers_dict, arg.lnti, sh).to(device)]
           if 'vae' not in args.type:
               models=net_models
 
@@ -79,24 +91,13 @@ def main_loc(par_file):
   if args.reinit:
       SMS[0]['args'].fout=fout
       lnti, layers_dict = mprep.get_network(SMS[0]['args'].layers, nf=sh[1])
-      net_model_old = network.network(device, SMS[0]['args'], layers_dict, lnti).to(device)
-      temp = torch.zeros(1, sh[1], sh[2], sh[3]).to(device)
-      net_model_old.first=2
-      bb = net_model_old.forward(temp)
+      net_model_old = network.network(device, SMS[0]['args'], layers_dict, lnti, sh=sh, first=2).to(device)
       net_model_old.load_state_dict(SMS[0]['model.state.dict'])
       net_model=models[0]
-      params = net_model_old.named_parameters()
-      params2 = net_model.named_parameters()
-      dict_params2 = dict(params2)
-      # Loop over parameters of N1
-      print('In reinit, cont training:',args.cont_training)
-      for name, param in params:
-          if name in dict_params2 and (args.cont_training or name.split('.')[1] not in args.update_layers):
-              fout.write('copying '+name+'\n')
-              dict_params2[name].data.copy_(param.data)
-      net_model.load_state_dict(dict_params2)
+      copy_from_old_to_new(net_model_old, net_model, args, fout)
 
       model_out=train_model(net_model, args, EX_FILES[0], DATA, fout)
+
       if (args.embedd and args.hid_layers is not None):
           if args.hid_dataset is not None:
               print('getting:'+args.hid_dataset)
