@@ -1,6 +1,7 @@
 
 
 def process_args(parser):
+    parser.add_argument('--fa', type=int, default=0, help='Type of weight feedback - 0 - bp, 1-fixed, 2-urfb')
     parser.add_argument('--full_dim', type=int, default=256, help='fully connected layer size')
     parser.add_argument('--hid_hid', type=int, default=256, help='fully connected layer size')
     parser.add_argument('--hid_drop', type=float, default=0., help='dropout')
