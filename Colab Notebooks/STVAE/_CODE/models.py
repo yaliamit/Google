@@ -49,7 +49,6 @@ class STVAE(nn.Module):
         self.s_dim = args.sdim # generic latent variable
         self.bsz = args.mb_size
         self.n_mix=args.n_mix
-        self.num_hlayers=args.num_hlayers
         self.dv=device
         self.tps_num=args.tps_num
 

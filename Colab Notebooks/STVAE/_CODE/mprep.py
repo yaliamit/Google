@@ -1,8 +1,5 @@
 import torch
-from models_opt import STVAE_OPT
-from models_mix import STVAE_mix
-from models import STVAE
-from models_mix_by_class import STVAE_mix_by_class
+
 import numpy as np
 import sys
 import os
@@ -26,10 +23,12 @@ def process_strings(args):
         strings['mm_pre']='_MM'
     if (args.n_class>0):
         strings['opt_class']='_by_class'
+
     if (args.cl is not None):
         strings['cll']=str(args.cl)
     ex_file = strings['opt_pre'] + strings['opt_class'] + args.type + '_' + args.transformation + \
-              '_' + str(args.num_hlayers) + '_mx_' + str(args.n_mix) + '_sd_' + str(args.sdim) + '_cl_' + strings['cll']
+               '_mx_' + str(args.n_mix) + '_sd_' + \
+              str(args.sdim) + '_cl_' + strings['cll']
     return strings, ex_file
 
 
@@ -84,11 +83,14 @@ def get_names(args):
 
 def get_models(device, fout, sh,STRINGS,ARGS, locs):
 
-
+    from models_opt import STVAE_OPT
+    from models_mix import STVAE_mix
+    from models import STVAE
+    from models_mix_by_class import STVAE_mix_by_class
 
     models = []
     for strings, args in zip(STRINGS, ARGS):
-        model=make_model(strings,args,locs, sh[1:], device, fout)
+        model=make_model(strings,args,locals(), sh[1:], device, fout)
         models += [model]
 
     return models
@@ -113,11 +115,9 @@ def setups(args, EX_FILES):
     else:
         args.CONS = True
         fout = sys.stdout
-    device = torch.device("cuda:" + str(args.gpu - 1) if use_gpu else "cpu")
-    fout.write('Device,' + str(device) + '\n')
-    fout.write('USE_GPU,' + str(use_gpu) + '\n')
 
-    return fout, device
+
+    return fout
 
 def get_data_pre(args,dataset):
 

@@ -4,6 +4,7 @@ from models import get_scheduler
 import time
 from models_images import erode,make_images
 import torch
+import matplotlib.pyplot as plt
 
 
 
@@ -64,37 +65,35 @@ def train_model(model, args, ex_file, DATA, fout):
 
     scheduler = get_scheduler(args, model)
 
+    VAL_ACC=[]
     tes = [test[0], test[0], test[1]]
     if (val[0] is not None):
         vall=[val[0],val[0],val[1]]
+    tran = [train[0], train[0], train[1]]
     for epoch in range(args.nepoch):
 
         if (scheduler is not None):
             scheduler.step()
         t1 = time.time()
-        tre = erode(args.erode, train[0])
-        tran = [train[0], tre, train[1]]
-        trainMU, trainLOGVAR, trPI = model.run_epoch(tran, epoch, args.num_mu_iter, trainMU, trainLOGVAR, trPI,d_type='train', fout=fout)
+        if args.erode:
+            tre = erode(args.erode, train[0])
+            tran = [train[0], tre, train[1]]
+        trainMU, trainLOGVAR, trPI, tr_acc = model.run_epoch(tran, epoch, args.num_mu_iter, trainMU, trainLOGVAR, trPI,d_type='train', fout=fout)
         if (val[0] is not None):
-             model.run_epoch(vall, epoch, args.nvi, valMU, valLOGVAR, valPI, d_type='val', fout=fout)
-
+             _,_,_,val_acc=model.run_epoch(vall, epoch, args.nvi, valMU, valLOGVAR, valPI, d_type='val', fout=fout)
+             VAL_ACC+=[val_acc[0],tr_acc[1]]
+        else:
+            VAL_ACC+=[tr_acc[0],tr_acc[1]]
         fout.write('{0:5.3f}s'.format(time.time() - t1))
         fout.flush()
 
-
-
-    if 'net' in args.type:
-        if args.model_out is not None:
-            ss=args.model_out+'.pt'
-        else:
-            ss='network.pt'
-        #torch.save({'args': args,
-        #            'model.state.dict': model.state_dict()}, '/ME/My Drive/Colab Notebooks/STVAE/_output/'+ss)
+    test_acc=np.zeros(2)
     if 'vae' in args.type:
         fout.write('writing to ' + ex_file + '\n')
+        args.fout=None
         torch.save({'args': args,
                     'model.state.dict': model.state_dict()}, datadirs+'_output/' + ex_file + '.pt')
-        make_images(train, model, ex_file, args)
+        make_images(train, model, ex_file, args, datadirs=datadirs)
         if (args.n_class):
             model.run_epoch_classify(tran, 'train', fout=fout, num_mu_iter=args.nti)
             model.run_epoch_classify(tes, 'test', fout=fout, num_mu_iter=args.nti)
@@ -102,6 +101,7 @@ def train_model(model, args, ex_file, DATA, fout):
             if args.hid_layers is None:
                 model.run_epoch(tes, 0, args.nti, testMU, testLOGVAR, testPI, d_type='test', fout=fout)
     else:
-            model.run_epoch(tes, 0, args.nti, None, None, None, d_type='test', fout=fout)
+        _,_,_,test_acc=model.run_epoch(tes, 0, args.nti, None, None, None, d_type='test', fout=fout)
 
+    model.results=[np.array(VAL_ACC).transpose().reshape(-1,2)]+[test_acc[0]]
     return(model)

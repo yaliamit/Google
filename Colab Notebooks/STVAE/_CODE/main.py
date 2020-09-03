@@ -1,21 +1,23 @@
 from models_make import train_model, test_models
-import torch
-from models_opt import STVAE_OPT
-from models_mix import STVAE_mix
-from models import STVAE
-from models_mix_by_class import STVAE_mix_by_class
 import os
 from class_on_hidden import pre_train_new
 import network
 import mprep
+import numpy as np
 import argparse
 import aux
 from get_net_text import get_network
+import pprint
+import torch
 
+def copy_from_old_to_new(model, args, fout, SMS, device, sh):
 
-def copy_from_old_to_new(net_model_old, net_model, args, fout):
-    params_old = net_model_old.named_parameters()
-    params = net_model.named_parameters()
+    lnti, layers_dict = mprep.get_network(SMS['args'].layers, nf=sh[1])
+    model_old = network.network(device, SMS['args'], layers_dict, lnti, fout=fout, sh=sh, first=2).to(device)
+    model_old.load_state_dict(SMS['model.state.dict'])
+
+    params_old = model_old.named_parameters()
+    params = model.named_parameters()
     dict_params = dict(params)
     # Loop over parameters of N1
     print('In reinit, cont training:', args.cont_training)
@@ -23,10 +25,12 @@ def copy_from_old_to_new(net_model_old, net_model, args, fout):
         if name in dict_params and (args.cont_training or name.split('.')[1] not in args.update_layers):
             fout.write('copying ' + name + '\n')
             dict_params[name].data.copy_(param_old.data)
-    net_model.load_state_dict(dict_params)
-    return net_model
+    model.load_state_dict(dict_params)
+    return model
 
-def main_loc(par_file):
+
+
+def main_loc(par_file, device):
 
   if 'Linux' in os.uname():
         predir = '/ME/My Drive/'
@@ -50,12 +54,13 @@ def main_loc(par_file):
 
   ARGS, STRINGS, EX_FILES, SMS = mprep.get_names(args)
   # Get data device and output file
-  fout, device= mprep.setups(args, EX_FILES)
+  fout= mprep.setups(args, EX_FILES)
   args.fout=fout
-  print(fout)
   # Get data
   DATA=mprep.get_data_pre(args,args.dataset)
-
+  args.num_class=np.int(np.max(DATA[0][1])+1)
+  ARGS[0].num_class=args.num_class
+  print('NUMCLASS',args.num_class)
   # Training an autoencoder.
   if 'vae' in args.type:
       models=mprep.get_models(device, fout, DATA[0][0].shape,STRINGS,ARGS,locals())
@@ -70,16 +75,16 @@ def main_loc(par_file):
       if arg.layers is not None:
           arg.lnti, arg.layers_dict = get_network(arg.layers,nf=sh[1])
           # Initialize the network
-          net_models = [network.network(device, arg, arg.layers_dict, arg.lnti, sh).to(device)]
-          if 'vae' not in args.type:
-              models=net_models
+          models = [network.network(device, arg, arg.layers_dict, arg.lnti, fout=fout, sh=sh).to(device)]
+
 
   lr=args.lr
   network_flag=args.network
   
   if (ARGS[0]==args):
       fout.write('Printing Args from read in model and input args\n')
-      fout.write(str(ARGS[0]) + '\n')
+      pprint.pprint(vars(ARGS[0]),fout)
+      #fout.write(str(ARGS[0]) + '\n')
   else:
       fout.write('Printing Args from read-in model\n')
       fout.write(str(ARGS[0]) + '\n')
@@ -89,69 +94,38 @@ def main_loc(par_file):
   fout.flush()
 
   if args.reinit:
-      SMS[0]['args'].fout=fout
-      lnti, layers_dict = mprep.get_network(SMS[0]['args'].layers, nf=sh[1])
-      net_model_old = network.network(device, SMS[0]['args'], layers_dict, lnti, sh=sh, first=2).to(device)
-      net_model_old.load_state_dict(SMS[0]['model.state.dict'])
-      net_model=models[0]
-      copy_from_old_to_new(net_model_old, net_model, args, fout)
-
-      model_out=train_model(net_model, args, EX_FILES[0], DATA, fout)
-
-      if (args.embedd and args.hid_layers is not None):
-          if args.hid_dataset is not None:
-              print('getting:'+args.hid_dataset)
-              DATA = mprep.get_data_pre(args, args.hid_dataset)
-              pre_train_new(net_model,DATA,args,device,fout)
+      copy_from_old_to_new(models[0], args, fout, SMS[0], device, sh)
+      train_model(models[0], args, EX_FILES[0], DATA, fout)
+      model_out=models[0]
+      if args.embedd:
+              pre_train_new(model_out,args,device,fout, data=None)
 
   elif args.run_existing:
 
       if args.sample:
-          model=models[0]
-          model.load_state_dict(SMS[0]['model.state.dict'])
-          aux.make_images(DATA[2],model,EX_FILES[0],args)
+          models[0].load_state_dict(SMS[0]['model.state.dict'])
+          aux.make_images(DATA[2],models[0],EX_FILES[0],args)
       elif network_flag:
           if 'vae' in args.type:
-              model = models[0]
-              model.load_state_dict(SMS[0]['model.state.dict'])
-              dat, HVARS = aux.prepare_recons(model, DATA, args,fout)
+              models[0].load_state_dict(SMS[0]['model.state.dict'])
               if args.hid_layers is not None:
-                  pre_train_new(args, HVARS[0], HVARS[2], device, fout)
+                  pre_train_new(models[0], args, device, fout, data=DATA)
           elif args.embedd:
-              args.type='net'
-              args.lr=lr
-              net_model=net_models[0]
-              net_model.load_state_dict(SMS[0]['model.state.dict'])
-              #cc=net_model.get_binary_signature(DATA[0])
-              net_model.embedd_layer = args.embedd_layer
-              pre_train_new(net_model,DATA,args,device, fout)
+              models[0].load_state_dict(SMS[0]['model.state.dict'])
+              models[0].embedd_layer = args.embedd_layer
+              pre_train_new(models[0],args,device, fout)
           else: # Test a sequence of models
-              if args.layers is not None and not args.rerun:
-                  args.type='net'
-                  test_models(ARGS,SMS,DATA[2],net_models, fout)
+              test_models(ARGS,SMS,DATA[2],models, fout)
 
   else: # Totally new network
       if 'vae' in args.type:
           train_model(models[0], args, EX_FILES[0], DATA, fout)
-          dat,HVARS=aux.prepare_recons(models[0],DATA,args,fout)
-          if args.hid_layers is not None:
-                  pre_train_new(args, HVARS[0], HVARS[2], device)
+          pre_train_new(models[0], args, device, fout, data=DATA)
       else:
-          net_model=net_models[0]
-          model_out=train_model(net_model,args,EX_FILES[0],DATA,fout)
-          if args.model_out is not None:
-            ss=args.model_out+'.pt'
-          else:
-            ss='network.pt'
-          #torch.save({'args': args,
-          #          'model.state.dict': model.state_dict()}, '/ME/My Drive/Colab Notebooks/STVAE/_output/'+ss)
+          train_model(models[0],args,EX_FILES[0],DATA,fout)
           if args.embedd:
-              if args.hid_layers is not None:
-                  print('getting:' + args.hid_dataset)
-                  args.num_train=args.network_num_train
-                  DATA = mprep.get_data_pre(args, args.hid_dataset)
-                  pre_train_new(net_model,DATA,args,device, fout)
-
+                  res=pre_train_new(models[0],args,device, fout)
+      model_out=models[0]
 
 
   print('DONE')

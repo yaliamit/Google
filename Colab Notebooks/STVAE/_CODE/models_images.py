@@ -4,9 +4,13 @@ import os
 from imageio import imsave
 from scipy import ndimage
 
-def make_images(test,model,ex_file,args):
+def make_images(test,model,ex_file,args, datadirs=""):
 
     if (True):
+
+        if not os.path.isdir(datadirs+'_Images'):
+            os.system('mkdir '+datadirs+'_Images')
+        ex_file=datadirs+'_Images/'+ex_file
         old_bsz=model.bsz
         model.bsz = 100
         model.setup_id(model.bsz)
@@ -56,10 +60,7 @@ def create_image(XX, model, ex_file):
 
     img=create_img(XX,model.input_channels,model.h,model.w)
 
-
-    if not os.path.isdir('_Images'):
-        os.system('mkdir _Images')
-    imsave('_Images/'+ex_file+'.png', np.uint8(img*255))
+    imsave(ex_file+'.png', np.uint8(img*255))
 
     #print("Saved the sampled images")
 

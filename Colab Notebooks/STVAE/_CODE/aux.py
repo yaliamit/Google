@@ -1,4 +1,5 @@
-
+import torch
+import numpy as np
 
 def process_args(parser):
     parser.add_argument('--fa', type=int, default=0, help='Type of weight feedback - 0 - bp, 1-fixed, 2-urfb')
@@ -23,8 +24,6 @@ def process_args(parser):
     parser.add_argument('--tps_num', type=int, default=3, help='dimension of s')
     parser.add_argument('--sdim', type=int, default=26, help='dimension of s')
     parser.add_argument('--hdim', type=int, default=256, help='dimension of h')
-    parser.add_argument('--hdim_dec',type=int, default=None, help='dims of decoder')
-    parser.add_argument('--num_hlayers', type=int, default=0, help='number of hlayers')
     parser.add_argument('--nepoch', type=int, default=40, help='number of training epochs')
     parser.add_argument('--gpu', type=int, default=1, help='whether to run in the GPU')
     parser.add_argument('--seed', type=int, default=1111, help='random seed (default: 1111)')
@@ -68,6 +67,8 @@ def process_args(parser):
     parser.add_argument('--opt_jump', type=int, default=1, help='dimension of part')
     parser.add_argument('--network', action='store_true', help='classification network')
     parser.add_argument('--CONS', action='store_true', help='Output to consol')
+    parser.add_argument('--layerwise', action='store_true', help='Output to consol')
+    parser.add_argument('--hinge', action='store_true', help='Output to consol')
     parser.add_argument('--sample', action='store_true', help='sample from distribution')
     parser.add_argument('--classify', action='store_true', help='Output to consol')
     parser.add_argument('--Diag', action='store_true', help='Output to consol')
@@ -78,7 +79,7 @@ def process_args(parser):
     parser.add_argument('--del_last', action='store_true', help='dont update classifier weights')
     parser.add_argument('--sep', action='store_true', help='Output to consol')
     parser.add_argument('--embedd', action='store_true', help='embedding training')
-    parser.add_argument('--embedd_mult', action='store_true', help='embedding training')
+    parser.add_argument('--embedd_type', default='new', help='embedding cost type')
     parser.add_argument('--embedd_layer', default=None, help='embedding layer')
     parser.add_argument('--reinit', action='store_true', help='reinitialize part of trained model')
     parser.add_argument('--only_pi', action='store_true', help='only optimize over pi')
@@ -94,6 +95,42 @@ def process_args(parser):
 
 
 
+    def get_binary_signature(model,inp1, inp2=None, lays=[]):
+
+        num_tr1=inp1[0].shape[0]
+        OT1=[];
+        with torch.no_grad():
+            for j in np.arange(0, num_tr1, model.bsz, dtype=np.int32):
+                data=(torch.from_numpy(inp1[0][j:j + model.bsz]).float()).to(model.dv)
+                out,ot1=model.forward(data,everything=True)
+                OTt=[]
+                for l in lays:
+                    OTt+=[ot1[l].reshape(model.bsz,-1)]
+                OT1+=[torch.cat(OTt,dim=1)]
+
+            OT1 = torch.cat(OT1)
+            qq1=2*(OT1.reshape(num_tr1,-1)>0).type(torch.float32)-1.
+
+            if inp2 is not None:
+                OT2 = []
+                num_tr2=inp2[0].shape[0]
+                for j in np.arange(0, num_tr2, model.bsz, dtype=np.int32):
+                    data = (torch.from_numpy(inp2[0][j:j + model.bsz]).float()).to(model.dv)
+                    out, ot2 = model.forward(data, everything=True)
+                    OTt = []
+                    for l in lays:
+                        OTt += [ot2[l].reshape(model.bsz, -1)]
+                    OT2 += [torch.cat(OTt,dim=1)]
+                OT2=torch.cat(OT2)
+                qq2=2*(OT2.reshape(num_tr2,-1)>0).type(torch.float32)-1.
+            else:
+                qq2=qq1
+
+            cc=torch.mm(qq1,qq2.transpose(0,1))/qq1.shape[1]
+            if inp2 is None:
+                cc-=torch.diag(torch.diag(cc))
+            ##print('CC',torch.sum(cc==1.).type(torch.float32)/num_tr1)
+            return cc
 
 
 

@@ -79,7 +79,6 @@ class iden_copy(nn.Module):
 class encoder_mix(nn.Module):
     def __init__(self,model):
         super(encoder_mix,self).__init__()
-        self.num_layers=model.num_hlayers
         self.n_mix=model.n_mix
         self.x_dim=model.x_dim
 
@@ -87,43 +86,36 @@ class encoder_mix(nn.Module):
         self.feats_back=model.feats_back
         self.only_pi=model.only_pi
 
-        if (self.num_layers==1):
-            self.h2he = nn.Linear(model.h_dim, model.h_dim)
-
-
         if not self.only_pi:
             self.x2hpi = nn.Linear(model.x_dim, model.h_dim)
         self.h2smu = nn.Linear(model.h_dim, model.s_dim * model.n_mix)
         self.h2svar = nn.Linear(model.h_dim, model.s_dim * model.n_mix, bias=False)
         if not self.only_pi:
             self.h2pi = nn.Linear(model.h_dim, model.n_mix)
-        #if (model.feats and self.feats_back):
-        #    self.conv=model.conv
-        if hasattr(model,'enc_conv'):
-            self.enc_conv=model.enc_conv
-        else:
-            self.x2h = nn.Linear(model.x_dim, model.h_dim)
+
+        self.enc_conv=model.enc_conv
+
+        self.x2h = nn.Linear(model.x_dim, model.h_dim)
 
     def forward(self,inputs):
         pi=None
-        if hasattr(self,'enc_conv'):
-            out=self.enc_conv.forw(inputs)
-            h=out.reshape(-1, self.x_dim)
-            if not self.only_pi:
-                hpi = F.relu(self.x2hpi(h))
-        else:
-            inputs=inputs.reshape(-1,self.x_dim)
-            h = F.relu(self.x2h(inputs))
-            if not self.only_pi:
-                hpi = F.relu(self.x2hpi(inputs))
 
-        if (self.num_layers == 1):
-            h = F.relu(self.h2he(h))
+        # Run the predesigned network could be just the input
+        out=self.enc_conv.forw(inputs)
+        inputs=out.reshape(-1, self.x_dim)
+
+        # One more fully connected layer
+        h = F.relu(self.x2h(inputs))
+        if not self.only_pi:
+            hpi = F.relu(self.x2hpi(inputs))
+        # Then connect to means and variances
         s_mu = self.h2smu(h)
         s_logvar = F.threshold(self.h2svar(h), -6, -6)
+
         if not self.only_pi:
             hm = self.h2pi(hpi).clamp(-10., 10.)
             pi = torch.softmax(hm, dim=1)
+
         return s_mu, s_logvar, pi
 
 
@@ -139,16 +131,15 @@ class decoder_mix(nn.Module):
         self.n_mix=model.n_mix
         self.z_dim=model.z_dim
         self.h_dim=model.h_dim
-        self.h_dim16=np.int32(model.h_dim/16)
         self.u_dim=model.u_dim
         self.x_dim=model.x_dim
+        self.final_shape=model.final_shape
         self.feats=model.feats
         self.feats_back=model.feats_back
         self.type=model.type
-        self.hdim_dec=args.hdim_dec
         self.output_cont = model.output_cont
-        self.num_hlayers=args.num_hlayers
-        h_dim_a = self.h_dim if args.hdim_dec is None else self.hdim_dec
+
+        h_dim_a = self.h_dim
 
         # Full or diagonal normal dist of next level after sample.
 
@@ -164,14 +155,13 @@ class decoder_mix(nn.Module):
         self.z2h = nn.ModuleList([Linear(self.z_dim, h_dim_a,scale=args.scale) for i in range(self.n_mix)])
         self.bnh = nn.Identity() #BatchNorm1d(h_dim_a)
 
-        num_hs=1 if args.hdim_dec is None else self.n_mix
+        num_hs=1
 
-        if hasattr(model,'enc_conv'):
-            self.enc_conv=model.enc_conv
-        else:
-            self.h2x = nn.ModuleList([nn.Linear(h_dim_a, self.x_dim) for i in range(num_hs)])
-            if (self.num_hlayers == 1):
-                self.h2hd = nn.ModuleList([nn.Linear(h_dim_a, h_dim_a) for i in range(num_hs)])
+
+        self.enc_conv=model.enc_conv
+
+        self.h2x = nn.ModuleList([nn.Linear(h_dim_a, self.x_dim) for i in range(num_hs)])
+
 
     def forward(self, s, rng=None):
 
@@ -188,24 +178,14 @@ class decoder_mix(nn.Module):
 
         h=torch.stack(h,dim=0)
         h=F.relu(h)
-
-        if (self.num_hlayers == 1):
-            hh = []
-            for h_, r in zip(h, rng):
-                r_ind = 0 if self.hdim_dec is None else r
-                hh = hh + [self.h2hd[r_ind](h_)]
-            h = torch.stack(hh, dim=0)
-            h = F.relu(h)
-
         x = []
+
         for h_, r in zip(h, rng):
-            r_ind = 0 if self.hdim_dec is None else r
-            if hasattr(self,'enc_conv'):
-                    xx=h_.reshape(h_.shape[0],self.h_dim16,4,4)
-                    xx=self.enc_conv.bkwd(xx)
-                    xx = xx.reshape(xx.shape[0],-1)
-            else:
-                xx = self.h2x[r_ind](h_)
+            r_ind = 0
+            xx = self.h2x[r_ind](h_)
+            xx=xx.reshape([-1]+list(self.final_shape))
+            xx=self.enc_conv.bkwd(xx)
+            xx = xx.reshape(xx.shape[0],-1)
             x += [xx]
 
         xx = torch.stack(x, dim=0)

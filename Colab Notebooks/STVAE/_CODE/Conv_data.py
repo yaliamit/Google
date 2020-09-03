@@ -227,8 +227,12 @@ def get_cifar(PARS):
 def get_letters(PARS):
 
     data_set=PARS['data_set']
-    if 'Linux' in os.uname():
-        pre = '/ME/My Drive/LSDA_data/mnist/'
+    aa=os.uname()
+    if 'Linux' in aa:
+        if 'bernie' in aa[1]:
+            pre=''
+        else:
+            pre = '/ME/My Drive/LSDA_data/mnist/'
     else:
         pre = '/Users/amit/Google Drive/LSDA_data/mnist/'
 
@@ -247,8 +251,8 @@ def get_letters(PARS):
     if PARS['nval']:
         val_data=train_data[-PARS['nval']:]
         train_data=train_data[:-PARS['nval']]
-        val_labels=train_labels[-PARS['nval']]
-        train_labels=train_labels[-PARS['nval']]
+        val_labels=train_labels[-PARS['nval']:]
+        train_labels=train_labels[:-PARS['nval']]
 
     return (train_data, train_labels), (val_data, val_labels), (test_data, test_labels)
 

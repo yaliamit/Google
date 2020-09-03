@@ -13,12 +13,12 @@ from torch.utils.cpp_extension import load
 if 'Linux' in os.uname():
     from google.colab import drive
     drive.mount('/ME')
-    predir='/ME/My Drive/'
+    predirq='/ME/My Drive/'
 else:
-    predir='/Users/amit/Google Drive/'
+    predirq='/Users/amit/Google Drive/'
 
 
-datadirs=predir+'Colab Notebooks/STVAE/_CODE/'
+datadirs=predirq+'Colab Notebooks/STVAE/_CODE/'
 if 'Linux' in os.uname():
     cudnn_convolution = load(name="cudnn_convolution", sources=[datadirs + "cudnn_convolution.cpp"], verbose=True)
 
@@ -29,7 +29,7 @@ class FALinearFunc(Function):
     # Note that both forward and backward are @staticmethods
     @staticmethod
     # bias is an optional argument
-    def forward(ctx, input, weight, weight_fb, bias=None, fa=0):
+    def forward(ctx, input, weight, weight_fb, bias=True, fa=0):
         ctx.save_for_backward(input, weight, weight_fb, bias)
         ctx.fa=fa
         output = input.mm(weight.t())
@@ -111,7 +111,7 @@ class FAConv2dFunc(Function):
 
     # Note that both forward and backward are @staticmethods
     @staticmethod
-    def forward(ctx, input, weight, weight_fb, bias=None, stride=1, padding=0, dilation=1, groups=1, fa=0, device='cpu'):
+    def forward(ctx, input, weight, weight_fb, bias=True, stride=1, padding=0, dilation=1, groups=1, fa=0, device='cpu'):
         ctx.save_for_backward(input, weight, weight_fb, bias) # Add weight for backward
         ctx.stride = stride
         ctx.padding = padding 
@@ -153,7 +153,7 @@ class FAConv2dFunc(Function):
             #print('grad1',time.time()-t1)
         if ctx.needs_input_grad[1]:
              #t3=time.time()
-            if ctx.device=='cpu':
+            if ctx.device.type=='cpu':
                 grad_weight = torch.nn.grad.conv2d_weight(input, weight.shape, grad_output, stride, padding, dilation, groups)
             else:
                 grad_weight = cudnn_convolution.convolution_backward_weight(input, weight.shape, grad_output, stride,

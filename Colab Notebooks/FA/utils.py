@@ -1,18 +1,15 @@
-from torch.utils.data import sampler
-import torchvision.datasets as dset
-import torchvision.transforms as T
 import numpy as np
 import torch
 from torch import nn
-from Conv_data import get_data
 from pprint import pprint
 import matplotlib.pyplot as plt
 import time
+import os
 
 class hinge_loss(nn.Module):
     def __init__(self, mu=1., num_class=10):
         super(hinge_loss, self).__init__()
-        self.fac = mu/num_class
+        self.fac = mu/(num_class-1)
         self.ee = torch.eye(num_class)
 
     def forward(self, input, target):
@@ -23,53 +20,13 @@ class hinge_loss(nn.Module):
         loss /= input.shape[0]
         return loss
 
-
-class brelu(nn.Module):
-
-  def __init__(self, min=0., max=1.):
-        super(brelu, self).__init__()
-        self.min=min
-        self.max=max
-
-  def forward(self,input):
-
-    out=torch.clamp(input,self.min,self.max)
-
-    return out
-
-def get_cifar10_man(datapath, num_train):
-
-    trainset = dset.CIFAR10(root=datapath, train=True, download=True)
-    train_dat = (trainset.data.transpose(0,3,1,2)/255-0.5)/0.5
-    train_tar = np.array(trainset.targets)
-
-    testset = dset.CIFAR10(root=datapath, train=False, download=True)
-    test_dat = (testset.data.transpose(0,3,1,2)/255-0.5)/0.5
-    test_tar = np.array(testset.targets)
-    
-    return train_dat[:num_train], train_tar[:num_train], train_dat[num_train:], train_tar[num_train:], test_dat, test_tar
-
-def get_data_rega():
-    PARS = {}
-    PARS['data_set'] = 'cifar10'
-    PARS['nval'] = 5000
-    PARS['num_train'] = 50000
-    data = get_data(PARS)
-    data = data[0] + data[1] + data[2]
-    data = [data[0].transpose(0, 3, 1, 2), np.argmax(data[1], axis=1), data[2].transpose(0, 3, 1, 2),
-            np.argmax(data[3], axis=1), data[4].transpose(0, 3, 1, 2), np.argmax(data[5], axis=1)]
-
-    return data
-
-
-def show_results(pars, savepath, sho=False):
+def show_results(pars, savepath, LW,sho=False):
   EXP_NAME='FA_{}_layerwise_{}_OPT_{}_CR_{}'.format(str(pars.fa),str(pars.layerwise),
                                                     pars.OPT,pars.CR)
   fig=plt.figure()
-  lw_loss=np.load(savepath+'loss_'+EXP_NAME+'.npy')
-  lw_acc=np.load(savepath+'val.acc_'+EXP_NAME+'.npy')
-  lw_test_acc=np.load(savepath+'te.acc_'+EXP_NAME+'.npy')
-  print(lw_test_acc)
+  lw_loss=LW[0] #np.load(savepath+'loss_'+EXP_NAME+'.npy')
+  lw_acc=LW[1] #np.load(savepath+'val.acc_'+EXP_NAME+'.npy')
+  lw_test_acc=LW[2] #np.load(savepath+'te.acc_'+EXP_NAME+'.npy')
 
   if pars.layerwise:
     for i in range(pars.NUM_LAYERS):
@@ -78,13 +35,13 @@ def show_results(pars, savepath, sho=False):
     i=0
     plt.plot(lw_acc[(i*pars.epochs):((i+1)*pars.epochs)],label='Layer'+str(pars.NUM_LAYERS-1))
   lw_min=np.min(lw_acc)
-  print(lw_min)
+
   plt.legend()
   plt.text(10,lw_min,'test_acc:'+str(lw_test_acc))
   plt.title(EXP_NAME)
   plt.xlabel('Epoch')
   plt.ylabel('Accuracy')
-  plt.savefig(savepath+'img/acc_'+EXP_NAME+'.jpg')
+  plt.savefig(savepath+'acc_'+EXP_NAME+'.jpg')
   if sho:
     fig.show()
   fig=plt.figure()
@@ -97,13 +54,13 @@ def show_results(pars, savepath, sho=False):
   plt.legend()
   plt.xlabel('Epoch')
   plt.ylabel('Loss')
-  plt.savefig(savepath+'img/loss_'+EXP_NAME+'.jpg')
+  plt.savefig(savepath+'loss_'+EXP_NAME+'.jpg')
   if sho:
     fig.show()
 
 
 def run_net(data, pars, savepath):
-    pprint(vars(pars))
+    pprint(vars(pars), stream=pars.fout)
 
     EXP_NAME = 'FA_{}_layerwise_{}_OPT_{}_CR_{}'.format(str(pars.fa), str(pars.layerwise),
                                                         pars.OPT, pars.CR)
@@ -115,14 +72,15 @@ def run_net(data, pars, savepath):
     lw_test_acc = []
 
     for i in range(pars.START_LAYER, pars.NUM_LAYERS):
-        lri = i if pars.layerwise else 0
-        net, fix, layer = pars.get_net(lri, pars, fix, pars.layer_pars)
+
+        pars.i = i
+        net, fix, layer = pars.get_net(pars, fix, pars.layer_pars)
 
         if pars.layerwise or i == pars.NUM_LAYERS - 1:
-            print('LAYER:%d' % i)
-            print(fix)
-            print(net)
-            print(pars.optimizer)
+            pars.fout.write('LAYER:%d\n' % i)
+            print(fix, file=pars.fout)
+            print(net,file=pars.fout)
+            print(pars.optimizer, file=pars.fout)
             train_model(data, fix, net, pars, ep_loss=lw_loss, ep_acc=lw_acc)
             test_acc = check_accuracy(data[4], data[5], fix, net, pars)
             print('Layer: %d, te.acc = %.4f' % (i, test_acc))
@@ -130,9 +88,8 @@ def run_net(data, pars, savepath):
         fix.add_module('layer%d' % i, layer)
         print()
 
-    np.save(savepath + 'loss_' + EXP_NAME, lw_loss)
-    np.save(savepath + 'val.acc_' + EXP_NAME, lw_acc)
-    np.save(savepath + 'te.acc_' + EXP_NAME, lw_test_acc)
+    return [lw_loss, lw_acc, lw_test_acc]
+
 
 
 
@@ -156,10 +113,12 @@ def train_model(data, fix, model, pars, ep_loss, ep_acc):
     for e in range(pars.epochs):
         t1=time.time()
         for j in np.arange(0,len(train_tar),pars.batch_size):
+            #t2=time.time()
 
             model.train()  # put model to training mode
             x = torch.from_numpy(train_dat[j:j+pars.batch_size]).to(device=device, dtype=dtype)  # move to device, e.g. GPU
             y = torch.from_numpy(train_tar[j:j+pars.batch_size]).to(device=device, dtype=torch.long)
+            #print('dat', time.time() - t2)
             if pars.layerwise:
               with torch.no_grad():
                   x1 = fix(x)
@@ -172,6 +131,7 @@ def train_model(data, fix, model, pars, ep_loss, ep_acc):
             # will update.
             pars.optimizer.zero_grad()
 
+            #t2 = time.time()
             # This is the backwards pass: compute the gradient of the loss with
             # respect to each  parameter of the model.
             loss.backward()
@@ -179,14 +139,15 @@ def train_model(data, fix, model, pars, ep_loss, ep_acc):
             # Actually update the parameters of the model using the gradients
             # computed by the backwards pass.
             pars.optimizer.step()
+            #print('batch',time.time()-t2)
 
-            #if t % print_every == 0:
+
         acc = check_accuracy(val_dat, val_tar, fix, model, pars)
-        print('Epoch %d, loss = %.4f, val.acc = %.4f, time=%.2f' % (e, loss.item(), acc, t1-time.time()))
+        print('Epoch %d, loss = %.4f, val.acc = %.4f, time=%.2f\n' % (e, loss.item(), acc, time.time()-t1), file=pars.fout)
 
         ep_loss.append(loss.item())
         ep_acc.append(acc)
-        print()
+        pars.fout.flush()
 
 
 def check_accuracy(dat, tar, fix, model, pars): # mode = 'val' or 'test'
@@ -206,5 +167,4 @@ def check_accuracy(dat, tar, fix, model, pars): # mode = 'val' or 'test'
             num_correct += (preds == y).sum()
             num_samples += preds.size(0)
         acc = float(num_correct) / num_samples
-        #print('Got %d / %d correct (%.2f)' % (num_correct, num_samples, 100 * acc))
     return acc
