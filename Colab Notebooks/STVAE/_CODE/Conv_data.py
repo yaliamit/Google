@@ -9,6 +9,18 @@ import scipy.ndimage
 import pylab as py
 import matplotlib.colors as col
 
+def get_pre():
+    aa=os.uname()
+    if 'Linux' in aa:
+        if 'bernie' in aa[1]:
+            pre='/home/amit/Google/'
+        else:
+            pre = '/ME/My Drive/LSDA_data/'
+    else:
+        pre = '/Users/amit/Google Drive/LSDA_data/'
+
+    return pre
+
 def rotate_dataset_rand(X,angle=0,scale=0,shift=0,gr=0,flip=False,blur=False,saturation=False, spl=None):
     # angle=NETPARS['trans']['angle']
     # scale=NETPARS['trans']['scale']
@@ -142,12 +154,10 @@ def load_dataset(pad=0,nval=10000, F=False):
         # The labels are vectors of integers now, that's exactly what we want.
         return data
 
+    pre=get_pre()
     # We can now download and read the training and test set images and labels.
-    if 'Linux' in os.uname():
-        pre='/ME/My Drive/LSDA_data/mnist/'
-    else:
-        pre='/Users/amit/Desktop/Dropbox/Python/MNIST/'
-    fold=''
+
+    fold='mnist/'
     
     X_train = load_mnist_images(pre+fold+'train-images-idx3-ubyte.gz')
     y_train = load_mnist_labels(pre+fold+'train-labels-idx1-ubyte.gz')
@@ -194,10 +204,8 @@ def get_mnist(PARS):
 def get_cifar(PARS):
 
     data_set=PARS['data_set']
-    if 'Linux' in os.uname():
-        pre = '/ME/My Drive/LSDA_data/CIFAR/'
-    else:
-        pre = '/Users/amit/Google Drive/LSDA_data/CIFAR/'
+    pre=get_pre()+'/CIFAR/'
+
     filename = pre+data_set+'_train.hdf5'
     print(filename)
     f = h5py.File(filename, 'r')
@@ -227,14 +235,7 @@ def get_cifar(PARS):
 def get_letters(PARS):
 
     data_set=PARS['data_set']
-    aa=os.uname()
-    if 'Linux' in aa:
-        if 'bernie' in aa[1]:
-            pre=''
-        else:
-            pre = '/ME/My Drive/LSDA_data/mnist/'
-    else:
-        pre = '/Users/amit/Google Drive/LSDA_data/mnist/'
+    pre=get_pre()+'mnist/'
 
     filename = data_set+'.npy'
     print(filename)
