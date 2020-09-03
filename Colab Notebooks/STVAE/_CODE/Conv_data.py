@@ -15,9 +15,9 @@ def get_pre():
         if 'bernie' in aa[1]:
             pre='/home/amit/Google/'
         else:
-            pre = '/ME/My Drive/LSDA_data/'
+            pre = '/ME/My Drive/'
     else:
-        pre = '/Users/amit/Google Drive/LSDA_data/'
+        pre = '/Users/amit/Google Drive/'
 
     return pre
 
@@ -154,7 +154,7 @@ def load_dataset(pad=0,nval=10000, F=False):
         # The labels are vectors of integers now, that's exactly what we want.
         return data
 
-    pre=get_pre()
+    pre=get_pre()+'LSDA_data/'
     # We can now download and read the training and test set images and labels.
 
     fold='mnist/'
@@ -204,7 +204,7 @@ def get_mnist(PARS):
 def get_cifar(PARS):
 
     data_set=PARS['data_set']
-    pre=get_pre()+'/CIFAR/'
+    pre=get_pre()+'LSDA_data/CIFAR/'
 
     filename = pre+data_set+'_train.hdf5'
     print(filename)
@@ -235,7 +235,7 @@ def get_cifar(PARS):
 def get_letters(PARS):
 
     data_set=PARS['data_set']
-    pre=get_pre()+'mnist/'
+    pre=get_pre()+'LSDA_data/mnist/'
 
     filename = data_set+'.npy'
     print(filename)

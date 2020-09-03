@@ -7,18 +7,15 @@ from torch.nn.modules.conv import _ConvNd
 from torch.nn.modules.utils import _pair
 import math,os
 from torch.utils.cpp_extension import load
+from Conv_data import get_pre
 
 
 
-if 'Linux' in os.uname():
-    from google.colab import drive
-    drive.mount('/ME')
-    predirq='/ME/My Drive/'
-else:
-    predirq='/Users/amit/Google Drive/'
 
 
-datadirs=predirq+'Colab Notebooks/STVAE/_CODE/'
+pre=get_pre()
+
+datadirs=pre+'Colab Notebooks/STVAE/_CODE/'
 if 'Linux' in os.uname():
     cudnn_convolution = load(name="cudnn_convolution", sources=[datadirs + "cudnn_convolution.cpp"], verbose=True)
 
