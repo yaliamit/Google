@@ -13,7 +13,7 @@ def get_pre():
     aa=os.uname()
     if 'Linux' in aa:
         if 'bernie' in aa[1]:
-            pre='/home/amit/Google/'
+            pre='/home/amit/ga/Google/'
         else:
             pre = '/ME/My Drive/'
     else:
