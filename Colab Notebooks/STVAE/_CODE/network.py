@@ -336,21 +336,7 @@ class network(nn.Module):
         targ=torch.zeros(cc.shape[0]).to(self.dv)
         targ[0:cc.shape[0]:(COV.shape[0]+1)]=1
         loss=self.crit(cc,targ)
-        #COV1 = torch.mm(out1a, out1a.transpose(0, 1))
-        #COV0 = torch.mm(out0a, out0a.transpose(0, 1))
-        # Diagonals of covariances.
-        #v0 = torch.diag(torch.diag(COV0))
-        #v1 = torch.diag(torch.diag(COV1))
-        #v = torch.diag(torch.diag(COV))
 
-        # Likelihood of N positives and all the other negative pairs.
-        #lecov = torch.log(1 + torch.exp(COV)) - v
-        # Additional negative pairs.
-        #lecov += torch.log(1 + torch.exp(COV0 - v0))
-        #lecov += torch.log(1 + torch.exp(COV1 - v1))
-
-        #loss = torch.mean(lecov)
-        # Accuracy
 
         icov = cc * (2.*targ-1.)
         acc = torch.sum((icov > 0).type(torch.float)) / self.bsz
@@ -364,22 +350,26 @@ class network(nn.Module):
         COV=torch.mm(out0a,out1a.transpose(0,1))
         COV1 = torch.mm(out1a, out1a.transpose(0, 1))
         COV0 = torch.mm(out0a,out0a.transpose(0,1))
-        v0=torch.diag(COV0)
-        v1=torch.diag(COV1)
-        v = torch.diag(COV)
-        lecov=torch.log(torch.exp(torch.logsumexp(COV,dim=1))+torch.exp(torch.logsumexp(COV0-torch.diag(v0),dim=1)))
-        lecov+=torch.log(torch.exp(torch.logsumexp(COV,dim=1))+torch.exp(torch.logsumexp(COV1-torch.diag(v1),dim=1)))
-        lecov=.5*(lecov)-v
-        #lecov=torch.sum(torch.log(1+torch.exp(COV)), dim=1) - v
-        #va = torch.diag(COVA)
-        #lecov += torch.sum(torch.log(1+torch.exp(COVA-va)), dim=1)
-        loss=torch.sum(lecov) #/self.bsz
+        vb=(torch.eye(self.bsz)*1e10).to(self.dv)
+
+        cc = torch.cat((COV, COV0 - vb), dim=1)
+        targ = torch.arange(self.bsz).to(self.dv)
+        l1 = self.criterion(cc, targ)
+        cc = torch.cat((COV.T, COV1 - vb), dim=1)
+        l2 = self.criterion(cc, targ)
+        loss =  (l1 + l2) / 2
+
+
+
+        #
+        # v = torch.diag(COV)
+        # lecov=torch.log(torch.exp(torch.logsumexp(COV,dim=1))+torch.exp(torch.logsumexp(COV0-vb,dim=1)))
+        # lecov+=torch.log(torch.exp(torch.logsumexp(COV,dim=0))+torch.exp(torch.logsumexp(COV1-vb,dim=1)))
+        # lecov=.5*(lecov)-v
+        #loss=torch.sum(lecov) #/self.bsz
+
         ID=2.*torch.eye(out0.shape[0]).to(self.dv)-1.
         icov=ID*COV
-        #acc1 = torch.sum((torch.diag(icov)>0).type(torch.float))
-        #acc2 = torch.sum((icov>0).type(torch.float)) - acc1
-        #print(acc1, acc2)
-        #acc0 = (acc1 + acc2) / self.bsz
 
         acc=torch.sum((icov>0).type(torch.float))/self.bsz
         return loss,acc

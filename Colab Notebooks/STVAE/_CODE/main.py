@@ -8,6 +8,7 @@ import argparse
 import aux
 from get_net_text import get_network
 import pprint
+from Conv_data import get_pre
 import torch
 
 def copy_from_old_to_new(model, args, fout, SMS, device, sh):
@@ -32,10 +33,8 @@ def copy_from_old_to_new(model, args, fout, SMS, device, sh):
 
 def main_loc(par_file, device):
 
-  if 'Linux' in os.uname():
-        predir = '/ME/My Drive/'
-  else:
-        predir = '/Users/amit/Google Drive/'
+  predir=get_pre()
+
 
   datadirs = predir + 'Colab Notebooks/STVAE/'
   model_out=None
