@@ -77,7 +77,7 @@ class network(nn.Module):
             self.criterion=hinge_loss(num_class=args.num_class)
         else:
             self.criterion=nn.CrossEntropyLoss()
-        self.crit=nn.BCEWithLogitsLoss(pos_weight=torch.tensor(500.))
+        #self.crit=nn.BCEWithLogitsLoss(pos_weight=torch.tensor(500.))
 
         if (hasattr(args,'perturb')):
             self.perturb=args.perturb
@@ -85,7 +85,7 @@ class network(nn.Module):
         self.idty = torch.cat((torch.eye(2), torch.zeros(2).unsqueeze(1)), dim=1)
         self.id = self.idty.expand((self.bsz,) + self.idty.size()).to(self.dv)
 
-        if sh is not None:
+        if sh is not None and self.first:
             temp = torch.zeros([1]+list(sh[1:])) #.to(device)
             # Run the network once on dummy data to get the correct dimensions.
             bb = self.forward(temp)
@@ -187,8 +187,8 @@ class network(nn.Module):
                         bis=True
                         if ('nb' in ll):
                             bis=False
-                        self.layers.add_module(ll['name'],FALinear(in_dim,out_dim,bias=bis, fa=self.fa))
-                        #self.layers.add_module(ll['name'],nn.Linear(in_dim,out_dim,bias=bis).to(self.dv))
+                        #self.layers.add_module(ll['name'],FALinear(in_dim,out_dim,bias=bis, fa=self.fa))
+                        self.layers.add_module(ll['name'],nn.Linear(in_dim,out_dim,bias=bis).to(self.dv))
 
                         if self.back:
                             self.back_layers.add_module(ll['name']+'_bk_'+'reshape',Reshape(list(OUTS[inp_ind].shape[1:])))
@@ -358,7 +358,7 @@ class network(nn.Module):
         cc=COV.flatten()
         targ=torch.zeros(cc.shape[0]).to(self.dv)
         targ[0:cc.shape[0]:(COV.shape[0]+1)]=1
-        loss=self.crit(cc,targ)
+        loss=F.binary_cross_entropy_with_logits(cc,targ,pos_weight=self.bsz.type(torch.float))
 
 
         icov = (cc-.75) * (2.*targ-1.)
