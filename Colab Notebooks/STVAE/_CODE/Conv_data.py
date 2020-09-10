@@ -14,6 +14,8 @@ def get_pre():
     if 'Linux' in aa:
         if 'bernie' in aa[1]:
             pre='/home/amit/ga/Google/'
+        elif 'midway' in aa[1]:
+            pre='/home/yaliamit/Google/'
         else:
             pre = '/ME/My Drive/'
     else:

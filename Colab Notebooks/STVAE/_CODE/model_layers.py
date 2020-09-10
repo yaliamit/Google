@@ -16,7 +16,9 @@ from Conv_data import get_pre
 pre=get_pre()
 
 datadirs=pre+'Colab Notebooks/STVAE/_CODE/'
-if 'Linux' in os.uname():
+osu=os.uname()
+
+if 'Linux' in osu[0]:
     cudnn_convolution = load(name="cudnn_convolution", sources=[datadirs + "cudnn_convolution.cpp"], verbose=True)
 
 
