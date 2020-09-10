@@ -16,8 +16,8 @@ from Conv_data import get_pre
 pre=get_pre()
 
 datadirs=pre+'Colab Notebooks/STVAE/_CODE/'
-if 'Linux' in os.uname():
-    cudnn_convolution = load(name="cudnn_convolution", sources=[datadirs + "cudnn_convolution.cpp"], verbose=True)
+#if 'Linux' in os.uname():
+#    cudnn_convolution = load(name="cudnn_convolution", sources=[datadirs + "cudnn_convolution.cpp"], verbose=True)
 
 
 ## Feedback Alignment Linear

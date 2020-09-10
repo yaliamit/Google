@@ -148,8 +148,8 @@ class network(nn.Module):
                             bis = False
                         #pd=tuple(np.int32(np.floor(np.array(ll['filter_size'])/2)))
                         pd=ll['filter_size'] // 2
-                        self.layers.add_module(ll['name'],FAConv2d(inp_feats,ll['num_filters'],ll['filter_size'],fa=self.fa,padding=pd, bias=bis, device=self.dv))
-                        #self.layers.add_module(ll['name'],nn.Conv2d(inp_feats,ll['num_filters'],ll['filter_size'],stride=1,padding=pd))
+                        #self.layers.add_module(ll['name'],FAConv2d(inp_feats,ll['num_filters'],ll['filter_size'],fa=self.fa,padding=pd, bias=bis, device=self.dv))
+                        self.layers.add_module(ll['name'],nn.Conv2d(inp_feats,ll['num_filters'],ll['filter_size'],stride=1,padding=pd))
                         if self.back:
                             self.back_layers.add_module(ll['name']+'_bk',nn.Conv2d(ll['num_filters'],inp_feats,ll['filter_size'],stride=1,padding=pd))
                     out=self.do_nonlinearity(ll,getattr(self.layers, ll['name'])(OUTS[inp_ind]))
