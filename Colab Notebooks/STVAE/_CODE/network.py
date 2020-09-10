@@ -187,8 +187,8 @@ class network(nn.Module):
                         bis=True
                         if ('nb' in ll):
                             bis=False
-                        #self.layers.add_module(ll['name'],FALinear(in_dim,out_dim,bias=bis, fa=self.fa))
-                        self.layers.add_module(ll['name'],nn.Linear(in_dim,out_dim,bias=bis).to(self.dv))
+                        self.layers.add_module(ll['name'],FALinear(in_dim,out_dim,bias=bis, fa=self.fa))
+                        #self.layers.add_module(ll['name'],nn.Linear(in_dim,out_dim,bias=bis).to(self.dv))
 
                         if self.back:
                             self.back_layers.add_module(ll['name']+'_bk_'+'reshape',Reshape(list(OUTS[inp_ind].shape[1:])))
