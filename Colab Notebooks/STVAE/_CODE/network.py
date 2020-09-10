@@ -77,20 +77,21 @@ class network(nn.Module):
             self.criterion=hinge_loss(num_class=args.num_class)
         else:
             self.criterion=nn.CrossEntropyLoss()
-        self.crit=nn.BCEWithLogitsLoss()
+        self.crit=nn.BCEWithLogitsLoss(pos_weight=torch.tensor(500.))
 
         if (hasattr(args,'perturb')):
             self.perturb=args.perturb
         self.u_dim = 6
         self.idty = torch.cat((torch.eye(2), torch.zeros(2).unsqueeze(1)), dim=1)
         self.id = self.idty.expand((self.bsz,) + self.idty.size()).to(self.dv)
+
         if sh is not None:
             temp = torch.zeros([1]+list(sh[1:])) #.to(device)
             # Run the network once on dummy data to get the correct dimensions.
             bb = self.forward(temp)
             #self.get_seq(self.dv)
             self.output_shape=bb[0].shape
-
+        self.get_scheduler(args)
     def do_nonlinearity(self,ll,out):
 
         if ('non_linearity' not in ll):
@@ -148,7 +149,7 @@ class network(nn.Module):
                         #pd=tuple(np.int32(np.floor(np.array(ll['filter_size'])/2)))
                         pd=ll['filter_size'] // 2
                         self.layers.add_module(ll['name'],FAConv2d(inp_feats,ll['num_filters'],ll['filter_size'],fa=self.fa,padding=pd, bias=bis, device=self.dv))
-                        #self.layers.add_module(ll['name'],nn.Conv2d(inp_feats,ll['num_filters'],ll['filter_size'],stride=1,padding=pd).to(self.dv))
+                        #self.layers.add_module(ll['name'],nn.Conv2d(inp_feats,ll['num_filters'],ll['filter_size'],stride=1,padding=pd))
                         if self.back:
                             self.back_layers.add_module(ll['name']+'_bk',nn.Conv2d(ll['num_filters'],inp_feats,ll['filter_size'],stride=1,padding=pd))
                     out=self.do_nonlinearity(ll,getattr(self.layers, ll['name'])(OUTS[inp_ind]))
@@ -302,7 +303,7 @@ class network(nn.Module):
         return out_a
 
     def get_embedd_loss_new(self,out0,out1):
-        thr = -2.
+        thr = 2.
         #out0=torch.tanh(out0) 
         out0=self.standardize(out0)
         #out1=torch.tanh(out1) 
@@ -313,17 +314,39 @@ class network(nn.Module):
         outd = torch.sum(torch.relu(outd) + torch.relu(-outd), dim=1)
         OUT = -outd.reshape(self.bsz, self.bsz).transpose(0, 1)
         # Multiply by y=-1/1
-        OUT=(OUT-thr)*(2.*torch.eye(self.bsz).to(self.dv)-1.)
+        OUT=(OUT+thr)*(2.*torch.eye(self.bsz).to(self.dv)-1.)
 
         loss=torch.sum(torch.relu(1-OUT))
 
-        D = torch.diag(OUT)
-        acc1=torch.sum((D>0).type(torch.float))
-        acc2=torch.sum((torch.triu(OUT,1)>0).type(torch.float))
-        acc3=torch.sum((torch.tril(OUT,-1)>0).type(torch.float))
-        acc=(acc1+acc2+acc3)/self.bsz
+
+        acc=torch.sum(OUT>0).type(torch.float)/self.bsz
 
         return loss,acc
+
+    def get_embedd_loss_new_a(self, out0, out1):
+
+        thr1=.9
+        thr2=.3
+        thr=(thr1+thr2)*.5
+        # Standardize 64 dim outputs of original and deformed images
+        out0a = self.standardize(out0)
+        out1a = self.standardize(out1)
+        # Compute 3 covariance matrices - 0-1, 0-0, 1-1.
+        #COV = torch.mm(out0a, out1a.transpose(0, 1))
+        COV = torch.mm(out0a, out1a.transpose(0, 1))
+        cc = COV.flatten()
+        targ = torch.zeros(cc.shape[0],dtype=torch.bool).to(self.dv)
+        targ[0:cc.shape[0]:(COV.shape[0] + 1)] = 1
+        cc1=torch.relu(thr1-cc[targ])
+        cc2=torch.relu(cc[targ.logical_not()]-thr2)
+        loss1=torch.sum(cc1)
+        loss2=torch.sum(cc2)
+        loss=(loss1+loss2)/(self.bsz*self.bsz)
+
+        acc = (torch.sum(cc[targ]>thr)+torch.sum(cc[targ.logical_not()]<thr)).type(torch.float) / self.bsz
+
+        return loss, acc
+
 
     def get_embedd_loss_binary(self, out0, out1):
 
@@ -338,7 +361,7 @@ class network(nn.Module):
         loss=self.crit(cc,targ)
 
 
-        icov = cc * (2.*targ-1.)
+        icov = (cc-.75) * (2.*targ-1.)
         acc = torch.sum((icov > 0).type(torch.float)) / self.bsz
 
         return loss, acc
@@ -358,15 +381,6 @@ class network(nn.Module):
         cc = torch.cat((COV.T, COV1 - vb), dim=1)
         l2 = self.criterion(cc, targ)
         loss =  (l1 + l2) / 2
-
-
-
-        #
-        # v = torch.diag(COV)
-        # lecov=torch.log(torch.exp(torch.logsumexp(COV,dim=1))+torch.exp(torch.logsumexp(COV0-vb,dim=1)))
-        # lecov+=torch.log(torch.exp(torch.logsumexp(COV,dim=0))+torch.exp(torch.logsumexp(COV1-vb,dim=1)))
-        # lecov=.5*(lecov)-v
-        #loss=torch.sum(lecov) #/self.bsz
 
         ID=2.*torch.eye(out0.shape[0]).to(self.dv)-1.
         icov=ID*COV
@@ -388,8 +402,10 @@ class network(nn.Module):
                 loss, acc = self.get_embedd_loss(out0,out1)
             elif self.embedd_type=='binary':
                 loss, acc = self.get_embedd_loss_binary(out0,out1)
-            else:
+            elif self.embedd_type=='L1dist_hinge':
                 loss, acc = self.get_embedd_loss_new(out0,out1)
+            else:
+                loss, acc = self.get_embedd_loss_new_a(out0, out1)
         else:
             out,_=self.forward(input)
             # Compute loss and accuracy
@@ -551,12 +567,13 @@ class network(nn.Module):
         return OUTA
 
     def get_scheduler(self,args):
-        scheduler = None
+        self.scheduler = None
         if args.sched>0.:
-            l2 = lambda epoch: pow((1. - 1. * epoch / args.nepoch), args.sched)
-            scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lr_lambda=l2)
+            self.scheduler=torch.optim.lr_scheduler.MultiStepLR(self.optimizer,[50,100,150,200,250,300,350],args.sched)
+            #l2 = lambda epoch: pow((1. - 1. * epoch / args.nepoch), args.sched)
+            #scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lr_lambda=l2)
 
-        return scheduler
+
 
 
 

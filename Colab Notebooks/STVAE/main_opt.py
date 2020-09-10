@@ -9,10 +9,10 @@ import pylab as py
 import torch
 import mprep as mprep
 import numpy as np
-from aux_colab import copy_to_content, seq, train_net, run_net
+from aux_colab import copy_to_content, seq, train_net, run_net, save_net
 from Conv_data import get_pre
 
-predir=get_pre
+predir=get_pre()
 # if 'Linux' in os.uname():
 #     from google.colab import drive
 #     drive.mount('/ME')
@@ -81,7 +81,9 @@ print(device.type=='cpu')
 #print("helo")
 #copy_to_content('pars_emb_cifar',predir)
 #os.system("echo --layerwise >> pars_big_cl_a.txt")
-run_net('t_par', device)
+net=run_net('pars_emb_cifar', device)
+#save_net(net,'pars_emb_cifar',predir)
+
 #exit()
 #seq('pars_emb_mnist',predir, device)
 #np.random.seed(123456)

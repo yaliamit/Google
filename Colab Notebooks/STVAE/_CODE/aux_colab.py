@@ -83,8 +83,9 @@ def save_net(net,par_file,predir):
       ss=args.model_out+'.pt'
   else:
       ss='network.pt'
+  model.to('cpu')
   torch.save({'args': args,
-        'model.state.dict': model.state_dict()}, predir+'Colab Notebooks/STVAE/_output/'+ss)
+        'model.state.dict': model.state_dict()}, predir+'Colab Notebooks/STVAE/_output/'+ss,_use_new_zipfile_serialization=False)
 
 def train_net(par_file,predir, RESULTS, device):
   net=main_loc(par_file,device)

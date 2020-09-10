@@ -26,6 +26,8 @@ def copy_from_old_to_new(model, args, fout, SMS, device, sh):
         if name in dict_params and (args.cont_training or name.split('.')[1] not in args.update_layers):
             fout.write('copying ' + name + '\n')
             dict_params[name].data.copy_(param_old.data)
+    if 'crit.pos_weight' in SMS['model.state.dict']:
+        dict_params['crit.pos_weight']=SMS['model.state.dict']['crit.pos_weight']
     model.load_state_dict(dict_params)
     return model
 
@@ -115,7 +117,7 @@ def main_loc(par_file, device):
               pre_train_new(models[0],args,device, fout)
           else: # Test a sequence of models
               test_models(ARGS,SMS,DATA[2],models, fout)
-
+      model_out=models[0]
   else: # Totally new network
       if 'vae' in args.type:
           train_model(models[0], args, EX_FILES[0], DATA, fout)

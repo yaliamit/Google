@@ -63,7 +63,7 @@ def train_model(model, args, ex_file, DATA, fout):
         valMU, valLOGVAR, valPI = model.initialize_mus(val[0], args.OPT)
         testMU, testLOGVAR, testPI = model.initialize_mus(test[0], args.OPT)
 
-    scheduler = get_scheduler(args, model)
+    #scheduler = get_scheduler(args, model)
 
     VAL_ACC=[]
     tes = [test[0], test[0], test[1]]
@@ -71,9 +71,9 @@ def train_model(model, args, ex_file, DATA, fout):
         vall=[val[0],val[0],val[1]]
     tran = [train[0], train[0], train[1]]
     for epoch in range(args.nepoch):
-
-        if (scheduler is not None):
-            scheduler.step()
+        #print('time step',model.optimizer.param_groups[0]['lr'])
+        if (model.scheduler is not None):
+            model.scheduler.step()
         t1 = time.time()
         if args.erode:
             tre = erode(args.erode, train[0])

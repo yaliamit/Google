@@ -35,7 +35,10 @@ def pre_train_new(model,args,device,fout, data=None):
     args.update_layers=None
     args.lr=args.hid_lr
     res=train_new(args,trh,teh,fout,device)
-    model.results[1]=res[0]
+    if hasattr(model, 'results'):
+        model.results[1]=res[0]
+    else:
+        model.results=[None,res]
     return res
 
 
@@ -48,7 +51,9 @@ def train_new(args,train,test,fout,device):
         yh = lg.predict(train[0])
         print("train classification", np.mean(yh==train[1]))
         yh = lg.predict(test[0])
-        print("test classification", np.mean(yh==test[1]))
+        res=np.mean(yh==test[1])
+        print("test classification", res)
+
     else:
         res=train_new_old(args, train, test, fout, device)
 
