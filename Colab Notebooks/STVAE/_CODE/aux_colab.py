@@ -4,6 +4,7 @@ from main import main_loc
 import torch
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 
 def copy_to_content(fname,predir):
   datadirs = predir + 'Colab Notebooks/STVAE/'
@@ -27,7 +28,10 @@ def copy_from_content(fname,predir):
 
 def show_results(pars, datadirs, LW,sho=False):
 
+
   savepath=datadirs+'save/'
+  if not os.path.isdir(savepath):
+      os.mkdir(savepath)
   EXP_NAME='FA_{}_layerwise_{}_hinge_{}'.format(str(pars.fa),str(pars.layerwise),str(pars.hinge))
   print(EXP_NAME)
   fig=plt.figure()
