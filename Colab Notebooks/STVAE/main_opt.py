@@ -81,6 +81,7 @@ print(device.type=='cpu')
 #print("helo")
 copy_to_content('pars_glf_cifar',predir)
 #os.system("echo --layerwise >> pars_big_cl_a.txt")
+
 net=run_net('pars_glf_cifar', device)
 #save_net(net,'pars_emb_cifar',predir)
 
