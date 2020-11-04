@@ -1,7 +1,7 @@
 --nval=0
 --type=net
 --network
---dataset=letters
+--dataset=MNIST
 --hid_dataset=MNIST
 --num_train=5000
 --network_num_train=50000
@@ -14,8 +14,6 @@
 --nval=0
 --perturb=.6
 --CONS
---embedd_type=binary
---embedd
 --embedd_layer=pool2
 --optimizer=Adam
 --hid_layers

@@ -14,7 +14,7 @@ class ENC_DEC(nn.Module):
 
 
         lnti,layers_dict = get_network(args.enc_layers)
-        self.model=network.network(device, args, layers_dict, lnti, sys.stdout, [1]+list(sh), first=2)
+        self.model=network.network(device, args, layers_dict, lnti, sys.stdout, [1]+list(sh), first=2).to(device)
         print('done')
 
 

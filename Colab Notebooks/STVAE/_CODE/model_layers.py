@@ -31,6 +31,7 @@ class FALinearFunc(Function):
     def forward(ctx, input, weight, weight_fb, bias=True, fa=0):
         ctx.save_for_backward(input, weight, weight_fb, bias)
         ctx.fa=fa
+        #print('input',input.is_cuda,'weight',weight.is_cuda)
         output = input.mm(weight.t())
         if bias is not None:
             output += bias.unsqueeze(0).expand_as(output)

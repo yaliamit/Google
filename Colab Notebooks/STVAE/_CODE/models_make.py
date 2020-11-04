@@ -70,8 +70,8 @@ def train_model(model, args, ex_file, DATA, fout):
     tran = [train[0], train[0], train[1]]
     for epoch in range(args.nepoch):
         #print('time step',model.optimizer.param_groups[0]['lr'])
-        if (model.scheduler is not None):
-            model.scheduler.step()
+        #if (model.scheduler is not None):
+        #    model.scheduler.step()
         t1 = time.time()
         if args.erode:
             tre = erode(args.erode, train[0])

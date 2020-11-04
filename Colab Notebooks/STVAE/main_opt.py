@@ -79,13 +79,16 @@ print(device.type=='cpu')
 #plt.show()
 
 #print("helo")
-copy_to_content('pars_glf_cifar',predir)
+#copy_to_content('pars_mnist',predir)
 #os.system("echo --layerwise >> pars_big_cl_a.txt")
 
-net=run_net('pars_glf_cifar', device)
-#save_net(net,'pars_emb_cifar',predir)
+#net=run_net('pars_mnist', device)
+#save_net(net,'pars_mnist',predir)
 
 #exit()
+#copy_to_content('pars_tvae_orig',predir)
+net=run_net('pars_tvae_orig', device)
+
 #seq('pars_emb_mnist',predir, device)
 #np.random.seed(123456)
 

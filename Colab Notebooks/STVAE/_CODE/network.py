@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import time
+from torch.nn.utils import spectral_norm
 import torch.nn.functional as F
 from torch import nn, optim
 import contextlib
@@ -38,6 +39,21 @@ class Reshape(nn.Module):
 
         return(out)
 
+
+class NONLIN(nn.Module):
+    def __init__(self, ll):
+        super(NONLIN, self).__init__()
+        self.type=ll['type']
+
+    def forward(self,input):
+
+        if ('HardT' in self.type):
+            return(self.HT(input))
+        elif ('tanh' in self.type):
+            return(F.tanh(input))
+        elif ('relu' in self.type):
+            return(F.relu(input))
+
 # Network module
 class network(nn.Module):
     def __init__(self, device,  args, layers, lnti, fout=None, sh=None, first=1):
@@ -63,6 +79,7 @@ class network(nn.Module):
         self.lr=args.lr
         self.layer_text=layers
         self.fa=args.fa
+        self.randomize=args.layerwise_randomize
         self.lnti=lnti
         self.HT=nn.Hardtanh(0.,1.)
         self.back=('vae' in args.type)
@@ -125,7 +142,7 @@ class network(nn.Module):
                     if len(pp)==1:
                         inp_ind=pp[0] #self.lnti[pp[0]]
                         if self.first:
-                            inp_feats=OUTS[pp[0]].shape[1] #self.layer_text[self.lnti[pp[0]]]['num_filters']
+                            inp_feats=OUTS[pp[0]].shape[1]
                             in_dim=in_dims[self.lnti[pp[0]]]
                     else:
                         inp_feats=[]
@@ -137,7 +154,6 @@ class network(nn.Module):
                                 inp_feats+=[OUTS[p].shape[1]]
                                 loc_in_dims+=[in_dims[self.lnti[p]]]
                 if ('input' in ll['name']):
-                    #if self.first or everything:
                     OUTS[ll['name']]=input
                     enc_hw=input.shape[2:4]
 
@@ -151,13 +167,21 @@ class network(nn.Module):
                             stride=ll['stride']
                         #pd=tuple(np.int32(np.floor(np.array(ll['filter_size'])/2)))
                         pd=(ll['filter_size']//stride) // 2
-                        self.layers.add_module(ll['name'],FAConv2d(inp_feats,ll['num_filters'],ll['filter_size'],stride=stride,fa=self.fa,padding=pd, bias=bis, device=self.dv))
-                        #self.layers.add_module(ll['name'],nn.Conv2d(inp_feats,ll['num_filters'],ll['filter_size'],stride=1,padding=pd))
+                        if not self.back:
+                            self.layers.add_module(ll['name'],FAConv2d(inp_feats,ll['num_filters'],ll['filter_size'],stride=stride,fa=self.fa,padding=pd, bias=bis, device=self.dv))
+                        else:
+                            self.layers.add_module(ll['name'],nn.Conv2d(inp_feats,ll['num_filters'],ll['filter_size'],stride=1,padding=pd))
                         if self.back:
-                            self.back_layers.add_module(ll['name']+'_bk',nn.Conv2d(ll['num_filters'],inp_feats,ll['filter_size'],stride=stride,padding=pd))
+                            self.back_layers.add_module(ll['name']+'_bk',nn.Conv2d(ll['num_filters'],inp_feats,ll['filter_size'],stride=1,padding=pd))
                     out=self.do_nonlinearity(ll,getattr(self.layers, ll['name'])(OUTS[inp_ind]))
-                    #if self.first or everything:
                     OUTS[ll['name']]=out
+                if 'non_linearity' in ll['name']:
+                    if self.first:
+                        self.layers.add_module(ll['name'],NONLIN(ll))
+                        if self.back:
+                            self.back_layers.add_module(ll['name']+'_bk',NONLIN(ll))
+
+                    OUTS[ll['name']] = getattr(self.layers, ll['name'])(OUTS[inp_ind])
                 if ('Avg' in ll['name']):
                     if self.first:
                         HW=(np.int32(OUTS[inp_ind].shape[2]/2),np.int32(OUTS[inp_ind].shape[3]/2))
@@ -181,7 +205,6 @@ class network(nn.Module):
                     if self.first:
                         self.layers.add_module(ll['name'],torch.nn.Dropout(p=ll['drop'], inplace=False))
                     out = getattr(self.layers, ll['name'])(OUTS[inp_ind])
-                    #if self.first or everything:
                     OUTS[ll['name']]=out
 
                 if ('dense' in ll['name']):
@@ -190,8 +213,11 @@ class network(nn.Module):
                         bis=True
                         if ('nb' in ll):
                             bis=False
-                        self.layers.add_module(ll['name'],FALinear(in_dim,out_dim,bias=bis, fa=self.fa))
-                        #self.layers.add_module(ll['name'],nn.Linear(in_dim,out_dim,bias=bis).to(self.dv))
+                        if not self.back:
+                            #self.layers.add_module(ll['name'],spectral_norm(nn.Linear(in_dim,out_dim,bias=bis)))
+                            self.layers.add_module(ll['name'],FALinear(in_dim,out_dim,bias=bis, fa=self.fa))
+                        else:
+                            self.layers.add_module(ll['name'],nn.Linear(in_dim,out_dim,bias=bis))
 
                         if self.back:
                             self.back_layers.add_module(ll['name']+'_bk_'+'reshape',Reshape(list(OUTS[inp_ind].shape[1:])))
@@ -199,7 +225,6 @@ class network(nn.Module):
                     out=OUTS[inp_ind]
                     out = out.reshape(out.shape[0], -1)
                     out=self.do_nonlinearity(ll,getattr(self.layers, ll['name'])(out))
-                    #if self.first or everything:
                     OUTS[ll['name']]=out
 
                 if ('norm') in ll['name']:
@@ -219,7 +244,7 @@ class network(nn.Module):
                     OUTS[ll['name']]=out
 
                 if ('opr' in ll['name']):
-                    if 'add' in ll['name'] and everything:
+                    if 'add' in ll['name']:
                         out = OUTS[inp_ind[0]]+OUTS[inp_ind[1]]
                         OUTS[ll['name']] = out
                         inp_feats=out.shape[1]
@@ -236,7 +261,8 @@ class network(nn.Module):
             print(self.layers)
             tot_pars = 0
             KEYS=[]
-            for keys, vals in self.state_dict().items():
+            #for keys, vals in self.state_dict().items():
+            for keys, vals in self.named_parameters():
                 if self.first==1:
                     self.fout.write(keys + ',' + str(np.array(vals.shape))+'\n')
                 if 'running' not in keys and 'tracked' not in keys:
@@ -246,6 +272,7 @@ class network(nn.Module):
                 self.fout.write('tot_pars,' + str(tot_pars)+'\n')
             # TEMPORARY
             pp=[]
+            self.KEYS=KEYS
             for k,p in zip(KEYS,self.parameters()):
                 if (self.update_layers is None):
                     if self.first==1:
@@ -273,7 +300,7 @@ class network(nn.Module):
         out1=[]
         if self.first:
             self.first=0
-        if(everything):
+        if(everything or self.randomize is not None):
             out1=OUTS
         #elif (len(OUTS) > 3):
          #   out1 = OUTS[-3]
@@ -393,9 +420,8 @@ class network(nn.Module):
 
 
     # GRADIENT STEP
-    def loss_and_acc(self, input, target):
+    def loss_and_acc(self, input, target, dtype="train", lnum=0):
         #t0 = time.time()
-
 
         # Get output of network
         if type(input) is list:
@@ -410,7 +436,16 @@ class network(nn.Module):
             else:
                 loss, acc = self.get_embedd_loss_new_a(out0, out1)
         else:
-            out,_=self.forward(input)
+            if self.randomize is not None and dtype=="train":
+                for i, k in enumerate(self.KEYS):
+                    if self.randomize[lnum*2] not in k and self.randomize[lnum*2+1] not in k:
+                        self.optimizer.param_groups[0]['params'][i].requires_grad=False
+                    else:
+                        self.optimizer.param_groups[0]['params'][i].requires_grad = True
+
+            out,OUT=self.forward(input)
+            if self.randomize is not None:
+                out=OUT[self.randomize[lnum*2+1]]
             # Compute loss and accuracy
             loss, acc=self.get_acc_and_loss(out,target)
 
@@ -515,11 +550,22 @@ class network(nn.Module):
         targ = train[2] #[ii]
         self.n_class = np.max(targ) + 1
 
-        full_loss=0; full_acc=0;
+        ll=1
+        if self.randomize is not None:
+            ll=len(self.randomize)//2
+            nrep=(num_tr//jump)//ll
+            lnums=np.repeat(np.array(range(ll)),nrep)
+            np.random.shuffle(lnums)
+
+        full_loss=np.zeros(ll); full_acc=np.zeros(ll); count=np.zeros(ll)
+
         # Loop over batches.
 
         targ_in=targ
         for j in np.arange(0, num_tr, jump,dtype=np.int32):
+            lnum=0
+            if self.randomize:
+                lnum=lnums[j//jump]
             if (d_type == 'train'):
                 self.optimizer.zero_grad()
             if self.embedd:
@@ -533,22 +579,23 @@ class network(nn.Module):
             target = torch.from_numpy(targ_in[j:j + jump]).to(self.dv, dtype=torch.long)
 
             with torch.no_grad() if (d_type!='train') else dummy_context_mgr():
-                loss, acc= self.loss_and_acc(data, target)
+                loss, acc = self.loss_and_acc(data, target,dtype=d_type, lnum=lnum)
             if (d_type == 'train'):
                 loss.backward()
                 self.optimizer.step()
 
-            full_loss += loss
-            full_acc += acc
+            full_loss[lnum] += loss
+            full_acc[lnum] += acc
+            count[lnum]+=1
+        # if (True):
+        #     full_loss=np.float32(full_loss.detach().cpu().numpy())
+        #     full_acc=np.float32(full_acc.detach().cpu().numpy())
 
-        if (True):
-            full_loss=np.float32(full_loss.detach().cpu().numpy())
-            full_acc=np.float32(full_acc.detach().cpu().numpy())
-
+        for l in range(ll):
             fout.write('\n ====> Ep {}: {} Full loss: {:.4F}, Full acc: {:.4F} \n'.format(d_type,epoch,
-                    full_loss /(num_tr/jump), full_acc/(num_tr)))
+                    full_loss[l] /count[l], full_acc[l]/(count[l]*jump)))
 
-        return trainMU, trainLOGVAR, trPI, [full_acc/(num_tr), full_loss/(num_tr/jump)]
+        return trainMU, trainLOGVAR, trPI, [full_acc/(count*jump), full_loss/(count)]
 
     def get_embedding(self, train):
 

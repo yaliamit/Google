@@ -12,7 +12,6 @@
 --hid_lr=.001
 --nval=0
 --perturb=.4
---embedd
 --embedd_layer=conv4
 --hid_layers
 name:input

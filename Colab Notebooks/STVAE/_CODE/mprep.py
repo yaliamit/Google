@@ -4,7 +4,6 @@ import numpy as np
 import sys
 import os
 from Conv_data import get_data
-import network
 from edges import pre_edges
 from models_transforms import Edge
 from get_net_text import get_network
@@ -26,9 +25,10 @@ def process_strings(args):
 
     if (args.cl is not None):
         strings['cll']=str(args.cl)
-    ex_file = strings['opt_pre'] + strings['opt_class'] + args.type + '_' + args.transformation + \
-               '_mx_' + str(args.n_mix) + '_sd_' + \
-              str(args.sdim) + '_cl_' + strings['cll']
+    ex_file = args.out_file.split('.')[0]
+    #OUT_fistrings['opt_pre'] + strings['opt_class'] + args.type + '_' + args.transformation + \
+    #           '_mx_' + str(args.n_mix) + '_sd_' + \
+    #          str(args.sdim) + '_cl_' + strings['cll']
     return strings, ex_file
 
 
@@ -119,6 +119,13 @@ def setups(args, EX_FILES):
 
     return fout
 
+def quantize(images,levels):
+
+    if levels>1:
+        return np.digitize(images, np.arange(levels) /levels) - 1
+    else:
+        return images
+
 def get_data_pre(args,dataset):
 
 
@@ -146,10 +153,10 @@ def get_data_pre(args,dataset):
             tel=test[1]
             if val[0] is not None:
                 vall=val[1]
-        train = [train[0].transpose(0, 3, 1, 2),trl]
-        test = [test[0].transpose(0, 3, 1, 2), tel]
+        train = [quantize(train[0].transpose(0, 3, 1, 2),args.image_levels),trl]
+        test = [quantize(test[0].transpose(0, 3, 1, 2), args.image_levels), tel]
         if val[0] is not None:
-            val = [val[0].transpose(0, 3, 1, 2), vall]
+            val = [quantize(val[0].transpose(0, 3, 1, 2),args.image_levels), vall]
     if args.edges:
         ed = Edge(device, dtr=.03).to(device)
         edges=[]

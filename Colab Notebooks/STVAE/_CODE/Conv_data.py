@@ -242,9 +242,10 @@ def get_letters(PARS):
     filename = data_set+'.npy'
     print(filename)
     train_data=np.load(pre+data_set+'_data.npy')
-    train_data=train_data.reshape((-1,28,28,1))
+    train_data=np.float32(train_data.reshape((-1,28,28,1)))
     print(train_data.shape)
-    train_data=np.float32(train_data/255.)
+    if 'binarized' not in data_set:
+        train_data=np.float32(train_data/255.)
     train_labels=np.load(pre+data_set+'_labels.npy')
     test_data=train_data[-10000:]
     train_data=train_data[:-10000]

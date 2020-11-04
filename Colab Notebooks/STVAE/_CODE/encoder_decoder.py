@@ -93,15 +93,15 @@ class encoder_mix(nn.Module):
         if not self.only_pi:
             self.h2pi = nn.Linear(model.h_dim, model.n_mix)
 
-        self.enc_conv=model.enc_conv
+        #self.enc_conv=model.enc_conv
 
         self.x2h = nn.Linear(model.x_dim, model.h_dim)
 
-    def forward(self,inputs):
+    def forward(self,inputs,enc_conv):
         pi=None
 
         # Run the predesigned network could be just the input
-        out=self.enc_conv.forw(inputs)
+        out=enc_conv.forw(inputs)
         inputs=out.reshape(-1, self.x_dim)
 
         # One more fully connected layer
@@ -158,12 +158,12 @@ class decoder_mix(nn.Module):
         num_hs=1
 
 
-        self.enc_conv=model.enc_conv
+        #self.enc_conv=model.enc_conv
 
         self.h2x = nn.ModuleList([nn.Linear(h_dim_a, self.x_dim) for i in range(num_hs)])
 
 
-    def forward(self, s, rng=None):
+    def forward(self, s, enc_conv, rng=None):
 
         if (rng is None):
             rng = range(s.shape[0])
@@ -184,7 +184,7 @@ class decoder_mix(nn.Module):
             r_ind = 0
             xx = self.h2x[r_ind](h_)
             xx=xx.reshape([-1]+list(self.final_shape))
-            xx=self.enc_conv.bkwd(xx)
+            xx=enc_conv.bkwd(xx)
             xx = xx.reshape(xx.shape[0],-1)
             x += [xx]
 

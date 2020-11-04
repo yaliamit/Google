@@ -31,9 +31,10 @@ class STVAE_mix(models.STVAE):
         self.opt = args.OPT
         self.opt_jump=args.opt_jump
         self.mu_lr = args.mu_lr
+        self.lr=args.lr
         self.n_mix = args.n_mix
         self.flag=True
-        self.sep=args.sep
+        self.nosep=args.nosep
         self.n_parts=args.n_parts
         self.n_part_locs=args.n_part_locs
         self.part_dim=args.part_dim
@@ -46,6 +47,7 @@ class STVAE_mix(models.STVAE):
         self.output_cont=args.output_cont
         self.only_pi=args.only_pi
         self.nti=args.nti
+
         if (self.feats>0 and not args.feats_back):
             self.output_cont=True
 
@@ -64,24 +66,31 @@ class STVAE_mix(models.STVAE):
 
 
         if (not args.OPT):
-                self.encoder_mix = encoder_mix(self)
+                self.encoder_m=encoder_mix(self)
 
-        self.decoder_mix=decoder_mix(self,args)
+
+        self.decoder_m=decoder_mix(self,args)
 
 
 
         self.rho = nn.Parameter(torch.zeros(self.n_mix),requires_grad=False)
 
-
-        if (args.optimizer=='Adam'):
+        self.optimizer=None
+        if (args.optimizer=='Adam' and not args.nosep):
                 self.optimizer = optim.Adam(self.parameters())
             #self.optimizer=optim.Adam(self.parameters(),lr=args.lr)
-        elif (args.optimizer=='Adadelta'):
-            self.optimizer = optim.Adadelta(self.parameters())
+        #elif (args.optimizer=='Adadelta'):
+        #   self.optimizer = optim.Adadelta(self.parameters())
 
+    def encoder_mix(self,input):
 
+        return self.encoder_m(input, self.enc_conv)
 
-    def update_s(self,mu,logvar,pi,mu_lr,wd=0):
+    def decoder_mix(self, input, rng=None):
+
+        return self.decoder_m(input, self.enc_conv, rng)
+
+    def update_s(self,mu,logvar,pi,mu_lr,wd=0, both=True):
         # mu_lr=self.mu_lr[0]
         # if epoch>200:
         #     mu_lr=self.mu_lr[1]
@@ -92,7 +101,18 @@ class STVAE_mix(models.STVAE):
         #self.pi = torch.autograd.Variable(pi.to(self.dv), requires_grad=False)
 
         if (not self.only_pi):
-            self.optimizer_s = optim.Adam([self.mu, self.logvar,self.pi], lr=mu_lr,weight_decay=wd)
+            PP1=[self.mu, self.logvar,self.pi]
+            PP2 = []
+            if both:
+                for p in self.parameters():
+                    PP2+=[p]
+
+            self.optimizer_s = optim.Adam([{'params':PP1,'lr':mu_lr},
+                                          {'params':PP2}],lr=self.lr)
+
+            #{lr=mu_lr,weight_decay=wd)
+
+            #self.optimizer_s = optim.Adam([self.mu, self.logvar,self.pi], lr=mu_lr,weight_decay=wd)
             #self.optimizer_s = optim.Adam([self.mu, self.logvar], lr=mu_lr,weight_decay=wd)
         #else:
         #    self.optimizer_s = optim.Adam([self.pi], lr=mu_lr,weight_decay=wd)
@@ -111,7 +131,7 @@ class STVAE_mix(models.STVAE):
     def decoder_and_trans(self,s, rng=None):
 
         n_mix=s.shape[0]
-        x, u = self.decoder_mix.forward(s,rng)
+        x, u = self.decoder_mix(s,rng)
         # Transform
         if (self.u_dim>0):
             if self.n_parts==0:
@@ -125,6 +145,7 @@ class STVAE_mix(models.STVAE):
 
 
     def sample(self, mu, logvar, dim):
+        #print(mu.shape,dim)
         eps = torch.randn(mu.shape[0],dim).to(self.dv)
         if (self.s_dim>1):
             z = mu + torch.exp(logvar/2) * eps
@@ -331,18 +352,19 @@ class STVAE_mix(models.STVAE):
             if (self.n_class>0):
                 target = torch.from_numpy(y[j:j + self.bsz]).float().to(self.dv)
             if self.opt:
-                self.update_s(mu[j:j + self.bsz, :], logvar[j:j + self.bsz, :], pi[j:j + self.bsz], self.mu_lr[0])
+                self.update_s(mu[j:j + self.bsz, :], logvar[j:j + self.bsz, :], pi[j:j + self.bsz], self.mu_lr[0],both=self.nosep)
                 if np.mod(epoch, self.opt_jump) == 0:
                   for it in range(num_mu_iter):
-                    self.compute_loss_and_grad(data_d,data_in, target, d_type, self.optimizer_s, opt='mu')
+                    recon_loss,loss = self.compute_loss_and_grad(data_d,data_in, target, d_type, self.optimizer_s, opt='mu')
                   #with torch.no_grad():
                   #  self.pi = self.get_pi_from_max(self.mu, self.logvar, data, target)
             elif self.only_pi:
                 with torch.no_grad():
                     s_mu, s_var, _ = self.encoder_mix(data_d)
                     self.pi=self.get_pi_from_max(s_mu, s_var, data,target)
-            with torch.no_grad() if (d_type != 'train') else dummy_context_mgr():
-                recon_loss, loss=self.compute_loss_and_grad(data, data_in, target,d_type,self.optimizer)
+            if not self.opt or not self.nosep:
+              with torch.no_grad() if (d_type != 'train') else dummy_context_mgr():
+                    recon_loss, loss=self.compute_loss_and_grad(data, data_in, target,d_type,self.optimizer)
 
             if self.opt:
                 mu[j:j + self.bsz] = self.mu.data
@@ -368,7 +390,7 @@ class STVAE_mix(models.STVAE):
 
         num_inp=input.shape[0]
         self.setup_id(num_inp)
-        input = input.to(self.dv)
+        input = input.float().to(self.dv)
         inp = self.preprocess(input)
         inp_d=inp.detach()
         if self.opt:

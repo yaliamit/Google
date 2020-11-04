@@ -63,11 +63,12 @@ def main_loc(par_file, device):
   ARGS[0].num_class=args.num_class
   print('NUMCLASS',args.num_class)
   # Training an autoencoder.
+  sh=DATA[0][0].shape
   if 'vae' in args.type:
-      models=mprep.get_models(device, fout, DATA[0][0].shape,STRINGS,ARGS,locals())
+      print('device')
+      models=mprep.get_models(device, fout, sh,STRINGS,ARGS,locals())
   # Training a feedforward embedding or classification network
   if args.network:
-      sh=DATA[0][0].shape
       # parse the existing network coded in ARGS[0]
       arg=ARGS[0]
       if args.reinit: # Parse the new network

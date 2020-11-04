@@ -3,6 +3,7 @@ import numpy as np
 
 def process_args(parser):
     parser.add_argument('--fa', type=int, default=0, help='Type of weight feedback - 0 - bp, 1-fixed, 2-urfb')
+    parser.add_argument('--image_levels', type=int, default=0, help='Image quantization levels')
     parser.add_argument('--full_dim', type=int, default=256, help='fully connected layer size')
     parser.add_argument('--hid_hid', type=int, default=256, help='fully connected layer size')
     parser.add_argument('--hid_drop', type=float, default=0., help='dropout')
@@ -67,7 +68,8 @@ def process_args(parser):
     parser.add_argument('--opt_jump', type=int, default=1, help='dimension of part')
     parser.add_argument('--network', action='store_true', help='classification network')
     parser.add_argument('--CONS', action='store_true', help='Output to consol')
-    parser.add_argument('--layerwise', action='store_true', help='Output to consol')
+    parser.add_argument('--layerwise', action='store_true', help='Do layerwise processing')
+    parser.add_argument('--layerwise_randomize', nargs="*",default=None, help='layers to choose randomly')
     parser.add_argument('--hinge', action='store_true', help='Output to consol')
     parser.add_argument('--sample', action='store_true', help='sample from distribution')
     parser.add_argument('--classify', action='store_true', help='Output to consol')
@@ -77,7 +79,7 @@ def process_args(parser):
     parser.add_argument('--rerun', action='store_true', help='cont data')
     parser.add_argument('--cont_training', action='store_true', help='continue training')
     parser.add_argument('--del_last', action='store_true', help='dont update classifier weights')
-    parser.add_argument('--sep', action='store_true', help='Output to consol')
+    parser.add_argument('--nosep', action='store_true', help='separate optimization in VAE OPT')
     parser.add_argument('--embedd', action='store_true', help='embedding training')
     parser.add_argument('--embedd_type', default='new', help='embedding cost type')
     parser.add_argument('--embedd_layer', default=None, help='embedding layer')

@@ -32,16 +32,30 @@ def show_results(pars, datadirs, LW,sho=False):
   savepath=datadirs+'save/'
   if not os.path.isdir(savepath):
       os.mkdir(savepath)
-  EXP_NAME='FA_{}_layerwise_{}_hinge_{}'.format(str(pars.fa),str(pars.layerwise),str(pars.hinge))
+  if pars.layerwise:
+      lay='True'
+  elif pars.layerwise_randomize is not None:
+      lay='Randomize'
+  else:
+      lay='False'
+  EXP_NAME='FA_{}_layerwise_{}_hinge_{}'.format(str(pars.fa),lay,str(pars.hinge))
   print(EXP_NAME)
   fig=plt.figure()
-  num_layers=len(LW)
+  if pars.layerwise_randomize is None:
+    num_layers=len(LW)
+  else:
+    num_layers=len(pars.layerwise_randomize)//2
    #np.load(savepath+'te.acc_'+EXP_NAME+'.npy')
   lw_test_acc=np.zeros(num_layers)
   if pars.layerwise:
     for i in range(num_layers):
       plt.plot(LW[i][0][:,0], label = 'Layer'+str(i))
       lw_test_acc[i]=LW[i][1]
+  elif pars.layerwise_randomize is not None:
+      num_iters=len(LW[0][0])//num_layers
+      for i in range(num_layers):
+          plt.plot(LW[0][0][i*num_iters:(i+1)*num_iters,0],label = 'Layer'+str(i))
+          lw_test_acc[i] = LW[0][1][i]
   else:
     i=0
     plt.plot(LW[0][0][:,0],label='Layer'+str(num_layers-1))
@@ -61,6 +75,10 @@ def show_results(pars, datadirs, LW,sho=False):
   if pars.layerwise:
       for i in range(num_layers):
         plt.plot(LW[i][0][:,1], label = 'Layer'+str(i))
+  elif pars.layerwise_randomize is not None:
+      num_iters=len(LW[0][0])//num_layers
+      for i in range(num_layers):
+          plt.plot(LW[0][0][i*num_iters:(i+1)*num_iters,1],label = 'Layer'+str(i))
   else:
     i=0
     plt.plot(LW[0][0][:,1],label='Layer'+str(num_layers-1))
@@ -88,7 +106,11 @@ def save_net(net,par_file,predir):
   else:
       ss='network.pt'
   model.to('cpu')
-  torch.save({'args': args,
+  if 'Users/amit' in predir:
+      torch.save({'args': args,
+                  'model.state.dict': model.state_dict()}, predir + 'Colab Notebooks/STVAE/_output/' + ss)
+  else:
+    torch.save({'args': args,
         'model.state.dict': model.state_dict()}, predir+'Colab Notebooks/STVAE/_output/'+ss,_use_new_zipfile_serialization=False)
 
 def train_net(par_file,predir, RESULTS, device):
