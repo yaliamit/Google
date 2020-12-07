@@ -2,9 +2,8 @@ import torch
 import torch.nn.functional as F
 from torch import nn, optim
 import numpy as np
-import models
 import time
-from models_mix import STVAE_mix
+from mix import STVAE_mix
 
 import contextlib
 @contextlib.contextmanager

@@ -23,6 +23,78 @@ def get_pre():
 
     return pre
 
+def quantize(images,levels):
+
+    if levels>1:
+        return np.digitize(images, np.arange(levels) /levels) - 1
+    else:
+        return images
+
+
+def get_data_pre(args,dataset):
+
+
+    PARS = {}
+    PARS['data_set'] = dataset
+    PARS['num_train'] = args.num_train // args.mb_size * args.mb_size
+    PARS['nval'] = args.nval
+    if args.cl is not None:
+        PARS['one_class'] = args.cl
+
+    train, val, test, image_dim = get_data(PARS)
+    if (False): #args.edges):
+        train=[pre_edges(train[0],dtr=args.edge_dtr).transpose(0,3,1,2),np.argmax(train[1], axis=1)]
+        test=[pre_edges(test[0],dtr=args.edge_dtr).transpose(0,3,1,2),np.argmax(test[1], axis=1)]
+        if val[0] is not None:
+            val = [pre_edges(val[0],dtr=args.edge_dtr).transpose(0, 3, 1, 2), np.argmax(val[1], axis=1)]
+    else:
+        if train[1].ndim>1:
+            trl=np.argmax(train[1], axis=1)
+            tel=np.argmax(test[1],axis=1)
+            if val[0] is not None:
+              vall=np.argmax(val[1],axis=1)
+        else:
+            trl=train[1]
+            tel=test[1]
+            if val[0] is not None:
+                vall=val[1]
+        train = [quantize(train[0].transpose(0, 3, 1, 2),args.image_levels),trl]
+        test = [quantize(test[0].transpose(0, 3, 1, 2), args.image_levels), tel]
+        if val[0] is not None:
+            val = [quantize(val[0].transpose(0, 3, 1, 2),args.image_levels), vall]
+    if args.edges:
+        ed = Edge(device, dtr=.03).to(device)
+        edges=[]
+        jump=10000
+        for j in np.arange(0,train[0].shape[0],jump):
+            tr=torch.from_numpy(train[0][j:j+jump]).to(device)
+            edges+=[ed(tr).cpu().numpy()]
+        train=[np.concatenate(edges,axis=0),train[1]]
+        edges_te=[]
+        for j in np.arange(0,test[0].shape[0],jump):
+            tr=torch.from_numpy(test[0][j:j+jump]).to(device)
+            edges_te+=[ed(tr).cpu().numpy()]
+        test=[np.concatenate(edges_te,axis=0),test[1]]
+        if val[0] is not None:
+            edges_va = []
+            for j in np.arange(0, test[0].shape[0], jump):
+                tr = torch.from_numpy(val[0][j:j + jump]).to(device)
+                edges_va += [ed(tr).cpu().numpy()]
+            val = [np.concatenate(edges_va,axis=0), val[1]]
+    if (args.num_test>0):
+        ntest=test[0].shape[0]
+        ii=np.arange(0, ntest, 1)
+        np.random.shuffle(ii)
+        test=[test[0][ii[0:args.num_test]], test[1][ii[0:args.num_test]]]
+    elif (args.num_test<0):
+        test=[train[0][0:10000],train[1][0:10000]]
+    print('In get_data_pre: num_train', train[0].shape[0])
+    print('Num test:',test[0].shape[0])
+
+    return [train, val, test]
+
+
+
 def rotate_dataset_rand(X,angle=0,scale=0,shift=0,gr=0,flip=False,blur=False,saturation=False, spl=None):
     # angle=NETPARS['trans']['angle']
     # scale=NETPARS['trans']['scale']

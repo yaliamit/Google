@@ -124,10 +124,10 @@ def run_net(par_file, device):
 
 
 def seq(par_file, predir, device, tlay=None, toldn=None):
-    from mprep import get_network
+    from prep import get_network
     import aux
     import argparse
-    import mprep
+    import prep
     datadirs = predir + 'Colab Notebooks/STVAE/'
 
     parser = argparse.ArgumentParser(fromfile_prefix_chars='@',
@@ -138,7 +138,7 @@ def seq(par_file, predir, device, tlay=None, toldn=None):
     args = parser.parse_args(f.read().split())
     f.close()
 
-    lnti, layers_dict = mprep.get_network(args.layers)
+    lnti, layers_dict = prep.get_network(args.layers)
 
     fin = open(par_file + '.txt', 'r')
     lines = [line.rstrip('\n') for line in fin]
@@ -198,7 +198,7 @@ def seq(par_file, predir, device, tlay=None, toldn=None):
                     fout.write('dense_final\n')
 
                     if oldn is not None:
-                        fout.write('--reinit\n' + '--model=' + oldn + '\n')
+                        fout.write('--cont_training\n' + '--model=' + oldn + '\n')
                     emb = 'cl'
                     if args.embedd:
                         emb = 'emb'

@@ -6,8 +6,9 @@ from torch import Tensor
 from torch.nn.modules.conv import _ConvNd
 from torch.nn.modules.utils import _pair
 import math,os
+import numpy as np
 from torch.utils.cpp_extension import load
-from Conv_data import get_pre
+from data import get_pre
 
 
 
@@ -18,8 +19,128 @@ pre=get_pre()
 datadirs=pre+'Colab Notebooks/STVAE/_CODE/'
 osu=os.uname()
 
-if 'Linux' in osu[0]:
+if 'Linux' in osu[0] and 'ga' in pre:
     cudnn_convolution = load(name="cudnn_convolution", sources=[datadirs + "cudnn_convolution.cpp"], verbose=True)
+
+
+class diag2d(nn.Module):
+    def __init__(self,dim):
+        super(diag2d,self).__init__()
+        # dim is number of features
+        self.dim = dim
+        if (dim>0):
+            rim=torch.zeros(dim)
+            self.mu=nn.Parameter(rim)
+            ris=torch.zeros(dim)
+            self.sigma=nn.Parameter(ris)
+
+    def forward(self,z):
+        u=z*torch.exp(self.sigma.reshape(1,self.dim,1,1))+self.mu.reshape(1,self.dim,1,1)
+
+        return(u)
+
+class Reshape(nn.Module):
+    def __init__(self,sh):
+        super(Reshape,self).__init__()
+
+        self.sh=sh
+
+    def forward(self, input):
+
+        out=torch.reshape(input,[-1]+self.sh)
+
+        return(out)
+
+
+class NONLIN(nn.Module):
+    def __init__(self, ll):
+        super(NONLIN, self).__init__()
+        self.type=ll['type']
+
+    def forward(self,input):
+
+        if ('HardT' in self.type):
+            return(self.HT(input))
+        elif ('tanh' in self.type):
+            return(F.tanh(input))
+        elif ('relu' in self.type):
+            return(F.relu(input))
+
+
+
+class Iden(nn.Module):
+    def __init__(self):
+        super(Iden,self).__init__()
+
+    def forward(self,z):
+        return(z)
+
+class biass(nn.Module):
+    def __init__(self,dim, scale=None):
+        super(biass,self).__init__()
+
+        self.dim=dim
+        if (scale is None):
+            self.bias=nn.Parameter(6*(torch.rand(self.dim) - .5)/ np.sqrt(self.dim))
+        else:
+            self.bias=nn.Parameter(scale*(torch.rand(self.dim)-.5))
+
+
+
+    def forward(self,z):
+        return(self.bias.repeat(z.shape[0],1))
+
+class ident(nn.Module):
+    def __init__(self):
+        super(ident,self).__init__()
+
+    def forward(self,z):
+        return(torch.ones(z.shape[0]))
+
+
+class diag(nn.Module):
+    def __init__(self,dim):
+        super(diag,self).__init__()
+        self.dim = dim
+        if (dim>0):
+            rim=(torch.rand(self.dim) - .5) / np.sqrt(self.dim)
+            self.mu=nn.Parameter(rim)
+            ris=(torch.rand(self.dim) - .5) / np.sqrt(self.dim)
+            self.sigma=nn.Parameter(ris)
+
+    def forward(self,z):
+        u=z*self.sigma+self.mu
+
+        return(u)
+
+
+
+
+
+class Linear(nn.Module):
+    def __init__(self, dim1,dim2,diag_flag=False, scale=None):
+        super(Linear, self).__init__()
+
+        # If dimensions are zero just return a dummy variable of the same dimension as input
+        self.lin=ident()
+        # If diagonal normal with diagonal cov.
+        if (diag_flag and dim1>0):
+            self.lin=diag(dim1)
+        else:
+            if (dim2>0):
+                if (dim1>0):
+                    bis = True if dim1>1 else False
+                    self.lin=nn.Linear(dim1,dim2,bias=bis)
+                    if scale is not None:
+                        self.lin.bias.data*=scale
+                # Only a bias term that does not depend on input.
+                else:
+                    self.lin=biass(dim2, scale)
+
+    def forward(self,z):
+        return self.lin(z)
+
+
 
 
 ## Feedback Alignment Linear
@@ -153,7 +274,7 @@ class FAConv2dFunc(Function):
             #print('grad1',time.time()-t1)
         if ctx.needs_input_grad[1]:
              #t3=time.time()
-            if ctx.device.type=='cpu':
+            if ctx.device.type=='cpu' or 'ga' not in pre:
                 grad_weight = torch.nn.grad.conv2d_weight(input, weight.shape, grad_output, stride, padding, dilation, groups)
             else:
                 grad_weight = cudnn_convolution.convolution_backward_weight(input, weight.shape, grad_output, stride,

@@ -1,7 +1,7 @@
 import numpy as np
 import os
 import time
-from models_images import erode,make_images
+from images import erode,make_images, make_sample
 import torch
 
 
@@ -53,15 +53,13 @@ def train_model(model, args, ex_file, DATA, fout):
     fout.write("Num train:{0}\n".format(DATA[0][0].shape[0]))
     train=DATA[0]; val=DATA[1]; test=DATA[2]
     trainMU=None; trainLOGVAR=None; trPI=None
-    testMU=None; testLOGVAR=None; testPI=None
     valMU=None; valLOGVAR=None; valPI=None
-
+    model.optimizer.param_groups[0]['lr']=args.lr
+    model.get_scheduler(args)
     if 'vae' in args.type:
         trainMU, trainLOGVAR, trPI = model.initialize_mus(train[0], args.OPT)
         valMU, valLOGVAR, valPI = model.initialize_mus(val[0], args.OPT)
-        testMU, testLOGVAR, testPI = model.initialize_mus(test[0], args.OPT)
 
-    #scheduler = get_scheduler(args, model)
 
     VAL_ACC=[]
     tes = [test[0], test[0], test[1]]
@@ -77,7 +75,7 @@ def train_model(model, args, ex_file, DATA, fout):
             tre = erode(args.erode, train[0])
             tran = [train[0], tre, train[1]]
         trainMU, trainLOGVAR, trPI, tr_acc = model.run_epoch(tran, epoch, args.num_mu_iter, trainMU, trainLOGVAR, trPI,d_type='train', fout=fout)
-        if (val[0] is not None):
+        if (val[0] is not None): # and (np.mod(epoch, 10) == 9 or epoch == 0)):
              _,_,_,val_acc=model.run_epoch(vall, epoch, args.nvi, valMU, valLOGVAR, valPI, d_type='val', fout=fout)
              VAL_ACC+=[val_acc[0],tr_acc[1]]
         else:
@@ -87,17 +85,22 @@ def train_model(model, args, ex_file, DATA, fout):
 
     test_acc=np.zeros(2)
     if 'vae' in args.type:
-        fout.write('writing to ' + ex_file + '\n')
-        args.fout=None
-        torch.save({'args': args,
-                    'model.state.dict': model.state_dict()}, datadirs+'_output/' + ex_file + '.pt')
-        make_images(train, model, ex_file, args, datadirs=datadirs)
         if (args.n_class):
             model.run_epoch_classify(tran, 'train', fout=fout, num_mu_iter=args.nti)
             model.run_epoch_classify(tes, 'test', fout=fout, num_mu_iter=args.nti)
         elif args.cl is None:
+            LLG=model.compute_likelihood(test[0],250)
+            rho=model.rho.detach().cpu().numpy()
+            print('LLG',LLG,'rho',np.exp(rho)/np.sum(np.exp(rho)),file=fout)
             if args.hid_layers is None:
+                testMU, testLOGVAR, testPI = model.initialize_mus(test[0], args.OPT)
+                print('args.nti',args.nti,args.mu_lr)
                 model.run_epoch(tes, 0, args.nti, testMU, testLOGVAR, testPI, d_type='test', fout=fout)
+        fout.write('writing to ' + ex_file + '\n')
+        args.fout=None
+        make_sample(model,args, ex_file, datadirs=datadirs)
+        make_images(train, model, ex_file, args, datadirs=datadirs)
+
     else:
         _,_,_,test_acc=model.run_epoch(tes, 0, args.nti, None, None, None, d_type='test', fout=fout)
 

@@ -2,15 +2,15 @@ import sys
 import os
 from main import main_loc
 import matplotlib.pyplot as plt
-from mprep import get_data_pre
+from data import get_data_pre
 import argparse
 import aux as aux
 import pylab as py
 import torch
-import mprep as mprep
+import prep as mprep
 import numpy as np
 from aux_colab import copy_to_content, seq, train_net, run_net, save_net
-from Conv_data import get_pre
+from data import get_pre
 
 predir=get_pre()
 # if 'Linux' in os.uname():
@@ -72,22 +72,37 @@ def test_loss():
 #test_loss()
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(device.type=='cpu')
-#copy_to_content('try',predir)
-#net=run_net('t_par', device)
 
-#plt.plot(net.results[0][0])
-#plt.show()
+def resnet_try():
+    from torchvision import models
+    resnet = models.resnet18(pretrained=True)
+    resnet.eval()
+    from PIL import Image
+    img_cat = Image.open("/Users/amit/Desktop/yali_yann.jpg").convert('RGB')
+    #
 
-#print("helo")
-#copy_to_content('pars_mnist',predir)
-#os.system("echo --layerwise >> pars_big_cl_a.txt")
+    from torchvision import transforms
+    #
+    # Create a preprocessing pipeline
+    #
+    preprocess = transforms.Compose([
+            transforms.Resize(256),
+            transforms.CenterCrop(224),
+            transforms.ToTensor(),
+            transforms.Normalize(
+            mean=[0.485, 0.456, 0.406],
+            std=[0.229, 0.224, 0.225]
+        )])
 
-#net=run_net('pars_mnist', device)
-#save_net(net,'pars_mnist',predir)
+    img_cat_preprocessed = preprocess(img_cat)
+    #
+    batch_img_cat_tensor = torch.unsqueeze(img_cat_preprocessed, 0)
 
-#exit()
+    out = resnet(batch_img_cat_tensor)
+
 #copy_to_content('pars_tvae_orig',predir)
 net=run_net('pars_tvae_orig', device)
+#save_net(net,'pars_mnist_a',predir)
 
 #seq('pars_emb_mnist',predir, device)
 #np.random.seed(123456)

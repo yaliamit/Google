@@ -2,7 +2,7 @@ import torch
 import network
 import numpy as np
 import pylab as py
-import mprep
+import prep
 import os
 import argparse
 import aux
@@ -10,8 +10,8 @@ import eagerpy as ep
 import foolbox
 from foolbox import accuracy, samples
 import foolbox.attacks as fa
-from Conv_data import get_data
-from models_transforms import Edge
+from data import get_data
+from transforms import Edge
 from torch import nn
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 
@@ -26,7 +26,7 @@ class fb_network(nn.Module):
         if (args.edges):
             nc*=8
         sh=[0,nc,sh[0],sh[1]]
-        self.lnti, self.layers_dict = mprep.get_network(args.layers, nf=nc)
+        self.lnti, self.layers_dict = prep.get_network(args.layers, nf=nc)
         self.model=network.network(self.dv, self.args, self.layers_dict, self.lnti).to(self.dv)
         sm = torch.load('_output/'+args.model[0], map_location='cpu')
         temp = torch.zeros(1, sh[1], sh[2], sh[3]).to(self.dv)

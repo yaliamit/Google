@@ -1,7 +1,203 @@
 import torch
-from Conv_data import get_data
+import numpy as np
+import os
+import torch.nn.functional as F
+from imageio import imsave
+from scipy import ndimage
+
+def make_sample(model,args,ex_file, datadirs=""):
 
 
+    if not os.path.isdir(datadirs + '_Samples'):
+        os.makedirs(datadirs+'_Samples', exist_ok=True)
+    ex_file=datadirs+'_Samples/'+ex_file.split('.')[0]+'.npy'
+
+    X=[]
+    for i in np.int32(np.arange(0,args.num_sample,model.bsz)):
+        x = model.sample_from_z_prior()
+        X += [x.detach().cpu().numpy()]
+
+    X=np.uint8(np.concatenate(X,axis=0)*255)
+    np.save(ex_file,X)
+
+    return
+
+
+def make_images(test,model,ex_file,args, datadirs=""):
+
+    if (True):
+
+        if not os.path.isdir(datadirs+'_Images'):
+            os.makedirs(datadirs+'_Images', exist_ok=True)
+        ex_f=datadirs+'_Images/'+ex_file.split('.')[0]
+        old_bsz=model.bsz
+        model.bsz = 100
+        num_mu_iter=None
+        torch.manual_seed(args.seed)
+        np.random.seed(args.seed)
+
+        if args.n_mix>1:
+            for clust in range(args.n_mix):
+                show_sampled_images(model,ex_f,clust)
+        else:
+            show_sampled_images(model, ex_f)
+
+        if (args.n_class):
+            for c in range(model.n_class):
+                ind=(test[1]==c)
+                show_reconstructed_images([test[0][ind]],model,ex_f,args.nti,c, args.erode)
+        else:
+            show_reconstructed_images(test,model,ex_f,args.nti,None, args.erode)
+
+
+        model.bsz=old_bsz
+
+
+def create_img(XX,c,h,w,ri=10,rj=10,sep=0):
+    mat = []
+    t = 0
+    for i in range(ri):
+        line = []
+        for j in range(rj):
+            if (t < len(XX)):
+                line += [XX[t].reshape((c, h, w)).transpose(1, 2, 0)]
+            else:
+                line += [np.zeros((c,h,w)).transpose(1, 2, 0)]
+            line+=[np.ones((c,sep,w)).transpose(1,2,0)]
+            t += 1
+        mat += [np.concatenate(line, axis=0)]
+    manifold = np.concatenate(mat, axis=1)
+    if (c==1):
+        img = np.concatenate([manifold, manifold, manifold], axis=2)
+    else:
+        img=manifold
+    return img
+
+def create_image(XX, model, ex_file):
+
+    img=create_img(XX,model.input_channels,model.h,model.w)
+
+    imsave(ex_file+'.png', np.uint8(img*255))
+
+    #print("Saved the sampled images")
+
+def show_sampled_images(model,ex_file,clust=None):
+    theta = torch.zeros(model.bsz, model.u_dim)
+    X=model.sample_from_z_prior(theta,clust)
+    XX=X.detach().cpu().numpy()
+    if clust is not None:
+        ex_file=ex_file+'_'+str(clust)
+    create_image(XX, model, ex_file)
+
+
+def show_reconstructed_images(test,model,ex_file,num_iter=None, cl=None, erd=False):
+
+    inp=torch.from_numpy(erode(erd,test[0][0:100]))
+
+
+    if (cl is not None):
+        X=model.recon(inp,num_iter,cl)
+    else:
+        X,_,_ = model.recon(inp, num_iter)
+    X = X.cpu().detach().numpy().reshape(inp.shape)
+    XX=np.concatenate([inp[0:50],X[0:50]])
+    if (cl is not None):
+        create_image(XX,model, ex_file+'_recon'+'_'+str(cl))
+    else:
+        create_image(XX, model, ex_file + '_recon')
+
+def add_occlusion(recon_data):
+    recon_data[0][0:20,0:13,:,:]=0
+    return recon_data
+
+def add_clutter(recon_data):
+
+    block_size=3
+    num_clutter=2
+    dim=np.zeros((1,2))
+    dim[0,0]=recon_data[0].shape[1]-block_size
+    dim[0,1]=recon_data[0].shape[2]-block_size
+    qq=np.random.rand(recon_data.shape[0],num_clutter,2)
+    rr=np.int32(qq*dim)
+    for  rrr,im in zip(rr,recon_data):
+        for k in range(num_clutter):
+            x=rrr[k,0]
+            y=rrr[k,1]
+            im[0,x:x+block_size,y:y+block_size]=np.ones((block_size,block_size))
+
+    return recon_data
+
+
+
+def erode(do_er,data):
+
+    #rdata=rotate_dataset_rand(data) #,angle=40,scale=.2)
+    rdata=data
+    if (do_er):
+        el=np.zeros((3,3))
+        el[0,1]=el[1,0]=el[1,2]=el[2,1]=el[1,1]=1
+        rr=np.random.rand(len(data))<.5
+        ndata=np.zeros_like(data)
+        for r,ndd,dd in zip(rr,ndata,rdata):
+            if (r):
+                dda=ndimage.binary_erosion(dd[0,:,:]>0,el).astype(dd.dtype)
+            else:
+                dda=ndimage.binary_dilation(dd[0,:,:]>.9,el).astype(dd.dtype)
+            ndd[0,:,:]=dda
+    else:
+        ndata=rdata
+
+    return ndata
+
+def deform_data(x_in,dv,perturb,trans,s_factor,h_factor):
+        h=x_in.shape[2]
+        w=x_in.shape[3]
+        nn=x_in.shape[0]
+        u=((torch.rand(nn,6)-.5)*perturb).to(dv)
+        # Ammplify the shift part of the
+        u[:,[2,5]]*=2
+        # Just shift and sclae
+        #u[:,0]=u[:,4]
+        #u[:,[1,3]]=0
+        rr = torch.zeros(nn, 6).to(dv)
+        rr[:, [0,4]] = 1
+        if trans=='shift':
+          u[:,[0,1,3,4]]=0
+        elif trans=='scale':
+          u[:,[1,3]]=0
+           #+ self.id
+        elif 'rotate' in trans:
+          u[:,[0,1,3,4]]*=1.5
+          ang=u[:,0]
+          v=torch.zeros(nn,6).to(dv)
+          v[:,0]=torch.cos(ang)
+          v[:,1]=-torch.sin(ang)
+          v[:,4]=torch.cos(ang)
+          v[:,3]=torch.sin(ang)
+          s=torch.ones(nn).to(dv)
+          if 'scale' in trans:
+            s = torch.exp(u[:, 1])
+            #print(s)
+            #print(ang*180/np.pi)
+          u[:,[0,1,3,4]]=v[:,[0,1,3,4]]*s.reshape(-1,1).expand(nn,4)
+          rr[:,[0,4]]=0
+        theta = (u+rr).view(-1, 2, 3)
+        grid = F.affine_grid(theta, [nn,1,h,w],align_corners=True)
+        x_out=F.grid_sample(x_in,grid,padding_mode='zeros',align_corners=True)
+
+        if x_in.shape[1]==3 and s_factor>0:
+            v=torch.rand(nn,2).to(dv)
+            vv=torch.pow(2,(v[:,0]*s_factor-s_factor/2)).reshape(nn,1,1)
+            uu=((v[:,1]-.5)*h_factor).reshape(nn,1,1)
+            x_out_hsv=rgb_to_hsv(x_out,dv)
+            x_out_hsv[:,1,:,:]=torch.clamp(x_out_hsv[:,1,:,:]*vv,0.,1.)
+            x_out_hsv[:,0,:,:]=torch.remainder(x_out_hsv[:,0,:,:]+uu,1.)
+            x_out=hsv_to_rgb(x_out_hsv,dv)
+
+        # ii=torch.where(torch.bernoulli(torch.ones(self.bsz)*.5)==1)
+        # for i in ii:
+        #     x_out[i]=x_out[i].flip(3)
+        return x_out
 
 def rgb_to_hsv(input,device):
     input = input.transpose(1, 3)

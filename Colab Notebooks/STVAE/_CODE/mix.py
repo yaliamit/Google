@@ -2,61 +2,71 @@ import torch
 import torch.nn.functional as F
 from torch import nn, optim
 import numpy as np
-import models
-
+from tps import TPSGridGen
 from encoder_decoder import encoder_mix, decoder_mix
-from model_enc_conv import ENC_DEC
+from enc_conv import ENC_DEC
 import contextlib
 @contextlib.contextmanager
 def dummy_context_mgr():
     yield None
 
+def setup_trans_stuff(self,args):
+        self.tf = args.transformation
+        self.type=args.type
+        if 'tvae' in self.type:
+            if self.tf == 'aff':
+                self.u_dim = 6
+                self.idty = torch.cat((torch.eye(2),torch.zeros(2).unsqueeze(1)),dim=1).to(self.dv)
+            elif self.tf == 'tps':
+                self.u_dim = self.tps_num*self.tps_num*2 # 2 * 3 ** 2
+                self.gridGen = TPSGridGen(out_h=self.h,out_w=self.w,grid_size=self.tps_num,device=self.dv)
+                px = self.gridGen.PX.squeeze(0).squeeze(0).squeeze(0).squeeze(0)
+                py = self.gridGen.PY.squeeze(0).squeeze(0).squeeze(0).squeeze(0)
+                self.idty = torch.cat((px,py)).to(self.dv)
+        else:
+            self.u_dim=0
 
 
-class STVAE_mix(models.STVAE):
+        self.z_dim = self.s_dim-self.u_dim
 
-    def orthogo(self):
-        #u, s, v = torch.svd(self.conv.weight.view(self.feats, self.filts * self.filts * self.input_channels))
-        #self.conv.weight.data = v.transpose(0, 1).reshape(self.feats, self.input_channels, self.filts, self.filts)
-        aa=self.conv.weight.view(self.feats, self.filts * self.filts * self.input_channels)
-        q,r=torch.qr(aa.transpose(0,1))
-        self.conv.weight.data=q.transpose(0,1).reshape(self.feats, self.input_channels, self.filts, self.filts)
+        return self
+
+
+
+class STVAE_mix(nn.Module):
+
 
     def __init__(self, sh, device, args):
-        super(STVAE_mix, self).__init__(sh, device, args)
-
+        super(STVAE_mix, self).__init__()
+        self.bsz = args.mb_size
+        self.dv = device
         self.binary_thresh=args.binary_thresh
         self.initial_shape=sh
         self.lim=args.lim
+        self.h = sh[1]
+        self.w = sh[2]
         self.opt = args.OPT
         self.opt_jump=args.opt_jump
         self.mu_lr = args.mu_lr
         self.lr=args.lr
+        self.s_dim = args.sdim
         self.n_mix = args.n_mix
+        self.input_channels = sh[0]
         self.flag=True
         self.nosep=args.nosep
-        self.n_parts=args.n_parts
-        self.n_part_locs=args.n_part_locs
-        self.part_dim=args.part_dim
-        self.feats=args.feats
-        self.feats_back=args.feats_back
-        self.filts=args.filts
         self.lamda=args.lamda
         self.loglamda=.5*np.log(self.lamda)
         self.diag=args.Diag
         self.output_cont=args.output_cont
         self.only_pi=args.only_pi
         self.nti=args.nti
-
-        if (self.feats>0 and not args.feats_back):
-            self.output_cont=True
+        self.optim=args.optimizer
 
         self.n_class=args.n_class
-        if self.n_parts:
-            self.u_dim=self.n_parts*2
-            self.s_dim=self.u_dim
 
         self.final_shape=None
+        self.enc_conv=None
+        setup_trans_stuff(self,args)
         if hasattr(args,'enc_layers') and args.enc_layers is not None:
             self.enc_conv=ENC_DEC(sh,self.dv,args)
             self.final_shape=np.array(self.enc_conv.model.output_shape)[1:]
@@ -73,11 +83,15 @@ class STVAE_mix(models.STVAE):
 
 
 
-        self.rho = nn.Parameter(torch.zeros(self.n_mix),requires_grad=False)
-
+        self.rho = nn.Parameter(torch.zeros(self.n_mix)) #,requires_grad=False)
+        self.scheduler=None
         self.optimizer=None
-        if (args.optimizer=='Adam' and not args.nosep):
+        if (not args.nosep):
+            if (args.optimizer=='Adam'):
                 self.optimizer = optim.Adam(self.parameters())
+            else:
+                self.optimizer = optim.SGD(self.parameters(),lr=args.lr)
+
             #self.optimizer=optim.Adam(self.parameters(),lr=args.lr)
         #elif (args.optimizer=='Adadelta'):
         #   self.optimizer = optim.Adadelta(self.parameters())
@@ -89,6 +103,22 @@ class STVAE_mix(models.STVAE):
     def decoder_mix(self, input, rng=None):
 
         return self.decoder_m(input, self.enc_conv, rng)
+
+    def initialize_mus(self,train,OPT=None):
+        trMU=None
+        trLOGVAR=None
+        trPI=None
+        sdim=self.s_dim
+        if self.n_mix>0:
+            sdim=self.s_dim*self.n_mix
+        if (train is not None):
+            trMU = torch.zeros(train.shape[0], sdim) #.to(self.dv)
+            trLOGVAR = torch.zeros(train.shape[0], sdim) #.to(self.dv)
+            #EE = (torch.eye(self.n_mix) * 5. + torch.ones(self.n_mix)).to(self.dv)
+            #ii=torch.randint(0,self.n_mix,[train.shape[0]])
+            #trPI=EE[ii]
+            trPI=torch.zeros(train.shape[0], self.n_mix) #.to(self.dv)
+        return trMU, trLOGVAR, trPI
 
     def update_s(self,mu,logvar,pi,mu_lr,wd=0, both=True):
         # mu_lr=self.mu_lr[0]
@@ -107,8 +137,12 @@ class STVAE_mix(models.STVAE):
                 for p in self.parameters():
                     PP2+=[p]
 
-            self.optimizer_s = optim.Adam([{'params':PP1,'lr':mu_lr},
+            if self.optim=='Adam':
+                self.optimizer_s = optim.Adam([{'params':PP1,'lr':mu_lr},
                                           {'params':PP2}],lr=self.lr)
+            else:
+                self.optimizer_s = optim.SGD([{'params': PP1, 'lr': mu_lr},
+                                               {'params': PP2}], lr=self.lr)
 
             #{lr=mu_lr,weight_decay=wd)
 
@@ -121,12 +155,20 @@ class STVAE_mix(models.STVAE):
         self.pi_parts = torch.autograd.Variable(pi_parts.to(self.dv), requires_grad=True)
         self.optimizer_s = optim.Adam([self.mu, self.logvar, self.pi,self.pi_parts], lr=mu_lr, weight_decay=wd)
 
-    def preprocess(self,data):
+    def apply_trans(self,x,u):
+        # Apply transformation
+        if 'tvae' in self.type:
+            #id = self.idty.expand((x.shape[0],) + self.idty.size()).to(self.dv)
+            # Apply linear only to dedicated transformation part of sampled vector.
+            if self.tf == 'aff':
+                self.theta = u.view(-1, 2, 3) + self.idty.unsqueeze(0)
+                grid = F.affine_grid(self.theta, x.view(-1,self.input_channels,self.h,self.w).size(),align_corners=True)
+            elif self.tf=='tps':
+                self.theta = u + self.idty.unsqueeze(0)
+                grid = self.gridGen(self.theta)
+            x = F.grid_sample(x.view(-1,self.input_channels,self.h,self.w), grid, padding_mode='border',align_corners=True)
 
-        if (self.feats>0 and not self.feats_back):
-                data = F.relu(self.conv.fwd(data))
-
-        return data
+        return x
 
     def decoder_and_trans(self,s, rng=None):
 
@@ -134,9 +176,8 @@ class STVAE_mix(models.STVAE):
         x, u = self.decoder_mix(s,rng)
         # Transform
         if (self.u_dim>0):
-            if self.n_parts==0:
-                xt = []
-                for xx,uu in zip(x,u):
+            xt = []
+            for xx,uu in zip(x,u):
                     xt=xt+[self.apply_trans(xx,uu).squeeze()]
 
             x=torch.stack(xt,dim=0).reshape(n_mix,x.shape[1],-1)
@@ -162,7 +203,7 @@ class STVAE_mix(models.STVAE):
 
         # Sum along last coordinate to get negative log density of each component.
         KD_dens=-0.5 * torch.sum(1 + s_logvar - s_mu ** 2 - var, dim=2) # +KL(N(\mu,\si)| N(0,1))
-        KD_disc=lpi+torch.log(torch.tensor(n_mix,dtype=torch.float)) # +KL(\pi,unif(1/n_mix))
+        KD_disc=lpi - F.log_softmax(self.rho,dim=0)#torch.log(torch.tensor(n_mix,dtype=torch.float)) # +KL(\pi,unif(1/n_mix))
         KD = torch.sum(pi * (KD_dens + KD_disc), dim=1)
         tot=torch.sum(KD)
 
@@ -346,7 +387,7 @@ class STVAE_mix(models.STVAE):
         for j in np.arange(0, len(y), self.bsz):
 
             data_in = torch.from_numpy(tr[j:j + self.bsz]).float().to(self.dv)
-            data = torch.from_numpy(etr[j:j + self.bsz]).float().to(self.dv) #self.preprocess(data_in)
+            data = torch.from_numpy(etr[j:j + self.bsz]).float().to(self.dv)
             data_d = data.detach()
             target=None
             if (self.n_class>0):
@@ -376,7 +417,7 @@ class STVAE_mix(models.STVAE):
             tr_recon_loss += recon_loss
             tr_full_loss += loss
 
-        if (np.mod(epoch, 10) == 9 or epoch == 0):
+        if (True): #(np.mod(epoch, 10) == 9 or epoch == 0):
             fout.write('\n====> Epoch {}: {} Reconstruction loss: {:.4f}, Full loss: {:.4F}\n'.format(d_type,
         epoch, tr_recon_loss / len(tr), tr_full_loss/len(tr)))
 
@@ -389,9 +430,8 @@ class STVAE_mix(models.STVAE):
             mu, logvar, ppi = self.initialize_mus(input, True)
 
         num_inp=input.shape[0]
-        self.setup_id(num_inp)
-        input = input.float().to(self.dv)
-        inp = self.preprocess(input)
+        #self.setup_id(num_inp)
+        inp = input.float().to(self.dv)
         inp_d=inp.detach()
         if self.opt:
             self.update_s(mu, logvar, ppi, self.mu_lr[0])
@@ -415,8 +455,6 @@ class STVAE_mix(models.STVAE):
 
         ss_mu = s.reshape(-1, self.n_mix, self.s_dim).transpose(0,1)
 
-        #ss_mu = s_mu.reshape(-1, self.n_mix, self.s_dim).transpose(0,1)
-        #ss_mu = ss_mu+.5*torch.randn(ss_mu.shape).to(self.dv)
         ii = torch.argmax(pi, dim=1)
         jj = torch.arange(0,num_inp,dtype=torch.int64).to(self.dv)
         kk = ii+jj*self.n_mix
@@ -426,13 +464,6 @@ class STVAE_mix(models.STVAE):
             recloss = self.mixed_loss(recon_batch, inp, pi)
             totloss = self.dens_apply(s_mu, s_var, lpi, pi)[0]
 
-        if (self.feats and not self.feats_back):
-            rec_b=[]
-            for rc in recon_batch:
-                rec_b+=[self.conv.bkwd(rc.reshape(-1, self.feats, self.conv.x_hf, self.conv.x_hf))]
-            recon_batch=torch.stack(rec_b,dim=0)
-
-        #print('LOSS', (tot + recloss)/num_inp)
         recon_batch = recon_batch.transpose(0, 1)
         recon=recon_batch.reshape(self.n_mix*num_inp,-1)
         rr=recon[kk]
@@ -443,7 +474,7 @@ class STVAE_mix(models.STVAE):
 
     def sample_from_z_prior(self,theta=None, clust=None):
         self.eval()
-        ee=torch.eye(self.n_mix).to(self.dv)
+        #ee=torch.eye(self.n_mix).to(self.dv)
         rho_dist=torch.exp(self.rho-torch.logsumexp(self.rho,dim=0))
         if (clust is not None):
             ii=clust*torch.ones(self.bsz, dtype=torch.int64).to(self.dv)
@@ -460,7 +491,8 @@ class STVAE_mix(models.STVAE):
             for i in range(self.n_mix):
                 s[:,i,0:self.u_dim]=theta
         s = s.transpose(0,1)
-        x=self.decoder_and_trans(s)
+        with torch.no_grad():
+            x=self.decoder_and_trans(s)
         if hasattr(self,'enc_conv'):
         #if (self.feats and not self.feats_back):
             rec_b = []
@@ -473,19 +505,77 @@ class STVAE_mix(models.STVAE):
         kk = ii + jj * self.n_mix
         recon = x.reshape(self.n_mix * self.bsz, -1)
         rr = recon[kk]
-        if (self.feats and not self.feats_back):
-            rrm=torch.min(rr,dim=1)[0].unsqueeze(dim=1)
-            rrM=torch.max(rr,dim=1)[0].unsqueeze(dim=1)
-            rr=(rr-rrm)/(rrM-rrm)
+
         return rr
 
 
+    def compute_likelihood(self,Input,num_samples):
 
-def get_scheduler(args,model):
-    scheduler=None
-    if args.wd:
-        l2 = lambda epoch: pow((1.-1. * epoch/args.nepoch),0.9)
-        scheduler = torch.optim.lr_scheduler.LambdaLR(model.optimizer, lr_lambda=l2)
+       self.eval()
+       Input = torch.from_numpy(Input)
+       num_inp = Input.shape[0]
 
-    return scheduler
+
+       bsz=np.maximum(1,np.int(self.bsz/num_samples))
+       print(bsz)
+       LLG=0
+       EEE = torch.randn(num_samples, num_inp, self.n_mix, self.s_dim).to(self.dv)
+
+
+       for j in np.arange(0, num_inp, bsz):
+
+            input = Input[j:j+bsz].to(self.dv)
+
+
+            if self.opt or self.only_pi:
+                mu, logvar, ppi = self.initialize_mus(input, True)
+
+
+
+            if self.opt:
+                inp_d = input.detach()
+                self.update_s(mu, logvar, ppi, self.mu_lr[0])
+                for it in range(self.nti):
+                    self.compute_loss_and_grad(inp_d,input, None, 'test', self.optimizer_s, opt='mu')
+                s_mu = self.mu
+                s_var = self.logvar
+                pi = torch.softmax(self.pi, dim=1)
+            elif self.only_pi:
+                with torch.no_grad():
+                    inp_d = input.detach()
+                    s_mu, s_var, _ = self.encoder_mix(inp_d)
+                    self.pi=self.get_pi_from_max(s_mu, s_var, inp_d, None)
+                    pi = torch.softmax(self.pi, dim=1)
+            else:
+                with torch.no_grad():
+                    s_mu, s_var, pi = self.encoder_mix(input)
+
+            EE=EEE[:,j:j+bsz,:,:].to(self.dv)
+            s_var=s_var.reshape(1,bsz,self.n_mix,self.s_dim)
+            tsd=torch.exp(s_var/2)
+            tmu=s_mu.reshape(1,bsz,self.n_mix,self.s_dim)
+            S =tmu +tsd*EE
+
+            with torch.no_grad():
+
+                recon_batch=self.decoder_and_trans(S.reshape(-1, self.n_mix, self.s_dim).transpose(0, 1))
+                inp=input.repeat(num_samples,1,1,1)
+                recon_loss = -self.mixed_loss_pre(recon_batch, inp).reshape(num_samples,bsz,self.n_mix)
+
+            logq = -torch.sum((S - tmu) * (S - tmu) / (2 * tsd*tsd),dim=3)\
+                   - torch.sum(s_var,dim=3)/2 #+ torch.log(pi.unsqueeze(0))
+            logp = -.5*torch.sum(S*S,dim=3)
+            LG = torch.logsumexp(recon_loss + logp - logq,0)
+            LLG -= torch.sum(torch.logsumexp(LG,1) + np.log(self.n_mix) - np.log(num_samples))
+
+       print('LLL',LLG/num_inp)
+
+       return(LLG/num_inp)
+
+    def get_scheduler(self,args):
+        self.scheduler=None
+        if args.sched:
+            l2 = lambda epoch: pow((1.-1. * epoch/args.nepoch),0.9)
+            self.scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lr_lambda=l2)
+
 
