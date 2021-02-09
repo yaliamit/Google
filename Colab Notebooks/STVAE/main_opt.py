@@ -84,7 +84,7 @@ def resnet_try():
 #net=run_net('pars_big_cl', device)
 #save_net(net,'pars_mnist_a',predir)
 
-seq('pars_mnist',predir, device)
+seq('pars_big_cl',predir, device)
 #np.random.seed(123456)
 
 # ims, ims_def, _=test_aug()
