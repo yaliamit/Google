@@ -81,10 +81,10 @@ def resnet_try():
 
 #to_npy()
 #copy_to_content('pars_tvae_conv',predir)
-net=run_net('pars_big_cl', device)
+#net=run_net('pars_big_cl', device)
 #save_net(net,'pars_mnist_a',predir)
 
-#seq('pars_mnist',predir, device)
+seq('pars_mnist',predir, device)
 #np.random.seed(123456)
 
 # ims, ims_def, _=test_aug()
