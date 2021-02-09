@@ -27,46 +27,25 @@ sys.path.insert(1, datadirs+'_CODE')
 
 
 
-def test_aug(aug='aff'):
+def  to_npy():
 
 
-    net = main_loc('_pars/pars_aug')
+
 
     parser = argparse.ArgumentParser(fromfile_prefix_chars='@',
                                      description='Variational Autoencoder with Spatial Transformation')
     parser = aux.process_args(parser)
-    par_file = '_pars/pars_aug'
+    par_file = 'pars_emb_cifar'
     f = open(par_file + '.txt', 'r')
     args = parser.parse_args(f.read().split())
     f.close()
     args.datadirs = datadirs
 
     DATA = get_data_pre(args, args.dataset)
-    net.trans = aug
-    ims = DATA[0][0].transpose(0, 2, 3, 1)
-    device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-    ims_def = net.deform_data(torch.from_numpy(DATA[0][0][0:net.bsz]).to(device)).detach().cpu().numpy().transpose(0, 2, 3,
-                                                                                                               1)
+    ims = np.uint8(DATA[0][0][0:10000].transpose(0, 2, 3, 1)*255.)
+    np.save(predir+'/LSDA_data/CIFAR/cifar10.npy',ims)
 
-    print(net.trans)
 
-    return ims[0:net.bsz], ims_def, net
-
-def test_loss():
-
-    ims, ims_def, net=test_aug()
-
-    ims=torch.from_numpy(ims.transpose(0,3,1,2))
-    ims_def=torch.from_numpy(ims_def.transpose(0,3,1,2))
-    out,_=net.forward(ims)
-    outa,_=net.forward(ims_def)
-
-    loss1=net.get_embedd_loss(out,outa)
-    loss2=net.get_embedd_loss_a(out,outa)
-
-    print(loss1,loss2)
-
-    exit()
 
 
 #test_loss()
@@ -100,11 +79,12 @@ def resnet_try():
 
     out = resnet(batch_img_cat_tensor)
 
-#copy_to_content('pars_tvae_orig',predir)
-net=run_net('pars_tvae_orig', device)
+#to_npy()
+#copy_to_content('pars_tvae_conv',predir)
+net=run_net('pars_big_cl', device)
 #save_net(net,'pars_mnist_a',predir)
 
-#seq('pars_emb_mnist',predir, device)
+#seq('pars_mnist',predir, device)
 #np.random.seed(123456)
 
 # ims, ims_def, _=test_aug()

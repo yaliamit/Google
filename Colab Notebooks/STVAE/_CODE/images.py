@@ -36,18 +36,20 @@ def make_images(test,model,ex_file,args, datadirs=""):
         torch.manual_seed(args.seed)
         np.random.seed(args.seed)
 
-        if args.n_mix>1:
-            for clust in range(args.n_mix):
-                show_sampled_images(model,ex_f,clust)
-        else:
-            show_sampled_images(model, ex_f)
-
         if (args.n_class):
             for c in range(model.n_class):
                 ind=(test[1]==c)
                 show_reconstructed_images([test[0][ind]],model,ex_f,args.nti,c, args.erode)
         else:
             show_reconstructed_images(test,model,ex_f,args.nti,None, args.erode)
+
+        if args.n_mix>1:
+            for clust in range(args.n_mix):
+                show_sampled_images(model,ex_f,clust)
+        else:
+            show_sampled_images(model, ex_f)
+
+
 
 
         model.bsz=old_bsz
@@ -92,6 +94,7 @@ def show_sampled_images(model,ex_file,clust=None):
 
 def show_reconstructed_images(test,model,ex_file,num_iter=None, cl=None, erd=False):
 
+    np.random.shuffle(test[0])
     inp=torch.from_numpy(erode(erd,test[0][0:100]))
 
 

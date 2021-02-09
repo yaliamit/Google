@@ -1,5 +1,5 @@
 from make import train_model, test_models
-from class_on_hidden import pre_train_new
+from class_on_hidden import pre_train_new, cluster_hidden
 import prep
 import numpy as np
 from data import get_data_pre
@@ -29,34 +29,37 @@ def main_loc(par_file, device):
   sh=DATA[0][0].shape
 
   models=prep.get_models(device, fout, sh, STRINGS, ARGS, args)
-  # Training a feedforward embedding or classification network
 
-  lr=args.lr
   fout.flush()
 
   if args.cont_training:
 
       prep.copy_from_old_to_new(models[0], args, fout, SMS[0], STRINGS[0], device, sh)
+
+      models[0].nti = args.nti
+      models[0].opt_jump = args.opt_jump
       train_model(models[0], args, EX_FILES[0], DATA, fout)
-      model_out=models[0]
+      model_out = models[0]
       pre_train_new(model_out,args,device,fout, data=None)
 
   elif args.run_existing:
       models[0].load_state_dict(SMS[0]['model.state.dict'])
       models[0].to(device)
       if args.sample:
-          LLG=models[0].compute_likelihood(DATA[2][0], 250)
-          print('LLG:',LLG,file=fout)
+          models[0].nti=args.nti
+          #LLG=models[0].compute_likelihood(DATA[2][0], 250)
+          #print('LLG:',LLG,file=fout)
           make_sample(models[0],args, EX_FILES[0], datadirs=args.datadirs)
           make_images(DATA[2],models[0],EX_FILES[0],ARGS[0],datadirs=args.datadirs)
-      elif args.network:
+      elif args.network and (args.embedd or 'ae' in args.type):
           if args.embedd:
               models[0].embedd_layer = args.embedd_layer
           pre_train_new(models[0], args, device, fout, data=DATA)
+      elif args.cluster_hidden:
+          cluster_hidden(models[0], args, device, DATA, args.datadirs, EX_FILES[0])
       else: # Test a sequence of models
-              test_models(ARGS,SMS,DATA[2],models, fout)
-      model_out=models[0]
-
+          ARGS[0].nti = args.nti
+          test_models(ARGS,SMS,DATA[2],models, fout)
   else: # Totally new network
         train_model(models[0], args, EX_FILES[0], DATA, fout)
         pre_train_new(models[0], args, device, fout, data=DATA)

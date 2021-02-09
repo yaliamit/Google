@@ -10,7 +10,7 @@ def copy_to_content(fname,predir):
   datadirs = predir + 'Colab Notebooks/STVAE/'
   from_file=fname+'.txt'
   f=open(datadirs+'_pars/'+from_file,'r')
-  g=open(fname+'.txt','w')
+  g=open(datadirs+fname+'.txt','w')
   for l in f:
     g.write(l)
   g.close()
@@ -18,9 +18,9 @@ def copy_to_content(fname,predir):
 
 def copy_from_content(fname,predir):
   datadirs = predir + 'Colab Notebooks/STVAE/'
-  from_file='_pars/'+fname+'.txt'
-  g=open(fname+'.txt','r')
-  f=open(datadirs+from_file,'w')
+  to_file='_pars/'+fname+'.txt'
+  g=open(datadirs+fname+'.txt','r')
+  f=open(datadirs+to_file,'w')
   for l in g:
     f.write(l)
   f.close()
@@ -96,8 +96,11 @@ def save_net(net,par_file,predir):
         description='Variational Autoencoder with Spatial Transformation')
 
   parser=process_args(parser)
-  f=open(par_file+'.txt','r')
-  args=parser.parse_args(f.read().split())
+  datadirs = predir + 'Colab Notebooks/STVAE/'
+  f = open(datadirs+par_file + '.txt', 'r')
+  bb = f.read().split()
+  aa = [ll for ll in bb if '#' not in ll]
+  args=parser.parse_args(aa)
   f.close()
   model=net
   print(args.model_out)
@@ -134,25 +137,29 @@ def seq(par_file, predir, device, tlay=None, toldn=None):
                                      description='')
     parser = aux.process_args(parser)
 
-    f = open(par_file + '.txt', 'r')
-    args = parser.parse_args(f.read().split())
+    f = open(datadirs+par_file + '.txt', 'r')
+    bb = f.read().split()
+    aa = [ll for ll in bb if '#' not in ll]
+    args = parser.parse_args(aa)
+
     f.close()
 
     lnti, layers_dict = prep.get_network(args.layers)
 
-    fin = open(par_file + '.txt', 'r')
-    lines = [line.rstrip('\n') for line in fin]
+    fin = open(datadirs+par_file + '.txt', 'r')
+    lines = [line.rstrip('\n') for line in fin if line[0] !='#']
     fin.close()
     RESULTS = []
     #break_name='pool'
     #break_name_layer='name:'+break_name+'f;pool_size:2'
     #skip_name='drop'
 
-    skip_name = 'pool'
+    skip_name1 = 'pool'
+    skip_name2 = 'non_linearity'
     break_name='drop'
     break_name_layer = 'name:dropf;drop:.5'
     if not args.layerwise:
-        fout = open('t_par.txt', 'w')
+        fout = open(datadirs+'t_par.txt', 'w')
         for l in lines:
             fout.write(l + '\n')
         fout.close()
@@ -169,11 +176,12 @@ def seq(par_file, predir, device, tlay=None, toldn=None):
                 #if 'final' in nn or 'input' in nn or 'drop' in nn or (i < len(layers_dict) - 1 and
                 #                                                      'pool' in layers_dict[i + 1]['name']):
                 if 'final' in nn or 'input' in nn or break_name in nn  or (i < len(layers_dict) - 1 and
-                                                                      skip_name in layers_dict[i+1]['name']):
+                                                                           (skip_name1 in layers_dict[i+1]['name'] or
+                                                                            skip_name2 in layers_dict[i+1]['name'])):
                     pass
                 else:
 
-                    fout = open('t_par.txt', 'w')
+                    fout = open(datadirs+'t_par.txt', 'w')
                     for l in lines:
                         if 'dense_final' in l and not 'hid' in l:
                             if args.embedd:
@@ -181,7 +189,9 @@ def seq(par_file, predir, device, tlay=None, toldn=None):
                                 # fout.write('name:drop_f;drop:.5;parent:['+nn+']\n'+l+'\n')
                             else:
                                     #fout.write('name:drop_f;drop:.5;parent:[' + nn + ']\n'+'name:Avg\n' + l + '\n')
-                                    fout.write(break_name_layer +'\n'+'name:Avg\n' + l + '\n')
+                                    fout.write(break_name_layer +'\n')
+                                    #fout.write('name:Avg\n')
+                                    fout.write(l + '\n')
 
                         else:
                             if not done:
@@ -191,8 +201,11 @@ def seq(par_file, predir, device, tlay=None, toldn=None):
                     if (args.embedd):
                         fout.write('--embedd\n' + '--embedd_layer=' + nn + '\n')
                     fout.write('--update_layers\n')
-                    if (skip_name in nn):
-                        fout.write(layers_dict[i - 1]['name'] + '\n')
+                    if (skip_name1 in nn or skip_name2 in nn):
+                        if skip_name2 in layers_dict[i - 1]['name']:
+                            fout.write(layers_dict[i - 2]['name'] + '\n')
+                        else:
+                            fout.write(layers_dict[i - 1]['name'] + '\n')
                     else:
                         fout.write(nn + '\n')
                     fout.write('dense_final\n')

@@ -16,10 +16,7 @@ from data import get_pre
 
 def get_names(args):
 
-    if 'Linux' in os.uname():
-        predir = '/ME/My Drive/'
-    else:
-        predir = '/Users/amit/Google Drive/'
+    predir=get_pre()
 
     datadirs = predir + 'Colab Notebooks/STVAE/'
     fout=args.fout
@@ -34,9 +31,9 @@ def get_names(args):
             sm = torch.load(datadirs+'_output/' + name + '.pt',map_location='cpu')
             SMS += [sm]
             if ('args' in sm):
-                args = sm['args']
-            ARGS += [args]
-            strings, ex_file = args.model_out, args.out_file #process_strings(args)
+                arg = sm['args']
+            ARGS += [arg]
+            strings, ex_file = arg.model_out, arg.out_file #process_strings(args)
             STRINGS += [strings]
             EX_FILES += [ex_file]
     else:
@@ -65,7 +62,7 @@ def get_models(device, fout, sh,STRINGS,ARGS, args):
 
 
     models = []
-    if 'vae' in args.type:
+    if 'ae' in args.type:
         for strings, args in zip(STRINGS, ARGS):
             model=make_model(args, sh[1:], device, fout)
             models += [model]
@@ -76,9 +73,9 @@ def get_models(device, fout, sh,STRINGS,ARGS, args):
             arg = args
         # Layers defining the new network.
         if arg.layers is not None:
-            arg.lnti, arg.layers_dict = get_network(arg.layers, nf=sh[1])
+            lnti, layers_dict = get_network(arg.layers, nf=sh[1])
             # Initialize the network
-            models = [network.network(device, arg, arg.layers_dict, arg.lnti, fout=fout, sh=sh).to(device)]
+            models = [network.network(device, arg, layers_dict, lnti, fout=fout, sh=sh).to(device)]
 
     return models
 
@@ -102,8 +99,11 @@ def setups(par_file):
                                      description='VAEs, classification and embedding networks')
 
     parser = aux.process_args(parser)
-    f = open(par_file + '.txt', 'r')
-    args = parser.parse_args(f.read().split())
+    f = open(datadirs+par_file + '.txt', 'r')
+    bb=f.read().split()
+    aa = [ll for ll in bb if '#' not in ll]
+
+    args = parser.parse_args(aa)
     f.close()
     args.datadirs = datadirs
 
@@ -121,24 +121,30 @@ def setups(par_file):
 
 
 def copy_from_old_to_new(model, args, fout, SMS, strings,device, sh):
-    if 'vae' in args.type:
+
+
+    print('cont training:', args.cont_training)
+
+    if 'ae' in args.type:
         print('device')
-        model_old=make_model(args, sh[1:], device, fout)
+        #model=make_model(args, sh[1:], device, fout)
+        model.load_state_dict(SMS['model.state.dict'])
+        return
     else:
         lnti, layers_dict = get_network(SMS['args'].layers, nf=sh[1])
         model_old = network.network(device, SMS['args'], layers_dict, lnti, fout=fout, sh=sh, first=2).to(device)
     model_old.load_state_dict(SMS['model.state.dict'])
-
+    model_old.bn=args.bn
     params_old = model_old.named_parameters()
     params = model.named_parameters()
     dict_params = dict(params)
     # Loop over parameters of N1
-    print('cont training:', args.cont_training)
+
     for name, param_old in params_old:
         if name in dict_params and (args.update_layers is None or name.split('.')[1] not in args.update_layers):
             fout.write('copying ' + name + '\n')
             dict_params[name].data.copy_(param_old.data)
-            if model_old.bn=='full':
+            if hasattr(model_old,'bn') and model_old.bn=='full':
               if 'norm' in name and 'weight' in name:
                 tname=name.split('.')[1]
                 sname=".".join(name.split('.')[0:2])
@@ -151,6 +157,6 @@ def copy_from_old_to_new(model, args, fout, SMS, strings,device, sh):
     if 'crit.pos_weight' in SMS['model.state.dict']:
         dict_params['crit.pos_weight']=SMS['model.state.dict']['crit.pos_weight']
     model.load_state_dict(dict_params)
-    return model
+    return
 
 

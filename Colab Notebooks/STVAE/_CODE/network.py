@@ -6,7 +6,7 @@ import contextlib
 from images import deform_data, Edge
 from losses import *
 import sys
-from layers import FALinear, FAConv2d, Iden, NONLIN, diag2d, Reshape
+from layers import FALinear, FAConv2d, Iden, NONLIN, diag2d, Reshape, BatchNorm2d, BatchNorm1d
 
 
 @contextlib.contextmanager
@@ -27,6 +27,7 @@ class network(nn.Module):
         self.embedd=args.embedd
         self.embedd_layer=args.embedd_layer
         self.first=first
+        self.penalize_activations=args.penalize_activations
         self.bsz=args.mb_size # Batch size - gets multiplied by number of shifts so needs to be quite small.
         #self.full_dim=args.full_dim
         self.dv=device
@@ -42,7 +43,7 @@ class network(nn.Module):
         self.randomize=args.layerwise_randomize
         self.lnti=lnti
         self.HT=nn.Hardtanh(0.,1.)
-        self.back=('vae' in args.type)
+        self.back=('ae' in args.type)
         if fout is not None:
             self.fout=fout
         else:
@@ -96,7 +97,7 @@ class network(nn.Module):
                     pp=ll['parent']
                     # over ride default inp_feats
                     if len(pp)==1:
-                        inp_ind=pp[0] #self.lnti[pp[0]]
+                        inp_ind=pp[0]
                         if self.first:
                             inp_feats=OUTS[pp[0]].shape[1]
                             in_dim=in_dims[self.lnti[pp[0]]]
@@ -105,7 +106,7 @@ class network(nn.Module):
                         loc_in_dims=[]
                         inp_ind=[]
                         for p in pp:
-                            inp_ind += [p] #[self.lnti[p]]
+                            inp_ind += [p]
                             if self.first:
                                 inp_feats+=[OUTS[p].shape[1]]
                                 loc_in_dims+=[in_dims[self.lnti[p]]]
@@ -191,19 +192,41 @@ class network(nn.Module):
                     if self.first:
                         if self.bn=='full':
                             if len(OUTS[old_name].shape)==4 and self.bn:
-                                self.layers.add_module(ll['name'],torch.nn.BatchNorm2d(OUTS[old_name].shape[1]))
+                                self.layers.add_module(ll['name'],nn.BatchNorm2d(OUTS[old_name].shape[1]))
                             else:
-                                self.layers.add_module(ll['name'],torch.nn.BatchNorm1d(OUTS[old_name].shape[1]))
+                                self.layers.add_module(ll['name'],nn.BatchNorm1d(OUTS[old_name].shape[1]))
                         elif self.bn=='half_full':
                             if len(OUTS[old_name].shape)==4 and self.bn:
-                                self.layers.add_module(ll['name'],torch.nn.BatchNorm2d(OUTS[old_name].shape[1], affine=False))
+                                self.layers.add_module(ll['name'],nn.BatchNorm2d(OUTS[old_name].shape[1], affine=False))
                             else:
-                                self.layers.add_module(ll['name'],torch.nn.BatchNorm1d(OUTS[old_name].shape[1], affine=False))
+                                self.layers.add_module(ll['name'],nn.BatchNorm1d(OUTS[old_name].shape[1], affine=False))
+                        elif self.bn=='layerwise':
+                                self.layers.add_module(ll['name'],nn.LayerNorm(OUTS[old_name].shape[2:4]))
                         elif self.bn=='simple':
                             self.layers.add_module(ll['name'],diag2d(OUTS[old_name].shape[1]))
                         else:
                             self.layers.add_module(ll['name'],Iden())
-                    out = getattr(self.layers, ll['name'])(OUTS[inp_ind])
+                        if self.back:
+                            if self.bn=='full':
+                                if len(OUTS[inp_ind].shape)==4 and self.bn:
+                                    self.back_layers.add_module(ll['name'],nn.BatchNorm2d(OUTS[inp_ind].shape[1]))
+                                else:
+                                    self.back_layers.add_module(ll['name'],nn.BatchNorm1d(OUTS[inp_ind].shape[1]))
+                            elif self.bn == 'half_full':
+                                    if len(OUTS[old_name].shape) == 4 and self.bn:
+                                        self.back_layers.add_module(ll['name'],
+                                                           nn.BatchNorm2d(OUTS[inp_ind].shape[1], affine=False))
+                                    else:
+                                        self.back_layers.add_module(ll['name'],
+                                                           nn.BatchNorm1d(OUTS[inp_ind].shape[1], affine=False))
+                            elif self.bn == 'simple':
+                                    self.back_layers.add_module(ll['name'], diag2d(OUTS[inp_ind].shape[1]))
+                            else:
+                                    self.back_layers.add_module(ll['name'], Iden())
+                    if not self.first:
+                        out = getattr(self.layers, ll['name'])(OUTS[inp_ind])
+                    else:
+                        out = OUTS[inp_ind]
                     OUTS[ll['name']]=out
 
                 if ('opr' in ll['name']):
@@ -263,7 +286,7 @@ class network(nn.Module):
         out1=[]
         if self.first:
             self.first=0
-        if(everything or self.randomize is not None):
+        if(everything or self.randomize is not None or self.penalize_activations is not None):
             out1=OUTS
 
         return(out,out1)
@@ -313,9 +336,14 @@ class network(nn.Module):
             out,OUT=self.forward(input)
             if self.randomize is not None:
                 out=OUT[self.randomize[lnum*2+1]]
+            pen=0
+            if self.penalize_activations is not None:
+                for l in self.layer_text:
+                    if 'penalty' in l:
+                        pen+=self.penalize_activations*torch.sum(torch.mean((OUT[l['name']] * OUT[l['name']]).reshape(self.bsz,-1),dim=1))
             # Compute loss and accuracy
             loss, acc=self.get_acc_and_loss(out,target)
-
+            loss+=pen
         return loss, acc
 
 
@@ -346,8 +374,7 @@ class network(nn.Module):
         full_loss=np.zeros(ll); full_acc=np.zeros(ll); count=np.zeros(ll)
 
         # Loop over batches.
-        fout.write('epoch:{},lr:{:.4F}\n'.format(epoch,self.optimizer.param_groups[0]['lr']))
-
+        print(self.optimizer.param_groups[0]['lr'],file=fout)
         targ_in=targ
         for j in np.arange(0, num_tr, jump,dtype=np.int32):
             lnum=0
@@ -361,8 +388,6 @@ class network(nn.Module):
                     data_out1=deform_data(data_in,self.dv,self.perturb,self.trans,self.s_factor,self.h_factor)
                     data=[data_in,data_out1]
             else:
-
-
                 data = torch.from_numpy(trin[j:j + jump]).to(self.dv,dtype=torch.float32)
                 if self.perturb >0. and d_type=='train' and torch.rand(1)>.5:
                     data=deform_data(data,self.dv,self.perturb,self.trans,self.s_factor,self.h_factor)
@@ -378,8 +403,8 @@ class network(nn.Module):
                 if self.grad_clip>0.:
                     nn.utils.clip_grad_value_(self.parameters(),self.grad_clip)
                 self.optimizer.step()
-                if self.scheduler is not None:
-                  self.scheduler.step()
+                #if self.scheduler is not None:
+                #  self.scheduler.step()
 
 
             full_loss[lnum] += loss
@@ -414,9 +439,9 @@ class network(nn.Module):
 
     def get_scheduler(self,args):
         self.scheduler = None
-        if args.sched>0.:
-            self.scheduler = torch.optim.lr_scheduler.OneCycleLR(self.optimizer, .01, epochs=args.nepoch,
-                                                        steps_per_epoch=(args.num_train-args.nval)//args.mb_size)
+        if args.sched[0] > 0:
+            lambda1 = lambda epoch: args.sched[1]**(epoch // np.int32(args.sched[0]))
+            self.scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lambda1)
             #self.scheduler=torch.optim.lr_scheduler.MultiStepLR(self.optimizer,[50,100,150,200,250,300,350],args.sched)
             #l2 = lambda epoch: pow((1. - 1. * epoch / args.nepoch), args.sched)
             #scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lr_lambda=l2)

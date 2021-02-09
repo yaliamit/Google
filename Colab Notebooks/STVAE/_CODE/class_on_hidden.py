@@ -8,6 +8,10 @@ import torch
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC, LinearSVC
 from sklearn.linear_model import LinearRegression, Ridge
+from sklearn.mixture import GaussianMixture
+from images import create_image
+import pickle
+import os
 
 def prepare_recons(model, DATA, args,fout):
     dat = []
@@ -48,6 +52,48 @@ def prepare_recons(model, DATA, args,fout):
 
     return dat, HV
 
+def cluster_hidden(model,args,device,data,datadirs,ex_file):
+
+    args.num_train = args.network_num_train
+    data[0]=[data[0][0][0:args.num_train],data[0][1][0:args.num_train]]
+    exa_file = datadirs + '_output/' + ex_file.split('.')[0]
+    if os.path.isfile(exa_file+'.npz'):
+        with open(exa_file+'.npz','rb') as f:
+            A=np.load(f)
+            tr=A['arr_0']
+            te=A['arr_1']
+    else:
+        _, [tr, tv, te] = prepare_recons(model, data, args, args.fout)
+        tr=tr[:,0:model.s_dim]
+        te=te[:,0:model.s_dim]
+        exa_file = datadirs + '_output/' + ex_file.split('.')[0]
+        with open(exa_file+'.npz','wb') as f:
+            np.savez(f,tr,te)
+
+    gm = GaussianMixture(n_components=args.hidden_clusters,covariance_type='full',tol=.1).fit(tr)
+    print("training score",gm.score(tr))
+    print("testing score",gm.score(te))
+    s=gm.sample(args.num_sample)
+    print('Finished training mixture model',gm.weights_)
+    S=[torch.from_numpy(s[0]).float().to(device),torch.from_numpy(s[1]).float().to(device)]
+    s=S[0].reshape(-1,1,model.s_dim)
+    s = s.transpose(0, 1)
+    with torch.no_grad():
+        model.decoder_m.cluster_hidden=True
+        xx = model.decoder_and_trans(s, train=False)
+    #xx=model.decoder_m.forward_specific(S,model.enc_conv)
+
+
+    X=xx.detach().cpu().numpy().squeeze()
+    exa_file = datadirs + '_Images/' + ex_file.split('.')[0]
+    with open(exa_file+'_cl'+str(args.hidden_clusters)+'_gm.pickle', 'wb') as f:
+        pickle.dump(gm,f)
+    np.random.shuffle(X)
+    create_image(X[0:100], model, exa_file)
+    X=np.uint8(X*255)
+    ex_file=datadirs+'_Samples/'+ex_file.split('.')[0]+'.npy'
+
+    np.save(ex_file,X)
 
 
 def pre_train_new(model,args,device,fout, data=None):
@@ -60,7 +106,7 @@ def pre_train_new(model,args,device,fout, data=None):
     DATA = get_data_pre(args, datn)
     args.num_class = np.int(np.max(DATA[0][1]) + 1)
 
-    if 'vae' in args.type:
+    if 'ae' in args.type:
         _,[tr,tv,te]=prepare_recons(model,DATA,args,fout)
     elif args.embedd:
         tr = model.get_embedding(DATA[0][0][0:args.network_num_train]) #.detach().cpu().numpy()
