@@ -27,7 +27,7 @@ class network(nn.Module):
         self.trans=args.transformation
         self.wd=args.wd
         self.embedd=args.embedd
-        self.embedd_layer=args.embedd_layer
+        self.embedd_layer=args.embedd_layer # Layer to use for embedding
         self.first=first
         self.future=args.future
         self.penalize_activations=args.penalize_activations
