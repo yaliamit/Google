@@ -6,11 +6,13 @@ from data import get_data_pre
 from images import make_images, make_sample
 
 
-def main_loc(par_file, device):
-  model_out = None
+def main_loc(par_file, device,net=None):
 
+  embed_data=None
   args = prep.setups(par_file)
   fout=args.fout
+  if net is None:
+    args.verbose = True
   # reinit means you are taking part of an existing network as fixed and updating some other parts.
   if args.cont_training:
       args.run_existing=True
@@ -28,9 +30,13 @@ def main_loc(par_file, device):
   # Training an autoencoder.
   sh=DATA[0][0].shape
 
-  models=prep.get_models(device, fout, sh, STRINGS, ARGS, args)
-
+  if net is None:
+    models=prep.get_models(device, fout, sh, STRINGS, ARGS, args)
+    return models[0], embed_data
+  else:
+    models=[net]
   fout.flush()
+  model_out=models[0]
 
   if args.cont_training:
 
@@ -61,9 +67,9 @@ def main_loc(par_file, device):
           ARGS[0].nti = args.nti
           test_models(ARGS,SMS,DATA[2],models, fout)
   else: # Totally new network
-        train_model(models[0], args, EX_FILES[0], DATA, fout)
-        pre_train_new(models[0], args, device, fout, data=DATA)
 
+        train_model(models[0], args, EX_FILES[0], DATA, fout)
+        embed_data=pre_train_new(models[0], args, device, fout, data=DATA)
         model_out=models[0]
 
 
@@ -71,7 +77,7 @@ def main_loc(par_file, device):
   fout.flush()
   if (not args.CONS):
           fout.close()
-  return model_out
+  return model_out, embed_data
 
 
 

@@ -123,9 +123,11 @@ class Reshape(nn.Module):
 
 
 class NONLIN(nn.Module):
-    def __init__(self, ll):
+    def __init__(self, ll,low=0., high=1.):
         super(NONLIN, self).__init__()
         self.type=ll['type']
+        if 'HardT' in self.type:
+            self.HT=nn.Hardtanh(low,high)
 
     def forward(self,input):
 
@@ -138,6 +140,17 @@ class NONLIN(nn.Module):
         elif ('relu' in self.type):
             return(F.relu(input))
 
+class Channel_Norm(nn.Module):
+    def __init__(self,sh):
+        super(Channel_Norm,self).__init__()
+        self.sh=sh[1:4]
+        self.ll=sh[1]*sh[2]
+        self.bn=nn.InstanceNorm1d(self.ll)
+
+    def forward(self,input):
+        inp=input.reshape(-1,self.sh[1],self.ll).transpose(1,2)
+        out=self.bn(inp).transpose(1,2)
+        return(out.reshape(-1,self.sh[0],self.sh[1],self.sh[2]))
 
 
 class Iden(nn.Module):
@@ -146,6 +159,61 @@ class Iden(nn.Module):
 
     def forward(self,z):
         return(z)
+
+class Subsample(nn.Module):
+    def __init__(self,stride=None):
+        super(Subsample,self).__init__()
+
+        self.stride=stride
+        if self.stride is not None:
+            self.pd=(stride-1)//2
+
+
+    def forward(self,z,dv):
+
+        if self.stride is None:
+            return(z)
+        else:
+            if self.pd>0:
+                temp=torch.zeros_like(z+2*self.pd).to(dv)
+                temp[:,:,self.pd:self.pd+z.shape[2],self.pd:self.pd+z.shape[3]]=z
+                tempss=temp[:,:,::self.stride,::self.stride]
+            else:
+                tempss=z[:,:,::self.stride,::self.stride]
+
+
+        return(tempss)
+
+class shifts(nn.Module):
+    def  __init__(self,shift):
+        super(shifts, self).__init__()
+
+        self.shiftx=shift[0]
+        self.shifty=shift[1]
+        #self.zer=torch.zeros(1,sh[1],sh[2],sh[3]).to(self.dv)
+
+    def forward(self,input,dv):
+
+        temp=torch.zeros(input.shape[0],input.shape[1],
+                         input.shape[2]+2*self.shiftx,input.shape[3]+2*self.shifty, device=dv)
+
+        temp[:,:,self.shiftx:self.shiftx+input.shape[2],
+                        self.shifty:self.shifty+input.shape[3]]=input
+        out=[temp]
+        for sx in range(-self.shiftx,self.shiftx+1):
+            for sy in range(-self.shifty,self.shifty+1):
+                if (sx!=0 or sy!=0):
+                    out+=[torch.roll(temp,[sx,sy],dims=[2,3])]
+
+        output=torch.cat(out,dim=1)
+        output=output[:,:,self.shiftx:self.shiftx+input.shape[2],
+               self.shifty:self.shifty+input.shape[3]]
+
+        return(output)
+
+
+
+
 
 class biass(nn.Module):
     def __init__(self,dim, scale=None):
@@ -274,6 +342,7 @@ class FALinear(nn.Module):
         self.in_features = in_features
         self.out_features = out_features
         self.weight = nn.Parameter(torch.Tensor(out_features, in_features))
+
         self.weight_fb = nn.Parameter(torch.Tensor(out_features, in_features))
         self.fa=fa
         #self.weight_fb =torch.Tensor(out_features, in_features) # feedbak weight
@@ -283,6 +352,7 @@ class FALinear(nn.Module):
         else:
             self.register_parameter('bias', None)
         self.reset_parameters()
+
 
     def reset_parameters(self) -> None:
         nn.init.kaiming_uniform_(self.weight, a=math.sqrt(5))
@@ -348,7 +418,7 @@ class FAConv2dFunc(Function):
             #print('grad1',time.time()-t1)
         if ctx.needs_input_grad[1]:
              #t3=time.time()
-            if ctx.device.type=='cpu' or 'ga' not in pre:
+            if ctx.device.type!='gpu': # or 'ga' not in pre:
                 grad_weight = torch.nn.grad.conv2d_weight(input, weight.shape, grad_output, stride, padding, dilation, groups)
             else:
                 grad_weight = cudnn_convolution.convolution_backward_weight(input, weight.shape, grad_output, stride,

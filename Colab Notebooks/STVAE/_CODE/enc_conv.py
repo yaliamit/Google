@@ -20,9 +20,9 @@ class ENC_DEC(nn.Module):
 
     def forw(self,input):
 
-        out,_=self.model.forward(input)
+        out,out1=self.model.forward(input,everything=True)
 
-        return(out)
+        return(out,out1)
 
     def bkwd(self,input):
 

@@ -11,6 +11,7 @@ import prep as mprep
 import numpy as np
 from aux_colab import copy_to_content, seq, train_net, run_net, save_net
 from data import get_pre
+from layers import *
 
 predir=get_pre()
 # if 'Linux' in os.uname():
@@ -25,7 +26,9 @@ datadirs=predir+'Colab Notebooks/STVAE/'
 sys.path.insert(1, datadirs)
 sys.path.insert(1, datadirs+'_CODE')
 
-
+# aa=torch.round(torch.rand(3,7,8,8)*10)
+# ss=shifts([1,1])
+# bb=ss(aa)
 
 def  to_npy():
 
@@ -81,10 +84,13 @@ def resnet_try():
 
 #to_npy()
 #copy_to_content('pars_tvae_conv',predir)
-#net=run_net('pars_big_cl', device)
+par_file='logistic'
+net,_=run_net(par_file, device)
+net.optimizer = torch.optim.Adam(net.optimizer.param_groups[0]['params'], lr=net.lr, weight_decay=net.wd)
+net,_=run_net(par_file, device, net)
 #save_net(net,'pars_mnist_a',predir)
 
-seq('pars_big_cl',predir, device)
+#seq(par_file,predir, device)
 #np.random.seed(123456)
 
 # ims, ims_def, _=test_aug()

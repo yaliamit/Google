@@ -30,7 +30,7 @@ def prepare_recons(model, DATA, args,fout):
             HVARS=[]
             for j in np.arange(0, INP.shape[0], 500):
                 inp = INP[j:j + 500]
-                rr, h_vars, losses= model.recon(inp, args.nti)
+                rr, h_vars, losses, out_enc= model.recon(inp, args.nti)
                 recloss+=losses[0]
                 totloss+=losses[1]
                 RR += [rr.detach().cpu().numpy()]
@@ -50,7 +50,7 @@ def prepare_recons(model, DATA, args,fout):
             HV += [DATA[k]]
     print("Hello")
 
-    return dat, HV
+    return dat, HV, out_enc
 
 def cluster_hidden(model,args,device,data,datadirs,ex_file):
 
@@ -122,59 +122,65 @@ def pre_train_new(model,args,device,fout, data=None):
     args.embedd = False
     args.update_layers=None
     args.lr=args.hid_lr
-    res=train_new(args,trh,teh,fout,device)
-    if hasattr(model, 'results'):
-        model.results[1]=res[0]
+    if 'xla' in device.type:
+        return [trh, teh]
     else:
-        model.results=[None,res]
-    return res
+        res=train_new(args,trh,teh,fout,device)
+        if hasattr(model, 'results'):
+            model.results[1]=res[0]
+        else:
+            model.results=[None,res]
+        return res
 
 
 def train_new(args,train,test,fout,device):
    
-    if args.optimizer=='LG':
+    if args.optimizer=='LG' or args.hid_lr<0:
         print('Using Logistic regression')
-        lg=LogisticRegression(fit_intercept=True, solver='lbfgs',multi_class='multinomial',max_iter=1000, intercept_scaling=1, C=.1,penalty='l2')
+        t1=time.time()
+        lg=LogisticRegression(fit_intercept=True, solver='lbfgs',multi_class='multinomial',max_iter=4000, intercept_scaling=1., C=10.,penalty='l2')
         lg.fit(train[0], train[1])
         yh = lg.predict(train[0])
+        print("Finished training:",time.time()-t1)
         print("train classification", np.mean(yh==train[1]))
         yh = lg.predict(test[0])
         res=np.mean(yh==test[1])
         print("test classification", res)
+
 
     else:
         res=train_new_old(args, train, test, fout, device)
 
     return res
 
-def train_new_old(args,train,test,fout,device):
+def train_new_old(args,train,test,fout,device,net=None):
 
     #fout=sys.stdout
     print("In from hidden number of training",train[0].shape[0])
     print('In train new:')
     print(str(args))
     val = None
-    args.lr = args.hid_lr
-    args.hid_lnti, args.hid_layers_dict = prep.get_network(args.hid_layers)
-    args.perturb=0
-    net=network.network(device,args,args.hid_layers_dict, args.hid_lnti, sh=train[0].shape).to(device)
-    #temp = torch.zeros([1] + list(train[0].shape[1:])).to(device)
-    # Run the network once on dummy data to get the correct dimensions.
-    #bb = net.forward(temp)
-    net.get_scheduler(args)
+    if net is None:
+        args.lr = args.hid_lr
+        args.hid_lnti, args.hid_layers_dict = prep.get_network(args.hid_layers)
+        args.perturb=0
+        #args.sched=[0,0]
+        net=network.network(device,args,args.hid_layers_dict, args.hid_lnti, sh=train[0].shape).to(device)
+
+        net.get_scheduler(args)
 
     tran=[train[0],train[0],train[1]]
     for epoch in range(args.hid_nepoch):
-        if (net.scheduler is not None):
-            net.scheduler.step()
+
         t1=time.time()
         net.run_epoch(tran,epoch, d_type='train',fout=fout)
         if (val is not None):
                 net.run_epoch(val,epoch, type='val',fout=fout)
         if (np.mod(epoch,10)==9 or epoch==0):
-            fout.write('epoch: {0} in {1:5.3f} seconds'.format(epoch,time.time()-t1))
+            fout.write('epoch: {0} in {1:5.3f} seconds, LR {2:0.5f}'.format(epoch,time.time()-t1,net.optimizer.param_groups[0]['lr']))
             fout.flush()
-
+        if hasattr(net,'scheduler') and net.scheduler is not None:
+            net.scheduler.step()
 
     tes=[test[0],test[0],test[1]]
     _,_,_,res=net.run_epoch(tes, 0, d_type='test', fout=fout)

@@ -99,9 +99,9 @@ def show_reconstructed_images(test,model,ex_file,num_iter=None, cl=None, erd=Fal
 
 
     if (cl is not None):
-        X=model.recon(inp,num_iter,cl)
+        X,_,_,_=model.recon(inp,num_iter,cl)
     else:
-        X,_,_ = model.recon(inp, num_iter)
+        X,_,_,_ = model.recon(inp, num_iter)
     X = X.cpu().detach().numpy().reshape(inp.shape)
     XX=np.concatenate([inp[0:50],X[0:50]])
     if (cl is not None):
@@ -152,36 +152,38 @@ def erode(do_er,data):
 
     return ndata
 
-def deform_data(x_in,dv,perturb,trans,s_factor,h_factor):
+
+
+def deform_data(x_in,dv,perturb,trans,s_factor,h_factor,embedd):
         h=x_in.shape[2]
         w=x_in.shape[3]
         nn=x_in.shape[0]
-        u=((torch.rand(nn,6)-.5)*perturb).to(dv)
+        v=((torch.rand(nn, 6) - .5) * perturb)
+        rr = torch.zeros(nn, 6)
+        if not embedd:
+            ii = torch.randperm(nn)
+            u = torch.zeros(nn, 6)
+            u[ii[0:nn//2]]=v[ii[0:nn//2]]
+        else:
+            u=v
         # Ammplify the shift part of the
         u[:,[2,5]]*=2
-        # Just shift and sclae
-        #u[:,0]=u[:,4]
-        #u[:,[1,3]]=0
-        rr = torch.zeros(nn, 6).to(dv)
         rr[:, [0,4]] = 1
         if trans=='shift':
           u[:,[0,1,3,4]]=0
         elif trans=='scale':
           u[:,[1,3]]=0
-           #+ self.id
         elif 'rotate' in trans:
           u[:,[0,1,3,4]]*=1.5
           ang=u[:,0]
-          v=torch.zeros(nn,6).to(dv)
+          v=torch.zeros(nn,6)
           v[:,0]=torch.cos(ang)
           v[:,1]=-torch.sin(ang)
           v[:,4]=torch.cos(ang)
           v[:,3]=torch.sin(ang)
-          s=torch.ones(nn).to(dv)
+          s=torch.ones(nn)
           if 'scale' in trans:
             s = torch.exp(u[:, 1])
-            #print(s)
-            #print(ang*180/np.pi)
           u[:,[0,1,3,4]]=v[:,[0,1,3,4]]*s.reshape(-1,1).expand(nn,4)
           rr[:,[0,4]]=0
         theta = (u+rr).view(-1, 2, 3)
@@ -189,20 +191,20 @@ def deform_data(x_in,dv,perturb,trans,s_factor,h_factor):
         x_out=F.grid_sample(x_in,grid,padding_mode='zeros',align_corners=True)
 
         if x_in.shape[1]==3 and s_factor>0:
-            v=torch.rand(nn,2).to(dv)
+            v=torch.rand(nn,2)
             vv=torch.pow(2,(v[:,0]*s_factor-s_factor/2)).reshape(nn,1,1)
             uu=((v[:,1]-.5)*h_factor).reshape(nn,1,1)
-            x_out_hsv=rgb_to_hsv(x_out,dv)
+            x_out_hsv=rgb_to_hsv(x_out)
             x_out_hsv[:,1,:,:]=torch.clamp(x_out_hsv[:,1,:,:]*vv,0.,1.)
             x_out_hsv[:,0,:,:]=torch.remainder(x_out_hsv[:,0,:,:]+uu,1.)
-            x_out=hsv_to_rgb(x_out_hsv,dv)
+            x_out=hsv_to_rgb(x_out_hsv)
 
         # ii=torch.where(torch.bernoulli(torch.ones(self.bsz)*.5)==1)
         # for i in ii:
         #     x_out[i]=x_out[i].flip(3)
         return x_out
 
-def rgb_to_hsv(input,device):
+def rgb_to_hsv(input):
     input = input.transpose(1, 3)
     sh = input.shape
     input = input.reshape(-1, 3)
@@ -210,7 +212,9 @@ def rgb_to_hsv(input,device):
     mx, inmx = torch.max(input, dim=1)
     mn, inmc = torch.min(input, dim=1)
     df = mx - mn
-    h = torch.zeros(input.shape[0], 1).to(device)
+    h = torch.zeros(input.shape[0], 1)
+    # if False: #'xla' not in device.type:
+    #     h.to(device)
     ii = [0, 1, 2]
     iid = [[1, 2], [2, 0], [0, 1]]
     shift = [360, 120, 240]
@@ -220,7 +224,9 @@ def rgb_to_hsv(input,device):
         h[logi, 0] = \
             torch.remainder((60 * (input[logi, id[0]] - input[logi, id[1]]) / df[logi] + s), 360)
 
-    s = torch.zeros(input.shape[0], 1).to(device)
+    s = torch.zeros(input.shape[0], 1) #
+    # if False: #'xla' not in device.type:
+    #     s.to(device)
     s[mx != 0, 0] = (df[mx != 0] / mx[mx != 0]) * 100
 
     v = mx.reshape(input.shape[0], 1) * 100
@@ -230,7 +236,7 @@ def rgb_to_hsv(input,device):
     output = output.reshape(sh).transpose(1, 3)
     return output
 
-def hsv_to_rgb(input,device):
+def hsv_to_rgb(input):
     input = input.transpose(1, 3)
     sh = input.shape
     input = input.reshape(-1, 3)
@@ -245,7 +251,9 @@ def hsv_to_rgb(input,device):
     q = v * (1.0 - (s * ff))
     t = v * (1.0 - (s * (1.0 - ff)));
 
-    output = torch.zeros_like(input).to(device)
+    output = torch.zeros_like(input) #.to(device)
+    # if False: #'xla' not in device.type:
+    #     output.to(device)
     output[ihh == 0, :] = torch.cat((v[ihh == 0], t[ihh == 0], p[ihh == 0]), dim=1)
     output[ihh == 1, :] = torch.cat((q[ihh == 1], v[ihh == 1], p[ihh == 1]), dim=1)
     output[ihh == 2, :] = torch.cat((p[ihh == 2], v[ihh == 2], t[ihh == 2]), dim=1)

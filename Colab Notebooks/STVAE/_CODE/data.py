@@ -8,6 +8,7 @@ import h5py
 import scipy.ndimage
 import pylab as py
 import matplotlib.colors as col
+from images import deform_data
 
 def get_pre():
     aa=os.uname()
@@ -17,7 +18,7 @@ def get_pre():
         elif 'midway' in aa[1]:
             pre='/home/yaliamit/Google/'
         else:
-            pre = '/content/ME/My Drive/'
+            pre = 'ME/My Drive/'
     else:
         pre = '/Users/amit/Google Drive/'
 
@@ -29,6 +30,27 @@ def quantize(images,levels):
         return np.digitize(images, np.arange(levels) /levels) - 1
     else:
         return images
+
+def enlarge(x_in,new_dim):
+
+    h=x_in.shape[2]
+    w=x_in.shape[3]
+
+    if h>new_dim or w > new_dim:
+        x_out=x_in
+    else:
+        dh=(new_dim-h)//2
+        dw=(new_dim-w)//2
+        nn=x_in.shape[0]
+        nc=x_in.shape[1]
+        x_out=np.zeros((nn,nc,new_dim,new_dim))
+
+
+        aa=np.concatenate((np.random.randint(0,new_dim-h,(nn,1)),np.random.randint(0,new_dim-w,(nn,1))),axis=1)
+        for i,x in enumerate(x_in):
+            x_out[i,:,aa[i,0]:aa[i,0]+h,aa[i,1]:aa[i,1]+w]=x
+
+    return x_out
 
 
 def get_data_pre(args,dataset):
@@ -58,10 +80,11 @@ def get_data_pre(args,dataset):
             tel=test[1]
             if val[0] is not None:
                 vall=val[1]
-        train = [quantize(train[0].transpose(0, 3, 1, 2),args.image_levels),trl]
-        test = [quantize(test[0].transpose(0, 3, 1, 2), args.image_levels), tel]
+        train = [enlarge(quantize(train[0].transpose(0, 3, 1, 2),args.image_levels),args.new_dim),trl]
+        test = [enlarge(quantize(test[0].transpose(0, 3, 1, 2), args.image_levels),args.new_dim), tel]
         if val[0] is not None:
-            val = [quantize(val[0].transpose(0, 3, 1, 2),args.image_levels), vall]
+            val = [enlarge(quantize(val[0].transpose(0, 3, 1, 2),args.image_levels),args.new_dim), vall]
+
     if args.edges:
         ed = Edge(device, dtr=.03).to(device)
         edges=[]
@@ -346,6 +369,8 @@ def get_data(PARS):
     PARS['n_classes'] = np.max(train[1])+1
     print('n_classes', PARS['n_classes'], 'dim', dim, 'nchannels', PARS['nchannels'])
     return train, val, test, dim
+
+
 
 
 

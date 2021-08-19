@@ -4,6 +4,9 @@ from main import main_loc
 import torch
 import matplotlib.pyplot as plt
 import numpy as np
+import aux
+import argparse
+import prep
 import os
 
 def copy_to_content(fname,predir):
@@ -64,9 +67,9 @@ def show_results(pars, datadirs, LW,sho=False):
   lw_min=np.min(LW[0][0][:,0])
 
   plt.legend()
-  plt.text(10,lw_min,'test_acc:'+str(lw_test_acc))
+  plt.text(0,-.05,'test_acc:'+str(lw_test_acc))#,transform=fig.transAxes)
   plt.title(EXP_NAME)
-  plt.xlabel('Epoch')
+  #plt.xlabel('Epoch')
   plt.ylabel('Accuracy')
   plt.savefig(savepath+'acc_'+EXP_NAME+'.jpg')
   if sho:
@@ -92,6 +95,7 @@ def show_results(pars, datadirs, LW,sho=False):
 
 def save_net(net,par_file,predir):
 
+
   parser = argparse.ArgumentParser(fromfile_prefix_chars='@',
         description='Variational Autoencoder with Spatial Transformation')
 
@@ -103,7 +107,6 @@ def save_net(net,par_file,predir):
   args=parser.parse_args(aa)
   f.close()
   model=net
-  print(args.model_out)
   if args.model_out is not None:
       ss=args.model_out+'.pt'
   else:
@@ -116,110 +119,120 @@ def save_net(net,par_file,predir):
     torch.save({'args': args,
         'model.state.dict': model.state_dict()}, predir+'Colab Notebooks/STVAE/_output/'+ss,_use_new_zipfile_serialization=False)
 
+
+
+
 def train_net(par_file,predir, RESULTS, device):
   net=main_loc(par_file,device)
   RESULTS+=[net.results]
   save_net(net,par_file,predir)
 
-def run_net(par_file, device):
-  net=main_loc(par_file, device)
-  return net
 
+def run_net(par_file, device, net=None):
+  net,ed=main_loc(par_file, device, net)
+  return net,ed
+
+
+
+
+
+def make_par_file_for_this_layer(args, oldn, i, d,  lines, layers_dict, datadirs):
+
+    skip_name1 = 'pool'
+    skip_name2 = 'non_linearity'
+    skip_name3 = 'norm'
+    break_name = 'drop'
+    break_name_layer = 'name:dropf;drop:'
+    head_name_layer='dense_p'
+    nn = d['name']
+    done = False
+    break_name_layer=break_name_layer+str(args.hid_drop)
+    if True:
+        # if 'final' in nn or 'input' in nn or 'drop' in nn or (i < len(layers_dict) - 1 and
+        #                                                      'pool' in layers_dict[i + 1]['name']):
+        if 'final' in nn or 'input' in nn or break_name in nn or (i < len(layers_dict) - 1 and
+                                                                  (skip_name1 in layers_dict[i + 1]['name'] or
+                                                                   skip_name2 in layers_dict[i + 1]['name'] or
+                                                                   skip_name3 in layers_dict[i + 1]['name'])):
+            return None
+        else:
+
+            fout = open(datadirs + 't_par.txt', 'w')
+            for l in lines:
+                if 'dense_final' in l and not 'hid' in l:
+                    if args.embedd:
+                        fout.write(l + ';parent:[' + nn + ']\n')
+                        # fout.write('name:drop_f;drop:.5;parent:['+nn+']\n'+l+'\n')
+                    else:
+                        # fout.write('name:drop_f;drop:.5;parent:[' + nn + ']\n'+'name:Avg\n' + l + '\n')
+                        fout.write(break_name_layer + '\n')
+                        # fout.write('name:Avg\n')
+                        fout.write(l + '\n')
+                else:
+                    if not done:
+                        fout.write(l + '\n')
+                        if 'name' in l and l.split(':')[1].split(';')[0] == nn:
+                            done = True
+            if (args.embedd):
+                fout.write('--embedd\n' + '--embedd_layer=' + nn + '\n')
+            fout.write('--update_layers\n')
+            if (skip_name1 in nn or skip_name2 in nn):
+                j=i
+                done=False
+                while not done:
+                    if 'conv' in layers_dict[j]['name']:
+                        fout.write(layers_dict[j]['name']+'\n')
+                        done=True
+                    elif 'norm' in layers_dict[j]['name']:
+                        fout.write(layers_dict[j]['name']+'\n')
+                    j=j-1
+            else:
+                fout.write(nn + '\n')
+            if args.fa:
+                fout.write('dense_final_fa\n')
+            else:
+                fout.write('dense_final\n')
+
+            if oldn is not None:
+                fout.write('--cont_training\n' + '--model=' + oldn + '\n')
+            emb = 'cl'
+            if args.embedd:
+                emb = 'emb'
+            outn = 'network_' + nn + '_' + emb
+            fout.write('--model_out=' + outn + '\n' + '--out_file=OUT_' + nn + '_' + emb + '.txt\n')
+            fout.close()
+            return outn
 
 def seq(par_file, predir, device, tlay=None, toldn=None):
-    from prep import get_network
-    import aux
-    import argparse
-    import prep
+
     datadirs = predir + 'Colab Notebooks/STVAE/'
 
     parser = argparse.ArgumentParser(fromfile_prefix_chars='@',
                                      description='')
     parser = aux.process_args(parser)
 
-    f = open(datadirs+par_file + '.txt', 'r')
-    bb = f.read().split()
-    aa = [ll for ll in bb if '#' not in ll]
-    args = parser.parse_args(aa)
-
-    f.close()
-
+    with open(datadirs+par_file + '.txt', 'r') as f:
+        bb = f.read().split()
+        lines = [ll.rstrip('\n') for ll in bb if '#' not in ll]
+        args = parser.parse_args(lines)
     lnti, layers_dict = prep.get_network(args.layers)
 
-    fin = open(datadirs+par_file + '.txt', 'r')
-    lines = [line.rstrip('\n') for line in fin if line[0] !='#']
-    fin.close()
     RESULTS = []
-    #break_name='pool'
-    #break_name_layer='name:'+break_name+'f;pool_size:2'
-    #skip_name='drop'
-
-    skip_name1 = 'pool'
-    skip_name2 = 'non_linearity'
-    break_name='drop'
-    break_name_layer = 'name:dropf;drop:.5'
-    if not args.layerwise:
-        fout = open(datadirs+'t_par.txt', 'w')
-        for l in lines:
-            fout.write(l + '\n')
-        fout.close()
-        train_net('t_par',predir,RESULTS,device)
-    else:
-        oldn = toldn
-
-        for i, d in enumerate(layers_dict):
-
-            nn = d['name']
-            done=False
-            if tlay is None or nn == tlay:
-                tlay = None
-                #if 'final' in nn or 'input' in nn or 'drop' in nn or (i < len(layers_dict) - 1 and
-                #                                                      'pool' in layers_dict[i + 1]['name']):
-                if 'final' in nn or 'input' in nn or break_name in nn  or (i < len(layers_dict) - 1 and
-                                                                           (skip_name1 in layers_dict[i+1]['name'] or
-                                                                            skip_name2 in layers_dict[i+1]['name'])):
-                    pass
-                else:
-
-                    fout = open(datadirs+'t_par.txt', 'w')
-                    for l in lines:
-                        if 'dense_final' in l and not 'hid' in l:
-                            if args.embedd:
-                                fout.write(l + ';parent:[' + nn + ']\n')
-                                # fout.write('name:drop_f;drop:.5;parent:['+nn+']\n'+l+'\n')
-                            else:
-                                    #fout.write('name:drop_f;drop:.5;parent:[' + nn + ']\n'+'name:Avg\n' + l + '\n')
-                                    fout.write(break_name_layer +'\n')
-                                    #fout.write('name:Avg\n')
-                                    fout.write(l + '\n')
-
-                        else:
-                            if not done:
-                                fout.write(l + '\n')
-                                if 'name' in l and l.split(':')[1].split(';')[0]==nn:
-                                    done=True
-                    if (args.embedd):
-                        fout.write('--embedd\n' + '--embedd_layer=' + nn + '\n')
-                    fout.write('--update_layers\n')
-                    if (skip_name1 in nn or skip_name2 in nn):
-                        if skip_name2 in layers_dict[i - 1]['name']:
-                            fout.write(layers_dict[i - 2]['name'] + '\n')
-                        else:
-                            fout.write(layers_dict[i - 1]['name'] + '\n')
-                    else:
-                        fout.write(nn + '\n')
-                    fout.write('dense_final\n')
-
-                    if oldn is not None:
-                        fout.write('--cont_training\n' + '--model=' + oldn + '\n')
-                    emb = 'cl'
-                    if args.embedd:
-                        emb = 'emb'
-                    outn = 'network_' + nn + '_' + emb
-                    fout.write('--model_out=' + outn + '\n' + '--out_file=OUT_' + nn + '_' + emb + '.txt\n')
-                    fout.close()
-                    train_net('t_par',predir, RESULTS,device)
-                    oldn = outn
+    oldn = toldn
+    for i, d in enumerate(layers_dict):
+        if tlay is None or d['name']==tlay:
+            tlay=None
+            outn=make_par_file_for_this_layer(args, oldn, i, d, lines, layers_dict, datadirs)
+            if outn is not None:
+                net,_ = run_net('t_par', device)
+                net.optimizer = torch.optim.Adam(net.optimizer.param_groups[0]['params'], lr=net.lr,weight_decay=net.wd)
+                #net.optimizer = torch.optim.Adam(net.parameters(), lr=0.001)
+                print('aux_colab',net.optimizer.param_groups[0]['weight_decay'])
+                net,_ = run_net('t_par', device, net)
+                RESULTS += [net.results]
+                save_net(net, 't_par', predir)
+                #train_net('t_par',predir, RESULTS,device)
+                oldn = outn
     #if not args.embedd:
     show_results(args,datadirs,RESULTS)
     print("helo")

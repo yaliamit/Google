@@ -1,14 +1,16 @@
-import numpy as np
 
-import torch.nn.functional as F
 from torch import nn, optim
 import contextlib
 from images import deform_data, Edge
 from losses import *
 import sys
-from layers import FALinear, FAConv2d, Iden, NONLIN, diag2d, Reshape, BatchNorm2d, BatchNorm1d
+from layers import *
+import time
 
-
+try:
+    import torch_xla.core.xla_model as xm
+except:
+    pass
 @contextlib.contextmanager
 def dummy_context_mgr():
     yield None
@@ -27,6 +29,7 @@ class network(nn.Module):
         self.embedd=args.embedd
         self.embedd_layer=args.embedd_layer
         self.first=first
+        self.future=args.future
         self.penalize_activations=args.penalize_activations
         self.bsz=args.mb_size # Batch size - gets multiplied by number of shifts so needs to be quite small.
         #self.full_dim=args.full_dim
@@ -42,7 +45,7 @@ class network(nn.Module):
         self.fa=args.fa
         self.randomize=args.layerwise_randomize
         self.lnti=lnti
-        self.HT=nn.Hardtanh(0.,1.)
+        self.no_standardize=args.no_standardize
         self.back=('ae' in args.type)
         if fout is not None:
             self.fout=fout
@@ -63,20 +66,14 @@ class network(nn.Module):
         if sh is not None and self.first:
             temp = torch.zeros([1]+list(sh[1:])) #.to(device)
             # Run the network once on dummy data to get the correct dimensions.
+            dv=self.dv
+            self.dv=torch.device("cpu")
             bb = self.forward(temp)
+            self.dv=dv
             self.output_shape=bb[0].shape
 
-    def do_nonlinearity(self,ll,out):
-
-        if ('non_linearity' not in ll):
-            return(out)
-        elif ('HardT' in ll['non_linearity']):
-            return(self.HT(out))
-        elif ('tanh' in ll['non_linearity']):
-            return(F.tanh(out))
-        elif ('relu' in ll['non_linearity']):
-            return(F.relu(out))
-
+        if fout is not None:
+            fout.flush()
 
 
     def forward(self,input,everything=False):
@@ -90,6 +87,7 @@ class network(nn.Module):
         OUTS={}
         old_name=''
         layer_text_new={}
+        prev_shape=None
         for i,ll in enumerate(self.layer_text):
                 inp_ind = old_name
 
@@ -113,7 +111,11 @@ class network(nn.Module):
                 if ('input' in ll['name']):
                     OUTS[ll['name']]=input
                     enc_hw=input.shape[2:4]
-
+                if ('shift' in ll['name']):
+                     if self.first:
+                         self.layers.add_module(ll['name'],shifts(ll['shifts']))
+                     out=getattr(self.layers,ll['name'])(OUTS[inp_ind],self.dv)
+                     OUTS[ll['name']]=out
                 if ('conv' in ll['name']):
                     if self.first:
                         bis = True
@@ -122,22 +124,26 @@ class network(nn.Module):
                         stride=1;
                         if 'stride' in ll:
                             stride=ll['stride']
-                        #pd=tuple(np.int32(np.floor(np.array(ll['filter_size'])/2)))
-
                         pd=(ll['filter_size']//stride) // 2
                         if not self.back:
-                            self.layers.add_module(ll['name'],FAConv2d(inp_feats,ll['num_filters'],ll['filter_size'],stride=stride,fa=self.fa,padding=pd, bias=bis, device=self.dv))
+                            if 'fa' in ll['name']:
+                                self.layers.add_module(ll['name'],FAConv2d(inp_feats,ll['num_filters'],ll['filter_size'],stride=stride,fa=self.fa,padding=pd, bias=bis, device=self.dv))
+                            else:
+                                self.layers.add_module(ll['name'],nn.Conv2d(inp_feats,ll['num_filters'],ll['filter_size'],stride=stride,padding=pd, bias=bis))
                         else:
                             self.layers.add_module(ll['name'],nn.Conv2d(inp_feats,ll['num_filters'],ll['filter_size'],stride=1,padding=pd))
                         if self.back:
                             self.back_layers.add_module(ll['name']+'_bk',nn.Conv2d(ll['num_filters'],inp_feats,ll['filter_size'],stride=1,padding=pd))
-                    out=self.do_nonlinearity(ll,getattr(self.layers, ll['name'])(OUTS[inp_ind]))
+                    out=getattr(self.layers, ll['name'])(OUTS[inp_ind])
                     OUTS[ll['name']]=out
                 if 'non_linearity' in ll['name']:
                     if self.first:
-                        self.layers.add_module(ll['name'],NONLIN(ll))
+                        low=0.; high=1.
+                        if 'lims' in ll:
+                            low=ll['lims'][0]; high=ll['lims'][1]
+                        self.layers.add_module(ll['name'],NONLIN(ll,low=low,high=high))
                         if self.back:
-                            self.back_layers.add_module(ll['name']+'_bk',NONLIN(ll))
+                            self.back_layers.add_module(ll['name']+'_bk',NONLIN(ll,low=low,high=high))
 
                     OUTS[ll['name']] = getattr(self.layers, ll['name'])(OUTS[inp_ind])
                 if ('Avg' in ll['name']):
@@ -152,6 +158,7 @@ class network(nn.Module):
                         if ('stride' in ll):
                             stride = ll['stride']
                         pp=[np.int32(np.mod(ll['pool_size'],2))]
+                        pp=(ll['pool_size']-1)//2
                         self.layers.add_module(ll['name'],nn.MaxPool2d(ll['pool_size'], stride=stride, padding=pp))
                         if self.back:
                             #self.back_layers.add_module(ll['name']+'_bk',nn.UpsamplingNearest2d(scale_factor=stride))
@@ -175,8 +182,10 @@ class network(nn.Module):
                         if ('nb' in ll):
                             bis=False
                         if not self.back:
-                            #self.layers.add_module(ll['name'],spectral_norm(nn.Linear(in_dim,out_dim,bias=bis)))
-                            self.layers.add_module(ll['name'],FALinear(in_dim,out_dim,bias=bis, fa=self.fa))
+                            if 'fa' in ll['name']:
+                                self.layers.add_module(ll['name'],FALinear(in_dim,out_dim,bias=bis, fa=self.fa))
+                            else:
+                                self.layers.add_module(ll['name'],nn.Linear(in_dim,out_dim,bias=bis))
                         else:
                             self.layers.add_module(ll['name'],nn.Linear(in_dim,out_dim,bias=bis))
 
@@ -185,9 +194,16 @@ class network(nn.Module):
                             self.back_layers.add_module(ll['name']+'_bk',nn.Linear(out_dim,in_dim,bias=bis))
                     out=OUTS[inp_ind]
                     out = out.reshape(out.shape[0], -1)
-                    out=self.do_nonlinearity(ll,getattr(self.layers, ll['name'])(out))
+                    out=getattr(self.layers, ll['name'])(out)
                     OUTS[ll['name']]=out
-
+                if 'subsample' in ll['name']:
+                    if self.first:
+                        stride = None
+                        if 'stride' in ll:
+                            stride = ll['stride']
+                        self.layers.add_module(ll['name'], Subsample(stride=stride))
+                    out = getattr(self.layers, ll['name'])(OUTS[inp_ind],self.dv)
+                    OUTS[ll['name']] = out
                 if ('norm') in ll['name']:
                     if self.first:
                         if self.bn=='full':
@@ -202,6 +218,8 @@ class network(nn.Module):
                                 self.layers.add_module(ll['name'],nn.BatchNorm1d(OUTS[old_name].shape[1], affine=False))
                         elif self.bn=='layerwise':
                                 self.layers.add_module(ll['name'],nn.LayerNorm(OUTS[old_name].shape[2:4]))
+                        elif self.bn=='instance':
+                            self.layers.add_module(ll['name'], nn.InstanceNorm2d(OUTS[old_name].shape[1],affine=True))
                         elif self.bn=='simple':
                             self.layers.add_module(ll['name'],diag2d(OUTS[old_name].shape[1]))
                         else:
@@ -219,6 +237,11 @@ class network(nn.Module):
                                     else:
                                         self.back_layers.add_module(ll['name'],
                                                            nn.BatchNorm1d(OUTS[inp_ind].shape[1], affine=False))
+                            elif self.bn == 'layerwise':
+                                self.layers.add_module(ll['name'], nn.LayerNorm(OUTS[inp_ind].shape[2:4]))
+                            elif self.bn == 'instance':
+                                self.layers.add_module(ll['name'],
+                                                       nn.InstanceNorm2d(OUTS[inp_ind].shape[1], affine=True))
                             elif self.bn == 'simple':
                                     self.back_layers.add_module(ll['name'], diag2d(OUTS[inp_ind].shape[1]))
                             else:
@@ -236,10 +259,12 @@ class network(nn.Module):
                         inp_feats=out.shape[1]
                 if ('num_filters' in ll):
                     inp_feats = ll['num_filters']
+                if ('shifts' in ll['name']):
+                     inp_feats=OUTS[ll['name']].shape[1]
                 if self.first:
                     self.fout.write(ll['name']+' '+str(np.array(OUTS[ll['name']].shape))+'\n')
 
-
+                prev_shape=OUTS[ll['name']].shape
                 in_dim=np.prod(OUTS[ll['name']].shape[1:])
                 in_dims+=[in_dim]
                 old_name=ll['name']
@@ -252,9 +277,8 @@ class network(nn.Module):
             for keys, vals in self.named_parameters():
                 if 'running' not in keys and 'tracked' not in keys:
                     KEYS+=[keys]
-                tot_pars += np.prod(np.array(vals.shape))
-            if self.first==1:
-                self.fout.write('tot_pars,' + str(tot_pars)+'\n')
+                #tot_pars += np.prod(np.array(vals.shape))
+
             # TEMPORARY
             pp=[]
             self.KEYS=KEYS
@@ -262,6 +286,7 @@ class network(nn.Module):
                 if (self.update_layers is None):
                     if self.first==1:
                         self.fout.write('TO optimizer '+k+ str(np.array(p.shape))+'\n')
+                    tot_pars += np.prod(np.array(p.shape))
                     pp+=[p]
                 else:
                     found = False
@@ -270,10 +295,12 @@ class network(nn.Module):
                             found=True
                             if self.first==1:
                                 self.fout.write('TO optimizer '+k+ str(np.array(p.shape))+'\n')
+                            tot_pars += np.prod(np.array(p.shape))
                             pp+=[p]
                     if not found:
                         p.requires_grad=False
-
+            if self.first==1:
+                self.fout.write('tot_pars,' + str(tot_pars)+'\n')
             if (self.optimizer_type == 'Adam'):
                 if self.first==1:
                     self.fout.write('Optimizer Adam '+str(self.lr)+'\n')
@@ -310,20 +337,23 @@ class network(nn.Module):
 
     # GRADIENT STEP
     def loss_and_acc(self, input, target, dtype="train", lnum=0):
-        #t0 = time.time()
+
 
         # Embedding training with image and its deformed counterpart
         if type(input) is list:
             out0,ot0=self.forward(input[0])
             out1,ot1=self.forward(input[1])
             if self.embedd_type=='orig':
-                loss, acc = get_embedd_loss(out0,out1)
+                loss, acc = get_embedd_loss(out0,out1,self.dv,self.no_standardize)
+                #loss, acc=simclr_loss(out0,out1,self.dv, self.no_standardize)
+                #print(loss,loss1)
             elif self.embedd_type=='binary':
-                loss, acc = get_embedd_loss_binary(out0,out1)
+                loss, acc = get_embedd_loss_binary(out0,out1,self.dv,self.no_standardize)
             elif self.embedd_type=='L1dist_hinge':
-                loss, acc = get_embedd_loss_new(out0,out1,self.dv)
+                loss, acc = get_embedd_loss_new(out0,out1,self.dv,self.no_standardize,self.future)
             else:
-                loss, acc = get_embedd_loss_new_a(out0, out1,self.dv)
+                loss, acc = get_embedd_loss_new(out0,out1,self.dv,self.no_standardize)
+
         # Classification training
         else:
             if self.randomize is not None and dtype=="train":
@@ -356,12 +386,12 @@ class network(nn.Module):
         else:
             self.eval()
         num_tr=train[0].shape[0]
-        #ii = np.arange(0, num_tr, 1)
-        #if (type=='train'):
-        #  np.random.shuffle(ii)
+        ii = np.arange(0, num_tr, 1)
+        if (d_type=='train'):
+          np.random.shuffle(ii)
         jump = self.bsz
-        trin = train[0] #[ii]
-        targ = train[2] #[ii]
+        trin = train[0][ii]
+        targ = train[2][ii]
         self.n_class = np.max(targ) + 1
 
         ll=1
@@ -374,8 +404,9 @@ class network(nn.Module):
         full_loss=np.zeros(ll); full_acc=np.zeros(ll); count=np.zeros(ll)
 
         # Loop over batches.
-        print(self.optimizer.param_groups[0]['lr'],file=fout)
+
         targ_in=targ
+        TIME=0
         for j in np.arange(0, num_tr, jump,dtype=np.int32):
             lnum=0
             if self.randomize:
@@ -384,13 +415,16 @@ class network(nn.Module):
                 self.optimizer.zero_grad()
             if self.embedd:
                 with torch.no_grad():
-                    data_in=(torch.from_numpy(trin[j:j + jump]).float()).to(self.dv)
-                    data_out1=deform_data(data_in,self.dv,self.perturb,self.trans,self.s_factor,self.h_factor)
-                    data=[data_in,data_out1]
+                    data_in=torch.from_numpy(trin[j:j + jump]).float()
+                    data_out1=deform_data(data_in,self.dv,self.perturb,self.trans,self.s_factor,self.h_factor,self.embedd)
+                    data=[data_in.to(self.dv),data_out1.to(self.dv)]
             else:
-                data = torch.from_numpy(trin[j:j + jump]).to(self.dv,dtype=torch.float32)
-                if self.perturb >0. and d_type=='train' and torch.rand(1)>.5:
-                    data=deform_data(data,self.dv,self.perturb,self.trans,self.s_factor,self.h_factor)
+                dd=torch.from_numpy(trin[j:j + jump])
+
+                if self.perturb>0.and d_type=='train':
+                   with torch.no_grad():
+                     dd = deform_data(dd, self.dv, self.perturb, self.trans, self.s_factor, self.h_factor,self.embedd)
+                data = dd.to(self.dv,dtype=torch.float32)
 
 
             target = torch.from_numpy(targ_in[j:j + jump]).to(self.dv, dtype=torch.long)
@@ -402,13 +436,17 @@ class network(nn.Module):
                 loss.backward()
                 if self.grad_clip>0.:
                     nn.utils.clip_grad_value_(self.parameters(),self.grad_clip)
+
+
                 self.optimizer.step()
+                if 'xla' in self.dv.type:
+                    xm.mark_step()
                 #if self.scheduler is not None:
                 #  self.scheduler.step()
 
 
-            full_loss[lnum] += loss
-            full_acc[lnum] += acc
+            full_loss[lnum] += loss.item()
+            full_acc[lnum] += acc.item()
             count[lnum]+=1
 
 

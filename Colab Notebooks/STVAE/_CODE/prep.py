@@ -2,9 +2,7 @@ import torch
 
 import numpy as np
 import sys
-import os
 from mix import STVAE_mix
-from mix_by_class import STVAE_mix_by_class
 import pprint
 from get_net_text import get_network
 import network
@@ -42,19 +40,21 @@ def get_names(args):
         STRINGS += [strings]
         EX_FILES += [ex_file]
     # Print old and new arglists and compare
-    if (ARGS[0] == args):
-        fout.write('Printing Args from read in model and input args\n')
-        pprint.pprint(vars(ARGS[0]), fout)
-        # fout.write(str(ARGS[0]) + '\n')
-    else:
-        fout.write('Printing Args from read-in model\n')
-        dcA = vars(ARGS[0])
-        dca = vars(args)
-        pprint.pprint(dcA, fout)
-        different_items = {k: [v, dca[k]] for k, v in dcA.items() if k in dca and v != dca[k]}
-        print('Difference in model args and input args', file=fout)
-        pprint.pprint(different_items, fout)
+    if args.verbose:
+        if (ARGS[0] == args):
+            fout.write('Printing Args from read in model and input args\n')
+            pprint.pprint(vars(ARGS[0]), fout)
+            # fout.write(str(ARGS[0]) + '\n')
+        else:
+            fout.write('Printing Args from read-in model\n')
+            dcA = vars(ARGS[0])
+            dca = vars(args)
+            pprint.pprint(dcA, fout)
+            different_items = {k: [v, dca[k]] for k, v in dcA.items() if k in dca and v != dca[k]}
+            print('Difference in model args and input args', file=fout)
+            pprint.pprint(different_items, fout)
 
+        fout.flush()
     return ARGS, STRINGS, EX_FILES, SMS
 
 
@@ -120,6 +120,17 @@ def setups(par_file):
     return args
 
 
+def get_running_mean_var(model, name, dict_params):
+    tname = name.split('.')[1]
+    sname = ".".join(name.split('.')[0:2])
+    msname = sname + '.running_mean'
+    dict_params[msname] = getattr(model.layers, tname).running_mean.data
+    msname = sname + '.running_var'
+    dict_params[msname] = getattr(model.layers, tname).running_var.data
+    msname = sname + '.num_batches_tracked'
+    dict_params[msname] = getattr(model.layers, tname).num_batches_tracked.data
+    return dict_params
+
 def copy_from_old_to_new(model, args, fout, SMS, strings,device, sh):
 
 
@@ -141,19 +152,18 @@ def copy_from_old_to_new(model, args, fout, SMS, strings,device, sh):
     # Loop over parameters of N1
 
     for name, param_old in params_old:
-        if name in dict_params and (args.update_layers is None or name.split('.')[1] not in args.update_layers):
-            fout.write('copying ' + name + '\n')
-            dict_params[name].data.copy_(param_old.data)
-            if hasattr(model_old,'bn') and model_old.bn=='full':
-              if 'norm' in name and 'weight' in name:
-                tname=name.split('.')[1]
-                sname=".".join(name.split('.')[0:2])
-                msname=sname+'.running_mean'
-                dict_params[msname]=getattr(model_old.layers,tname).running_mean.data
-                msname =sname + '.running_var'
-                dict_params[msname]=getattr(model_old.layers,tname).running_var.data
-                msname = sname + '.num_batches_tracked'
-                dict_params[msname]=getattr(model_old.layers, tname).num_batches_tracked.data
+        if name in dict_params:
+                if (args.update_layers is None or 'copy' in args.update_layers or name.split('.')[1] not in args.update_layers):
+                    fout.write('copying ' + name + '\n')
+                    dict_params[name].data.copy_(param_old.data)
+                    if 'norm' in name and 'weight' in name:
+                     if hasattr(model_old,'bn') and model_old.bn=='full':
+                        dict_params=get_running_mean_var(model_old,name,dict_params)
+    temp_dict=dict_params.copy()
+    for name, v in temp_dict.items():
+            if 'norm' in name and 'weight' in name:
+                if hasattr(model, 'bn') and model.bn == 'full':
+                    dict_params=get_running_mean_var(model, name,dict_params)
     if 'crit.pos_weight' in SMS['model.state.dict']:
         dict_params['crit.pos_weight']=SMS['model.state.dict']['crit.pos_weight']
     model.load_state_dict(dict_params)

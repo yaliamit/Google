@@ -29,7 +29,7 @@ class encoder_mix(nn.Module):
         pi=None
 
         # Run the predesigned network could be just the input
-        h=enc_conv.forw(inputs)
+        h,h1=enc_conv.forw(inputs)
 
         hpi=h
         s_mu = self.h2smu(h.reshape(-1,self.x_dim))
@@ -39,7 +39,7 @@ class encoder_mix(nn.Module):
             hm = self.h2pi(hpi.reshape(-1,self.x_dim)).clamp(-10., 10.)
             pi = torch.softmax(hm, dim=1)
 
-        return s_mu, s_logvar, pi
+        return s_mu, s_logvar, pi,[h,h1]
 
 
 

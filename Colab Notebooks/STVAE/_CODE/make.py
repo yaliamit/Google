@@ -78,7 +78,7 @@ def train_model(model, args, ex_file, DATA, fout):
         trainMU, trainLOGVAR, trPI = model.initialize_mus(train[0], args.OPT)
         valMU, valLOGVAR, valPI = model.initialize_mus(val[0], args.OPT)
 
-
+    time1=time.time()
     VAL_ACC=[]
     tes = [test[0], test[0], test[1]]
     if (val[0] is not None):
@@ -88,7 +88,7 @@ def train_model(model, args, ex_file, DATA, fout):
         print("Updating training optimal parameters before continuing")
         trainMU, trainLOGVAR, trPI, tr_acc = model.run_epoch(tran, 0, args.nti, trainMU, trainLOGVAR, trPI,
                                                              d_type='test', fout=fout)
-
+    print('make', model.optimizer.param_groups[0]['weight_decay'])
     for epoch in range(args.nepoch):
         #print('time step',model.optimizer.param_groups[0]['lr'])
         #if (model.scheduler is not None):
@@ -106,13 +106,18 @@ def train_model(model, args, ex_file, DATA, fout):
              VAL_ACC+=[val_acc[0],tr_acc[1]]
         else:
             VAL_ACC+=[tr_acc[0],tr_acc[1]]
-        fout.write('{0:5.3f}s'.format(time.time() - t1))
+        time2=time.time()
+        fout.write('Time {0:5.3f}s, LR {1:f}'.format(time2 - t1,model.optimizer.param_groups[0]['lr']))
+
         fout.flush()
-        #if np.mod(epoch,50)==0:
-        #  save_net_int(model, args.model_out+str(epoch), args, predir)
+        time2=time.time()
+        if time2-time1>600:
+            save_net_int(model, args.model_out+'_'+str(epoch), args, predir)
+            time1=time2
         if hasattr(model,'scheduler') and model.scheduler is not None:
-            model.scheduler.step() #tr_acc[0]+tr_acc[1]
+            model.scheduler.step()
     test_acc=np.zeros(2)
+
     if 'ae' in args.type:
         if (args.n_class):
             model.run_epoch_classify(tran, 'train', fout=fout, num_mu_iter=args.nti)
@@ -127,6 +132,7 @@ def train_model(model, args, ex_file, DATA, fout):
                 testMU, testLOGVAR, testPI = model.initialize_mus(train[0], args.OPT)
                 print('args.nti',args.nti,args.mu_lr,file=fout)
                 model.run_epoch(tran, 0, args.nti, testMU, testLOGVAR, testPI, d_type='train_test', fout=fout)
+                testMU, testLOGVAR, testPI = model.initialize_mus(test[0], args.OPT)
                 model.run_epoch(tes, 0, args.nti, testMU, testLOGVAR, testPI, d_type='test_test', fout=fout)
 
         fout.write('writing to ' + ex_file + '\n')

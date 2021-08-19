@@ -13,7 +13,6 @@
 --nval=0
 --perturb=.4
 --embedd
---embedd_layer=conv4
 --hid_layers
 name:input
 name:dense_final_hid;num_units:10
