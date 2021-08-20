@@ -168,8 +168,9 @@ def get_embedd_loss_new(out0, out1, dv, nostd,future=0):
             loss+=fac*(torch.sum(torch.relu(1-torch.diagonal(OUT,i))))
     else:
         loss = torch.sum(torch.relu(1 - OUT))
-    #print('old',time.time()-t1)
+
     acc = torch.sum(OUT > 0).type(torch.float) / bsz
+
 
     return loss, acc
 
