@@ -144,7 +144,7 @@ def get_embedd_loss_future(out0, out1,nostd,future):
 
 def get_embedd_loss_new(out0, out1, dv, nostd,future=0):
     thr = 2.
-
+    delta=1.
     bsz = out0.shape[0]
     # out0=torch.tanh(out0)
     out0 = standardize(out0,nostd)
@@ -165,42 +165,12 @@ def get_embedd_loss_new(out0, out1, dv, nostd,future=0):
         loss=0
         for i in range(future):
             fac = 1. if i==0 else 1./future
-            loss+=fac*(torch.sum(torch.relu(1-torch.diagonal(OUT,i))))
-    else:
-        loss = torch.sum(torch.relu(1 - OUT))
-
-    acc = torch.sum(OUT > 0).type(torch.float) / bsz
-
-
-    return loss, acc
-
-def get_embedd_loss_new_new(out0, out1, dv, nostd,future=0):
-    thr = 2.
-    delta=1.5
-    bsz = out0.shape[0]
-    # out0=torch.tanh(out0)
-    out0 = standardize(out0,nostd)
-    # out1=torch.tanh(out1)
-    out1 = standardize(out1,nostd)
-    out0b = out0.repeat([bsz, 1])
-    out1b = out1.repeat_interleave(bsz, dim=0)
-    outd = torch.sum(torch.abs(out0b - out1b),dim=1)
-
-    OUT = -outd.reshape(bsz, bsz).transpose(0, 1)
-
-
-    # Multiply by y=-1/1
-    OUT = (OUT + thr) * (2. * torch.eye(bsz).to(dv) - 1.)
-    #print('mid',time.time()-t1)
-
-    if future:
-        loss=0
-        for i in range(future):
-            fac = 1. #if i==0 else 2.*bsz/future
             loss+=fac*(torch.sum(torch.relu(delta-torch.diagonal(OUT,i))))
     else:
         loss = torch.sum(torch.relu(delta - OUT))
-    #print('old',time.time()-t1)
+
     acc = torch.sum(OUT > 0).type(torch.float) / bsz
 
+
     return loss, acc
+
