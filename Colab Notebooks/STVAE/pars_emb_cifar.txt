@@ -7,7 +7,7 @@
 --nepoch=200
 --hid_nepoch=400
 --mb_size=500
---lr=.00001
+--lr=.0001
 --optimizer=Adam
 --hid_lr=.001
 --nval=0
@@ -18,7 +18,7 @@
 --future=5
 --layerwise
 --embedd
---embedd_layer=pool3
+--embedd_layer=conv3
 --out_file=OUT_emb_e2e_pool3.txt
 --model_out=network_emb_e2e_pool3
 --model=network_emb_e2e_pool3
