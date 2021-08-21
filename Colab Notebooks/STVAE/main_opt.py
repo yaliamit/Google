@@ -85,7 +85,7 @@ def resnet_try():
 #to_npy()
 #copy_to_content('pars_tvae_conv',predir)
 
-par_file='pars_emb_cifar'
+par_file='logistic'
 net,_=run_net(par_file, device)
 net.optimizer = torch.optim.Adam(net.optimizer.param_groups[0]['params'], lr=net.lr, weight_decay=net.wd)
 net,_=run_net(par_file, device, net)

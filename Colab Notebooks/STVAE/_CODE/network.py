@@ -46,6 +46,8 @@ class network(nn.Module):
         self.randomize=args.layerwise_randomize
         self.lnti=lnti
         self.no_standardize=args.no_standardize
+        self.thr=args.thr
+        self.delta=args.delta
         self.back=('ae' in args.type)
         if fout is not None:
             self.fout=fout
@@ -350,9 +352,7 @@ class network(nn.Module):
             elif self.embedd_type=='binary':
                 loss, acc = get_embedd_loss_binary(out0,out1,self.dv,self.no_standardize)
             elif self.embedd_type=='L1dist_hinge':
-                loss, acc = get_embedd_loss_new(out0,out1,self.dv,self.no_standardize,self.future)
-            else:
-                loss, acc = get_embedd_loss_new(out0,out1,self.dv,self.no_standardize)
+                loss, acc = get_embedd_loss_new(out0,out1,self.dv,self.no_standardize, thr=self.thr, delta=self.delta)
 
         # Classification training
         else:

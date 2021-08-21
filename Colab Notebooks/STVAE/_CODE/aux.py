@@ -47,6 +47,8 @@ def process_args(parser):
     parser.add_argument('--perturb', type=float, default=0, help='Learning rate (default: .001)')
     parser.add_argument('--hid_lr', type=float, default=.001, help='Learning rate (default: .001)')
     parser.add_argument('--binary_thresh', type=float, default=1e-6, help='threshold for bernoulli probs')
+    parser.add_argument('--thr', type=float, default=4., help='threshold for contrastive learning with hinge loss')
+    parser.add_argument('--delta', type=float, default=2., help='margin for contrastive learning with hinge loss')
     parser.add_argument('--conf', type=float, default=0, help='confidence level')
     parser.add_argument('--ortho_lr', type=float, default=.0, help='Learning rate (default: .000001)')
     parser.add_argument('--mu_lr', type=float, default=[.05,.01], nargs=2,help='Learning rate (default: .05)')

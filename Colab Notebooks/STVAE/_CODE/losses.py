@@ -142,9 +142,7 @@ def get_embedd_loss_future(out0, out1,nostd,future):
 
     return loss
 
-def get_embedd_loss_new(out0, out1, dv, nostd,future=0):
-    thr = 2.
-    delta=1.
+def get_embedd_loss_new(out0, out1, dv, nostd,future=0, thr=4.,delta=2.):
     bsz = out0.shape[0]
     # out0=torch.tanh(out0)
     out0 = standardize(out0,nostd)
