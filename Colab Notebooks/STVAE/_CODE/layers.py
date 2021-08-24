@@ -89,7 +89,7 @@ pre=get_pre()
 datadirs=pre+'Colab Notebooks/STVAE/_CODE/'
 osu=os.uname()
 
-if 'Linux' in osu[0] and 'ga' in pre:
+if 'Linux' in osu[0]: #and 'ga' in pre:
     cudnn_convolution = load(name="cudnn_convolution", sources=[datadirs + "cudnn_convolution.cpp"], verbose=True)
 
 
@@ -418,11 +418,11 @@ class FAConv2dFunc(Function):
             #print('grad1',time.time()-t1)
         if ctx.needs_input_grad[1]:
              #t3=time.time()
-            if ctx.device.type!='gpu': # or 'ga' not in pre:
-                grad_weight = torch.nn.grad.conv2d_weight(input, weight.shape, grad_output, stride, padding, dilation, groups)
-            else:
-                grad_weight = cudnn_convolution.convolution_backward_weight(input, weight.shape, grad_output, stride,
-                                                                         padding, dilation, groups, False, False)
+            #if ctx.device.type!='gpu': # or 'ga' not in pre:
+            #    grad_weight = torch.nn.grad.conv2d_weight(input, weight.shape, grad_output, stride, padding, dilation, groups)
+            #else:
+            grad_weight = cudnn_convolution.convolution_backward_weight(input, weight.shape, grad_output, stride,
+                                                                         padding, dilation, groups, False, False, False)
 
              #print('grad2', time.time() - t3)
         if ctx.needs_input_grad[2] and ctx.fa==2:

@@ -4,8 +4,8 @@
 --hid_dataset=cifar10
 --num_train=50000
 --network_num_train=50000
---nepoch=200
---hid_nepoch=200
+--nepoch=400
+--hid_nepoch=400
 --mb_size=500
 --lr=.00001
 --optimizer=Adam
@@ -20,9 +20,9 @@
 --embedd
 --embedd_layer=pool3
 --out_file=OUT_emb_e2e_pool3_fa.txt
---model_out=network_emb_e2e_pool3
---model=network_emb_e2e_pool3
---CONS
+--model_out=network_emb_e2e_pool3_fa
+--model=network_emb_e2e_pool3_fa
+--cont_training
 --hid_layers
 name:input
 name:dense_final_hid;num_units:10

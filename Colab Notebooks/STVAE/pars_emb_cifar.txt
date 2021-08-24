@@ -21,9 +21,10 @@
 --layerwise
 --embedd
 --embedd_layer=pool3
---out_file=OUT_emb_e2e_pool3_ma.txt
---model_out=network_emb_e2e_pool3_ma
---model=network_emb_e2e_pool3_ma
+--out_file=OUT_emb_e2e_pool3.txt
+--model_out=network_emb_e2e_pool3
+--model=network_emb_e2e_pool3
+--CONS
 --run_existing
 --hid_layers
 name:input

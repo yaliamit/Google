@@ -164,8 +164,13 @@ def get_embedd_loss_new(out0, out1, dv, nostd,future=0, thr=4.,delta=2.):
         for i in range(future):
             fac = 1. if i==0 else 1./future
             loss+=fac*(torch.sum(torch.relu(delta-torch.diagonal(OUT,i))))
-    else:
+    elif future==0:
         loss = torch.sum(torch.relu(delta - OUT))
+    else:
+        loss = torch.mean(torch.relu(delta-OUT))+\
+               (1-1/(bsz*bsz))*torch.sum(torch.relu(delta-torch.diagonal(OUT,0)))
+
+    
 
     acc = torch.sum(OUT > 0).type(torch.float) / bsz
 

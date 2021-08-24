@@ -52,8 +52,16 @@ def  to_npy():
 
 
 #test_loss()
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-print(device.type=='cpu')
+print(sys.argv)
+if not torch.cuda.is_available():
+    device=torch.device("cpu")
+else:
+    if len(sys.argv)==1:
+        s="cuda:"+"0"
+    else:
+        s="cuda:"+sys.argv[1]
+    device=torch.device(s)
+print(device)
 
 def resnet_try():
     from torchvision import models
@@ -85,7 +93,11 @@ def resnet_try():
 #to_npy()
 #copy_to_content('pars_tvae_conv',predir)
 
-par_file='logistic'
+if len(sys.argv)<3:
+    par_file='pars_emb_cifar'
+else:
+    par_file=sys.argv[2]
+    print(par_file)
 net,_=run_net(par_file, device)
 net.optimizer = torch.optim.Adam(net.optimizer.param_groups[0]['params'], lr=net.lr, weight_decay=net.wd)
 net,_=run_net(par_file, device, net)

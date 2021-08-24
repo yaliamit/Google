@@ -46,8 +46,9 @@ class network(nn.Module):
         self.randomize=args.layerwise_randomize
         self.lnti=lnti
         self.no_standardize=args.no_standardize
-        self.thr=args.thr
-        self.delta=args.delta
+        if hasattr(args,'thr'):
+            self.thr=args.thr
+            self.delta=args.delta
         self.back=('ae' in args.type)
         if fout is not None:
             self.fout=fout
