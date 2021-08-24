@@ -89,7 +89,7 @@ pre=get_pre()
 datadirs=pre+'Colab Notebooks/STVAE/_CODE/'
 osu=os.uname()
 
-if 'Linux' in osu[0]: #and 'ga' in pre:
+if 'Linux' in osu[0] and not 'ga' in pre:
     cudnn_convolution = load(name="cudnn_convolution", sources=[datadirs + "cudnn_convolution.cpp"], verbose=True)
 
 
