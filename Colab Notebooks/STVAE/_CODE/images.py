@@ -199,7 +199,7 @@ def deform_data(x_in,dv,perturb,trans,s_factor,h_factor,embedd):
             x_out_hsv[:,0,:,:]=torch.remainder(x_out_hsv[:,0,:,:]+uu,1.)
             x_out=hsv_to_rgb(x_out_hsv)
 
-        ii=torch.where(torch.bernoulli(torch.ones(self.bsz)*.5)==1)
+        ii=torch.where(torch.bernoulli(torch.ones(nn)*.5)==1)
         for i in ii:
               x_out[i]=x_out[i].flip(3)
         return x_out
