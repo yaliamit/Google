@@ -98,12 +98,12 @@ if len(sys.argv)<3:
 else:
     par_file=sys.argv[2]
     print(par_file)
-net,_=run_net(par_file, device)
-net.optimizer = torch.optim.Adam(net.optimizer.param_groups[0]['params'], lr=net.lr, weight_decay=net.wd)
-net,_=run_net(par_file, device, net)
+#net,_=run_net(par_file, device)
+#net.optimizer = torch.optim.Adam(net.optimizer.param_groups[0]['params'], lr=net.lr, weight_decay=net.wd)
+#net,_=run_net(par_file, device, net)
 #save_net(net,'pars_mnist_a',predir)
 
-#seq(par_file,predir, device)
+seq(par_file,predir, device)
 #np.random.seed(123456)
 
 # ims, ims_def, _=test_aug()

@@ -136,7 +136,7 @@ def run_net(par_file, device, net=None):
 
 
 
-def make_par_file_for_this_layer(args, oldn, i, d,  lines, layers_dict, datadirs):
+def make_par_file_for_this_layer(args, oldn, i, d, pert, lines, layers_dict, datadirs):
 
     skip_name1 = 'pool'
     skip_name2 = 'non_linearity'
@@ -200,6 +200,7 @@ def make_par_file_for_this_layer(args, oldn, i, d,  lines, layers_dict, datadirs
                 emb = 'emb'
             outn = 'network_' + nn + '_' + emb
             fout.write('--model_out=' + outn + '\n' + '--out_file=OUT_' + nn + '_' + emb + '.txt\n')
+            fout.write('--perturb='+str(pert))
             fout.close()
             return outn
 
@@ -216,14 +217,15 @@ def seq(par_file, predir, device, tlay=None, toldn=None):
         lines = [ll.rstrip('\n') for ll in bb if '#' not in ll]
         args = parser.parse_args(lines)
     lnti, layers_dict = prep.get_network(args.layers)
-
+    pert=args.perturb
     RESULTS = []
     oldn = toldn
     for i, d in enumerate(layers_dict):
         if tlay is None or d['name']==tlay:
             tlay=None
-            outn=make_par_file_for_this_layer(args, oldn, i, d, lines, layers_dict, datadirs)
+            outn=make_par_file_for_this_layer(args, oldn, i, d, pert, lines, layers_dict, datadirs)
             if outn is not None:
+                pert*=1.25
                 net,_ = run_net('t_par', device)
                 net.optimizer = torch.optim.Adam(net.optimizer.param_groups[0]['params'], lr=net.lr,weight_decay=net.wd)
                 #net.optimizer = torch.optim.Adam(net.parameters(), lr=0.001)
