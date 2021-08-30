@@ -25,7 +25,6 @@
 --out_file=OUT_emb_e2e_pool3.txt
 --model_out=network_emb_e2e_pool3
 --model=network_emb_e2e_pool3
---CONS
 --hid_layers
 name:input
 name:dense_final_hid;num_units:10
