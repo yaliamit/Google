@@ -200,7 +200,7 @@ def make_par_file_for_this_layer(args, oldn, i, d, pert, lines, layers_dict, dat
                 emb = 'emb'
             outn = 'network_' + nn + '_' + emb
             fout.write('--model_out=' + outn + '\n' + '--out_file=OUT_' + nn + '_' + emb + '.txt\n')
-            fout.write('--perturb='+str(pert))
+            fout.write('--perturb='+str(pert)+'\n')
             fout.close()
             return outn
 
