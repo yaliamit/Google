@@ -107,8 +107,8 @@ else:
     tlay=None
     toldn=None
     if len(sys.argv)>4:
-        tlay=sys.argv[4]
-        toldn=sys.argv[5]
+        tlay=sys.argv[3]
+        toldn=sys.argv[4]
     seq(par_file,predir, device, tlay=tlay, toldn=toldn)
 #np.random.seed(123456)
 
