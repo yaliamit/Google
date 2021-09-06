@@ -104,7 +104,12 @@ if len(sys.argv)<4:
     net,_=run_net(par_file, device, net)
     save_net(net,par_file,predir)
 else:
-    seq(par_file,predir, device)
+    tlay=None
+    toldn=None
+    if len(sys.argv>4):
+        tlay=sys.argv[4]
+        toldn=sys.argv[5]
+    seq(par_file,predir, device, tlay=tlay, toldn=toldn)
 #np.random.seed(123456)
 
 # ims, ims_def, _=test_aug()
