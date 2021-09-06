@@ -106,7 +106,7 @@ if len(sys.argv)<4:
 else:
     tlay=None
     toldn=None
-    if len(sys.argv>4):
+    if len(sys.argv)>4:
         tlay=sys.argv[4]
         toldn=sys.argv[5]
     seq(par_file,predir, device, tlay=tlay, toldn=toldn)
