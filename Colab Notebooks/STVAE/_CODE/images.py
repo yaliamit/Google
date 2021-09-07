@@ -154,7 +154,7 @@ def erode(do_er,data):
 
 
 
-def deform_data(x_in,dv,perturb,trans,s_factor,h_factor,embedd):
+def deform_data(x_in,perturb,trans,s_factor,h_factor,embedd):
         h=x_in.shape[2]
         w=x_in.shape[3]
         nn=x_in.shape[0]

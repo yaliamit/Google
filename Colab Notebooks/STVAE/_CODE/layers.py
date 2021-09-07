@@ -123,7 +123,7 @@ class Reshape(nn.Module):
 
 
 class NONLIN(nn.Module):
-    def __init__(self, ll,low=0., high=1.):
+    def __init__(self, ll,low=-1., high=1.):
         super(NONLIN, self).__init__()
         self.type=ll['type']
         if 'HardT' in self.type:

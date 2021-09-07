@@ -142,7 +142,7 @@ def get_embedd_loss_future(out0, out1,nostd,future):
 
     return loss
 
-def get_embedd_loss_new(out0, out1, dv, nostd,future=0, thr=4.,delta=2.):
+def get_embedd_loss_new(out0, out1, dv, nostd=True,future=0, thr=2.,delta=1.):
     bsz = out0.shape[0]
     # out0=torch.tanh(out0)
     out0 = standardize(out0,nostd)
@@ -166,11 +166,7 @@ def get_embedd_loss_new(out0, out1, dv, nostd,future=0, thr=4.,delta=2.):
             loss+=fac*(torch.sum(torch.relu(delta-torch.diagonal(OUT,i))))
     elif future==0:
         loss = torch.sum(torch.relu(delta - OUT))
-    else:
-        loss = torch.mean(torch.relu(delta-OUT))+\
-               (1-1/(bsz*bsz))*torch.sum(torch.relu(delta-torch.diagonal(OUT,0)))
 
-    
 
     acc = torch.sum(OUT > 0).type(torch.float) / bsz
 
