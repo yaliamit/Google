@@ -138,7 +138,7 @@ def train_new(args,train,test,fout,device):
     if args.optimizer=='LG' or args.hid_lr<0:
         print('Using Logistic regression')
         t1=time.time()
-        lg=LogisticRegression(fit_intercept=True, solver='lbfgs',multi_class='multinomial',max_iter=4000,verbose=1, intercept_scaling=1., C=10.,penalty='l2')
+        lg=LogisticRegression(fit_intercept=True, solver='sag',multi_class='multinomial',max_iter=400,verbose=1, intercept_scaling=1., C=10.,penalty='l2')
         lg.fit(train[0], train[1])
         yh = lg.predict(train[0])
         print("Finished training:",time.time()-t1)
