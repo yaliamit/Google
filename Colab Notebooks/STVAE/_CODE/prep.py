@@ -152,8 +152,17 @@ def copy_from_old_to_new(model, args, fout, SMS, strings,device, sh):
     # Loop over parameters of N1
 
     for name, param_old in params_old:
+        temp=name.split('.')
+        temp[1]+='_fa'
+        temp_name='.'.join(temp)
         if name in dict_params:
-                if (args.update_layers is None or 'copy' in args.update_layers or name.split('.')[1] not in args.update_layers):
+            pass
+        elif temp_name in dict_params:
+            name=temp_name
+        else:
+            continue
+            #if name in dict_params or temp_name in dict_params:
+        if (args.update_layers is None or 'copy' in args.update_layers or name.split('.')[1] not in args.update_layers):
                     fout.write('copying ' + name + '\n')
                     dict_params[name].data.copy_(param_old.data)
                     if 'norm' in name and 'weight' in name:
