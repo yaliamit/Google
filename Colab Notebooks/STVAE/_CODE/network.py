@@ -15,6 +15,10 @@ except:
 def dummy_context_mgr():
     yield None
 
+pre=get_pre()
+
+datadirs=pre+'Colab Notebooks/STVAE/_CODE/'
+osu=os.uname()
 
 
 # Network module
@@ -129,7 +133,7 @@ class network(nn.Module):
                             stride=ll['stride']
                         pd=(ll['filter_size']//stride) // 2
                         if not self.back:
-                            if 'fa' in ll['name']:
+                            if 'fa' in ll['name'] and 'Linux' in osu[0] and not 'ga' in pre:
                                 self.layers.add_module(ll['name'],FAConv2d(inp_feats,ll['num_filters'],ll['filter_size'],stride=stride,fa=self.fa,padding=pd, bias=bis, device=self.dv))
                             else:
                                 self.layers.add_module(ll['name'],nn.Conv2d(inp_feats,ll['num_filters'],ll['filter_size'],stride=stride,padding=pd, bias=bis))

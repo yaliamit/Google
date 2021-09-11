@@ -37,4 +37,4 @@ name:conv3;num_filters:512;filter_size
 name:pool3;pool_size:2
 --run_existing
 --embedd_layer=pool3
---model=network_pool3_emb
+--model=network_emb_e2e_pool3_fa
