@@ -230,9 +230,9 @@ def seq(par_file, predir, device, tlay=None, toldn=None):
                 net.optimizer = torch.optim.Adam(net.optimizer.param_groups[0]['params'], lr=net.lr,weight_decay=net.wd)
                 #net.optimizer = torch.optim.Adam(net.parameters(), lr=0.001)
                 print('aux_colab',net.optimizer.param_groups[0]['weight_decay'])
-                net,_ = run_net('t_par', device, net)
+                net,_ = run_net('t_par'+args.t_par, device, net)
                 RESULTS += [net.results]
-                save_net(net, 't_par', predir)
+                save_net(net, 't_par'+args.t_par, predir)
                 #train_net('t_par',predir, RESULTS,device)
                 oldn = outn
     #if not args.embedd:
