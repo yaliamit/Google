@@ -157,7 +157,7 @@ def make_par_file_for_this_layer(args, oldn, i, d, pert, lines, layers_dict, dat
             return None
         else:
 
-            fout = open(datadirs + 't_par.txt', 'w')
+            fout = open(datadirs + 't_par'+args.t_par+'.txt', 'w')
             for l in lines:
                 if 'dense_final' in l and not 'hid' in l:
                     if args.embedd:
