@@ -227,7 +227,10 @@ def seq(par_file, predir, device, tlay=None, toldn=None):
             if outn is not None:
                 pert*=1.
                 net,_ = run_net('t_par'+args.t_par, device)
-                net.optimizer = torch.optim.Adam(net.optimizer.param_groups[0]['params'], lr=net.lr,weight_decay=net.wd)
+                if args.optimizer=='Adam':
+                    net.optimizer = torch.optim.Adam(net.optimizer.param_groups[0]['params'], lr=net.lr,weight_decay=net.wd)
+                else:
+                    net.optimixer=torch.optim.SGD(net.optimizer.param_groups[0]['params'],lr=net.lr)
                 #net.optimizer = torch.optim.Adam(net.parameters(), lr=0.001)
                 print('aux_colab',net.optimizer.param_groups[0]['weight_decay'])
                 net,_ = run_net('t_par'+args.t_par, device, net)

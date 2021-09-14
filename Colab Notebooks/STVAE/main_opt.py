@@ -100,7 +100,11 @@ else:
     print(par_file)
 if len(sys.argv)<4:
     net,_=run_net(par_file, device)
-    net.optimizer = torch.optim.Adam(net.optimizer.param_groups[0]['params'], lr=net.lr, weight_decay=net.wd)
+    if net.optimizer_type=='Adam':
+        net.optimizer = torch.optim.Adam(net.optimizer.param_groups[0]['params'], lr=net.lr, weight_decay=net.wd)
+    else:
+        net.optimizer = torch.optim.SGD(net.optimizer.param_groups[0]['params'], lr=net.lr)
+
     net,_=run_net(par_file, device, net)
     save_net(net,par_file,predir)
 else:
