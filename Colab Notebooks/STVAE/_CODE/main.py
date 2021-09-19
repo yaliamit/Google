@@ -5,6 +5,7 @@ import numpy as np
 from data import get_data_pre
 from images import make_images, make_sample
 
+# Testing
 
 def main_loc(par_file, device,net=None):
 
