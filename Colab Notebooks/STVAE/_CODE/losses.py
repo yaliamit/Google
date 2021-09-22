@@ -108,7 +108,7 @@ def get_embedd_loss(out0,out1,dv, nostd):
         ID=2.*torch.eye(out0.shape[0]).to(dv)-1.
         icov=ID*COV
 
-        acc=torch.sum((icov> -.5).type(torch.float))/bsz
+        acc=torch.sum((icov> 0).type(torch.float))/bsz
         return loss,acc
 
 
