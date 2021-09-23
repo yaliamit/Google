@@ -59,11 +59,48 @@ class Barlow_loss(nn.Module):
         loss = on_diag + self.lambd * off_diag
         return loss
 
+
+class SimCLRLoss(torch.nn.Module):
+    def __init__(self, batch_size, device='cpu'):
+        super(SimCLRLoss, self).__init__()
+        self.device = device
+        self.batch_size = batch_size
+        self.mask = self.create_mask(batch_size)
+        self.criterion = torch.nn.CrossEntropyLoss()
+
+    # create a mask that enables us to sum over positive pairs only
+    def create_mask(self, batch_size):
+        mask = torch.eye(batch_size, dtype=torch.bool).to(self.device)
+        return mask
+
+    def forward(self, output, tau=0.1):
+        norm = torch.nn.functional.normalize(output, dim=1)
+        h1,h2 = torch.split(norm, self.batch_size)
+
+        aa = torch.mm(h1,h1.transpose(0,1))/tau
+        aa_s = aa[~self.mask].view(aa.shape[0],-1)
+        bb = torch.mm(h2,h2.transpose(0,1))/tau
+        bb_s = bb[~self.mask].view(bb.shape[0],-1)
+        ab = torch.mm(h1,h2.transpose(0,1))/tau
+        ba = torch.mm(h2,h1.transpose(0,1))/tau
+
+        labels = torch.arange(self.batch_size).to(output.device)
+        loss_a = self.criterion(torch.cat([ab,aa_s],dim=1),labels)
+        loss_b = self.criterion(torch.cat([ba,bb_s],dim=1),labels)
+
+        loss = (loss_a+loss_b)/2
+        return loss
+
+
+
 def simclr_loss(out0, out1, dv, nostd):
         # Standardize 64 dim outputs of original and deformed images
         bsz=out0.shape[0]
-        out0a = standardize(out0,nostd)
-        out1a = standardize(out1,nostd)
+        out0a = torch.nn.functional.normalize(out0, dim=1)
+        out1a = torch.nn.functional.normalize(out1, dim=1)
+
+        #out0a = standardize(out0,nostd)
+        #out1a = standardize(out1,nostd)
         # Compute 3 covariance matrices - 0-1, 0-0, 1-1.
         COV = torch.mm(out0a, out1a.transpose(0, 1))
         COV1 = torch.mm(out1a, out1a.transpose(0, 1))
@@ -90,12 +127,15 @@ def simclr_loss(out0, out1, dv, nostd):
 
 def get_embedd_loss(out0,out1,dv, nostd):
 
+        tau=.1
         bsz=out0.shape[0]
-        out0a=standardize(out0, nostd)
-        out1a=standardize(out1, nostd)
-        COV=torch.mm(out0a,out1a.transpose(0,1))
-        COV1 = torch.mm(out1a, out1a.transpose(0, 1))
-        COV0 = torch.mm(out0a,out0a.transpose(0,1))
+        out0a = torch.nn.functional.normalize(out0, dim=1)
+        out1a = torch.nn.functional.normalize(out1, dim=1)
+        #out0a=standardize(out0, nostd)
+        #out1a=standardize(out1, nostd)
+        COV=torch.mm(out0a,out1a.transpose(0,1))/tau
+        COV1 = torch.mm(out1a, out1a.transpose(0, 1))/tau
+        COV0 = torch.mm(out0a,out0a.transpose(0,1))/tau
         vb=(torch.eye(bsz)*1e10).to(dv)
 
         cc = torch.cat((COV, COV0 - vb), dim=1)

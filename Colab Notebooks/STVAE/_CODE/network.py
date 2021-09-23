@@ -64,6 +64,7 @@ class network(nn.Module):
             self.criterion=hinge_loss(num_class=args.num_class)
         else:
             self.criterion=nn.CrossEntropyLoss()
+        self.CLR=SimCLRLoss(self.bsz,self.dv)
         #self.crit=nn.BCEWithLogitsLoss(pos_weight=torch.tensor(500.))
         self.perturb=None
         if (hasattr(args,'perturb')):
@@ -350,9 +351,10 @@ class network(nn.Module):
             out0,ot0=self.forward(input[0])
             out1,ot1=self.forward(input[1])
             if self.embedd_type=='orig':
-                #loss, acc = get_embedd_loss(out0,out1,self.dv,self.no_standardize)
-                loss, acc=simclr_loss(out0,out1,self.dv, self.no_standardize)
-                #print(loss,loss1)
+                loss, acc = get_embedd_loss(out0,out1,self.dv,self.no_standardize)
+                #loss1, acc=simclr_loss(out0,out1,self.dv, self.no_standardize)
+                #loss2=self.CLR(torch.cat((out0,out1),dim=0))
+                #print(loss,loss2)
             elif self.embedd_type=='binary':
                 loss, acc = get_embedd_loss_binary(out0,out1,self.dv,self.no_standardize)
             elif self.embedd_type=='L1dist_hinge':
