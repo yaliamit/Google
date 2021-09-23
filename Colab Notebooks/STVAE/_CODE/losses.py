@@ -125,9 +125,9 @@ def simclr_loss(out0, out1, dv, nostd):
         return loss, acc
 
 
-def get_embedd_loss(out0,out1,dv, nostd):
+def get_embedd_loss(out0,out1,dv, thr):
 
-        tau=.1
+        tau=thr
         bsz=out0.shape[0]
         out0a = torch.nn.functional.normalize(out0, dim=1)
         out1a = torch.nn.functional.normalize(out1, dim=1)

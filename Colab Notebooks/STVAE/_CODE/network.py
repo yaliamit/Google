@@ -351,7 +351,7 @@ class network(nn.Module):
             out0,ot0=self.forward(input[0])
             out1,ot1=self.forward(input[1])
             if self.embedd_type=='orig':
-                loss, acc = get_embedd_loss(out0,out1,self.dv,self.no_standardize)
+                loss, acc = get_embedd_loss(out0,out1,self.dv,self.thr)
                 #loss1, acc=simclr_loss(out0,out1,self.dv, self.no_standardize)
                 #loss2=self.CLR(torch.cat((out0,out1),dim=0))
                 #print(loss,loss2)
