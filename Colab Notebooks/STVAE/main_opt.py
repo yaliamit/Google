@@ -93,12 +93,25 @@ def resnet_try():
 #to_npy()
 #copy_to_content('pars_tvae_conv',predir)
 
-if len(sys.argv)<3:
+os.system('rm junk')
+count_non=0
+for a in sys.argv:
+    if '--' in a:
+        os.system('echo \"'+a+'\">> junk')
+    else:
+        count_non+=1
+
+
+if count_non<3:
     par_file='pars_emb_cifar'
 else:
     par_file=sys.argv[2]
     print(par_file)
-if len(sys.argv)<4:
+
+os.system('cat '+par_file+'.txt junk>temp_par.txt')
+
+par_file='temp_par'
+if count_non<4:
     net,_=run_net(par_file, device)
     if net.optimizer_type=='Adam':
         net.optimizer = torch.optim.Adam(net.optimizer.param_groups[0]['params'], lr=net.lr, weight_decay=net.wd)
