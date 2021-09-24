@@ -173,7 +173,7 @@ def train_new_old(args,train,test,fout,device,net=None):
     for epoch in range(args.hid_nepoch):
 
         t1=time.time()
-        net.run_epoch(tran,epoch, d_type='train',fout=fout)
+        net.run_epoch(tran,epoch, d_type='train',fout=fout, freq=50)
         if (val is not None):
                 net.run_epoch(val,epoch, type='val',fout=fout, freq=50)
         if (np.mod(epoch,10)==9 or epoch==0):
