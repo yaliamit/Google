@@ -175,7 +175,7 @@ def train_new_old(args,train,test,fout,device,net=None):
         t1=time.time()
         net.run_epoch(tran,epoch, d_type='train',fout=fout)
         if (val is not None):
-                net.run_epoch(val,epoch, type='val',fout=fout)
+                net.run_epoch(val,epoch, type='val',fout=fout, freq=50)
         if (np.mod(epoch,10)==9 or epoch==0):
             fout.write('epoch: {0} in {1:5.3f} seconds, LR {2:0.5f}'.format(epoch,time.time()-t1,net.optimizer.param_groups[0]['lr']))
             fout.flush()

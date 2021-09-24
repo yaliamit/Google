@@ -385,7 +385,7 @@ class network(nn.Module):
 
 
     # Epoch of network training
-    def run_epoch(self, train, epoch, num_mu_iter=None, trainMU=None, trainLOGVAR=None, trPI=None, d_type='train', fout='OUT'):
+    def run_epoch(self, train, epoch, num_mu_iter=None, trainMU=None, trainLOGVAR=None, trPI=None, d_type='train', fout='OUT',freq=1):
 
         if (d_type=='train'):
             self.train()
@@ -456,8 +456,9 @@ class network(nn.Module):
             count[lnum]+=1
 
 
-        for l in range(ll):
-            fout.write('\n ====> Ep {}: {} Full loss: {:.4F}, Full acc: {:.4F} \n'.format(d_type,epoch,
+        if freq-np.mod(epoch,freq)==1:
+           for l in range(ll):
+                fout.write('\n ====> Ep {}: {} Full loss: {:.4F}, Full acc: {:.4F} \n'.format(d_type,epoch,
                     full_loss[l] /count[l], full_acc[l]/(count[l]*jump)))
 
         return trainMU, trainLOGVAR, trPI, [full_acc/(count*jump), full_loss/(count)]

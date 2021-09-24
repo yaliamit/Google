@@ -127,6 +127,9 @@ else:
         tlay=sys.argv[4]
         toldn=sys.argv[5]
     seq(par_file,predir, device, tlay=tlay, toldn=toldn)
+
+
+os.system('rm junk')
 #np.random.seed(123456)
 
 # ims, ims_def, _=test_aug()

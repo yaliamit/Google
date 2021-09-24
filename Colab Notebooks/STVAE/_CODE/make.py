@@ -8,9 +8,10 @@ import copy
 from class_on_hidden import prepare_recons
 def save_net_int(model,model_out,args,predir):
 
+  print(model_out, file=args.fout)
   fout=args.fout
   args.fout=None
-  print(model_out)
+
   if model_out is not None:
       ss=model_out+'.pt'
   else:
