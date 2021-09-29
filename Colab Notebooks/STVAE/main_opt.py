@@ -110,7 +110,7 @@ else:
 
 os.system('cat '+par_file+'.txt junk>'+par_file+'temp.txt')
 
-temp_file=par_file+'temp.txt'
+temp_file=par_file+'temp'
 if count_non<4:
     net,_=run_net(temp_file, device)
     if net.optimizer_type=='Adam':
