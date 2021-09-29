@@ -108,9 +108,9 @@ else:
     par_file=sys.argv[2]
     print(par_file)
 
-os.system('cat '+par_file+'.txt junk>'+par_file+'temp.txt')
+os.system('cat '+par_file+'.txt junk>'+par_file+'_temp.txt')
 
-temp_file=par_file+'temp'
+temp_file=par_file+'_temp'
 if count_non<4:
     net,_=run_net(temp_file, device)
     if net.optimizer_type=='Adam':
