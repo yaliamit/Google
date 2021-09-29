@@ -137,10 +137,14 @@ class network(nn.Module):
                                 self.layers.add_module(ll['name'],FAConv2d(inp_feats,ll['num_filters'],ll['filter_size'],stride=stride,fa=self.fa,padding=pd, bias=bis, device=self.dv))
                             else:
                                 self.layers.add_module(ll['name'],nn.Conv2d(inp_feats,ll['num_filters'],ll['filter_size'],stride=stride,padding=pd, bias=bis))
+                            if 'zero' in ll:
+                                temp=getattr(self.layers, ll['name'])
+                                temp.weight.data=torch.zeros_like(temp.weight.data)
                         else:
                             self.layers.add_module(ll['name'],nn.Conv2d(inp_feats,ll['num_filters'],ll['filter_size'],stride=1,padding=pd))
-                        if self.back:
                             self.back_layers.add_module(ll['name']+'_bk',nn.Conv2d(ll['num_filters'],inp_feats,ll['filter_size'],stride=1,padding=pd))
+
+
                     out=getattr(self.layers, ll['name'])(OUTS[inp_ind])
                     OUTS[ll['name']]=out
                 if 'non_linearity' in ll['name']:
