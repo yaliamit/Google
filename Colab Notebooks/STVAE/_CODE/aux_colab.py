@@ -176,7 +176,7 @@ def make_par_file_for_this_layer(args, oldn, i, d, pert, lines, layers_dict, dat
             if (args.embedd):
                 fout.write('--embedd\n' + '--embedd_layer=' + nn + '\n')
             fout.write('--update_layers\n')
-            if (skip_name1 in nn or skip_name2 in nn):
+            if (skip_name1 in nn or skip_name2 in nn or skip_name3 in nn):
                 j=i
                 done=False
                 while not done:

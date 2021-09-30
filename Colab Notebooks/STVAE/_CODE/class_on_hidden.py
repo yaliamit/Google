@@ -170,13 +170,14 @@ def train_new_old(args,train,test,fout,device,net=None):
         net.get_scheduler(args)
 
     tran=[train[0],train[0],train[1]]
+    freq=50
     for epoch in range(args.hid_nepoch):
-
-        t1=time.time()
-        net.run_epoch(tran,epoch, d_type='train',fout=fout, freq=50)
-        if (val is not None):
-                net.run_epoch(val,epoch, type='val',fout=fout, freq=50)
-        if (50-np.mod(epoch,50)==1):
+        if np.mod(epoch,freq)==0:
+            t1=time.time()
+        net.run_epoch(tran,epoch, d_type='train',fout=fout, freq=freq)
+        if (val is not None and np.mod(epoch,freq)==0):
+                net.run_epoch(val,epoch, type='val',fout=fout, freq=freq)
+        if (freq-np.mod(epoch,freq)==1):
             fout.write('epoch: {0} in {1:5.3f} seconds, LR {2:0.5f}\n'.format(epoch,time.time()-t1,net.optimizer.param_groups[0]['lr']))
             fout.flush()
         if hasattr(net,'scheduler') and net.scheduler is not None:
