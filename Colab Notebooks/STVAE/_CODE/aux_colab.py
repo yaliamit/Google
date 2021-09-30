@@ -141,6 +141,7 @@ def make_par_file_for_this_layer(args, oldn, i, d, pert, lines, layers_dict, dat
     skip_name1 = 'pool'
     skip_name2 = 'non_linearity'
     skip_name3 = 'norm'
+    skip_name4 = 'opr_add'
     break_name = 'drop'
     break_name_layer = 'name:dropf;drop:'
     head_name_layer='dense_p'
@@ -153,7 +154,9 @@ def make_par_file_for_this_layer(args, oldn, i, d, pert, lines, layers_dict, dat
         if 'final' in nn or 'input' in nn or break_name in nn or (i < len(layers_dict) - 1 and
                                                                   (skip_name1 in layers_dict[i + 1]['name'] or
                                                                    skip_name2 in layers_dict[i + 1]['name'] or
-                                                                   skip_name3 in layers_dict[i + 1]['name'])):
+                                                                   skip_name3 in layers_dict[i + 1]['name'] or
+                                                                   skip_name4 in layers_dict[i+1]
+                                                                  )):
             return None
         else:
 
