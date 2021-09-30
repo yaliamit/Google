@@ -462,7 +462,7 @@ class network(nn.Module):
 
         if freq-np.mod(epoch,freq)==1:
            for l in range(ll):
-                fout.write('\n ====> Ep {}: {} Full loss: {:.4F}, Full acc: {:.4F} \n'.format(d_type,epoch,
+                fout.write('\n ====> Ep {}: {} Full loss: {:.4F}, Full acc: {:.6F} \n'.format(d_type,epoch,
                     full_loss[l] /count[l], full_acc[l]/(count[l]*jump)))
 
         return trainMU, trainLOGVAR, trPI, [full_acc/(count*jump), full_loss/(count)]
