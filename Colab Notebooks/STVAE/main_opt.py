@@ -108,9 +108,9 @@ else:
     par_file=sys.argv[2]
     print(par_file)
 
-os.system('cat '+par_file+'.txt junk>'+par_file+'temp.txt')
+os.system('cat '+par_file+'.txt junk>'+par_file+'_temp.txt')
 
-temp_file=par_file+'temp.txt'
+temp_file=par_file+'_temp'
 if count_non<4:
     net,_=run_net(temp_file, device)
     if net.optimizer_type=='Adam':
@@ -126,7 +126,7 @@ else:
     if len(sys.argv)>4:
         tlay=sys.argv[4]
         toldn=sys.argv[5]
-    seq(par_file,predir, device, tlay=tlay, toldn=toldn)
+    seq(temp_file,predir, device, tlay=tlay, toldn=toldn)
 
 
 os.system('rm junk')

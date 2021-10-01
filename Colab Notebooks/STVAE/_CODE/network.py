@@ -140,6 +140,8 @@ class network(nn.Module):
                             if 'zero' in ll:
                                 temp=getattr(self.layers, ll['name'])
                                 temp.weight.data=torch.zeros_like(temp.weight.data)
+                                if temp.bias is not None:
+                                    temp.bias.data=torch.zeros_like(temp.bias.data)
                         else:
                             self.layers.add_module(ll['name'],nn.Conv2d(inp_feats,ll['num_filters'],ll['filter_size'],stride=1,padding=pd))
                             self.back_layers.add_module(ll['name']+'_bk',nn.Conv2d(ll['num_filters'],inp_feats,ll['filter_size'],stride=1,padding=pd))
@@ -462,7 +464,7 @@ class network(nn.Module):
 
         if freq-np.mod(epoch,freq)==1:
            for l in range(ll):
-                fout.write('\n ====> Ep {}: {} Full loss: {:.4F}, Full acc: {:.4F} \n'.format(d_type,epoch,
+                fout.write('\n ====> Ep {}: {} Full loss: {:.4F}, Full acc: {:.6F} \n'.format(d_type,epoch,
                     full_loss[l] /count[l], full_acc[l]/(count[l]*jump)))
 
         return trainMU, trainLOGVAR, trPI, [full_acc/(count*jump), full_loss/(count)]

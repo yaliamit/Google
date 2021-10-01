@@ -207,7 +207,6 @@ def get_embedd_loss_new(out0, out1, dv, nostd=True,future=0, thr=2.,delta=1.):
     elif future==0:
         loss = torch.sum(torch.relu(delta - OUT))
 
-
     acc = torch.sum(OUT > 0).type(torch.float) / bsz
 
 
