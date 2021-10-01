@@ -173,6 +173,7 @@ def make_par_file_for_this_layer(args, oldn, i, d, pert, lines, layers_dict, dat
                         fout.write(l + '\n')
                         if 'name' in l and l.split(':')[1].split(';')[0] == nn:
                             done = True
+                            
             if (args.embedd):
                 fout.write('--embedd\n' + '--embedd_layer=' + nn + '\n')
             fout.write('--update_layers\n')
