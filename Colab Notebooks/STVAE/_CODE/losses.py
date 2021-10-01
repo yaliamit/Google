@@ -194,9 +194,6 @@ def get_embedd_loss_new(out0, out1, dv, nostd=True,future=0, thr=2.,delta=1.):
     outd = torch.sum(torch.relu(outd) + torch.relu(-outd), dim=1)
     OUT = -outd.reshape(bsz, bsz).transpose(0, 1)
 
-
-
-
     # Multiply by y=-1/1
     OUT = (OUT + thr) * (2. * torch.eye(bsz).to(dv) - 1.)
     #print('mid',time.time()-t1)
