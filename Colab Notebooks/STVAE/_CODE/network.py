@@ -399,8 +399,8 @@ class network(nn.Module):
             self.eval()
         num_tr=train[0].shape[0]
         ii = np.arange(0, num_tr, 1)
-        #if (d_type=='train'):
-          #np.random.shuffle(ii)
+        if (d_type=='train'):
+          np.random.shuffle(ii)
         jump = self.bsz
         trin = train[0][ii]
         targ = train[2][ii]

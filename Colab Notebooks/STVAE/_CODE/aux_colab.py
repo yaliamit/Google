@@ -183,6 +183,8 @@ def make_par_file_for_this_layer(args, oldn, i, d, pert, lines, layers_dict, dat
             if (skip_name1 in nn or skip_name2 in nn or skip_name4 in nn):
                 j=i
                 done=False
+                if skip_name2 in nn and skip_name4 in layers_dict[j+1]['name']:
+                    done=True
                 while not done:
                     if 'conv' in layers_dict[j]['name']:
                         fout.write(layers_dict[j]['name']+'\n')
