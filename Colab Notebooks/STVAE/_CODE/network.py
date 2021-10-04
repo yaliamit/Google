@@ -140,8 +140,6 @@ class network(nn.Module):
                             if 'zero' in ll:
                                 temp=getattr(self.layers, ll['name'])
                                 temp.weight.data=torch.zeros_like(temp.weight.data)
-                                if temp.bias is not None:
-                                    temp.bias.data=torch.zeros_like(temp.bias.data)
                         else:
                             self.layers.add_module(ll['name'],nn.Conv2d(inp_feats,ll['num_filters'],ll['filter_size'],stride=1,padding=pd))
                             self.back_layers.add_module(ll['name']+'_bk',nn.Conv2d(ll['num_filters'],inp_feats,ll['filter_size'],stride=1,padding=pd))
