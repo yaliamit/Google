@@ -152,9 +152,9 @@ class network(nn.Module):
                         low=-1.; high=1.
                         if 'lims' in ll:
                             low=ll['lims'][0]; high=ll['lims'][1]
-                        self.layers.add_module(ll['name'],NONLIN(ll,low=low,high=high))
+                        self.layers.add_module(ll['name'],NONLIN(ll['type'],low=low,high=high))
                         if self.back:
-                            self.back_layers.add_module(ll['name']+'_bk',NONLIN(ll,low=low,high=high))
+                            self.back_layers.add_module(ll['name']+'_bk',NONLIN(ll['type'],low=low,high=high))
 
                     OUTS[ll['name']] = getattr(self.layers, ll['name'])(OUTS[inp_ind])
                 if ('Avg' in ll['name']):

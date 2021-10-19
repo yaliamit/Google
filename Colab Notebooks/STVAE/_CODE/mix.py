@@ -66,6 +66,8 @@ class STVAE_mix(nn.Module):
         self.gauss_prior=args.gauss_prior
         self.wd=args.wd
         self.n_class=args.n_class
+        self.optimizer_type = args.optimizer
+        self.decoder_nonlinearity = args.decoder_nonlinearity
         if args.output_cont>0.:
             self.output_cont=nn.Parameter(torch.tensor(args.output_cont), requires_grad=False)
         else:

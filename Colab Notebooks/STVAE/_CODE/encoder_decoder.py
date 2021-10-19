@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn, optim
 import numpy as np
-from layers import Linear, ident
+from layers import Linear, ident, NONLIN
 
 
 
@@ -58,6 +58,7 @@ class decoder_mix(nn.Module):
         self.final_shape=model.final_shape
         self.type=model.type
         self.gauss_prior=model.gauss_prior
+        self.decoder_nonlinearity=model.decoder_nonlinearity
         h_dim_a = self.x_dim
         # Full or diagonal normal dist of next level after sample.
         self.z2z=None; self.u2u=None
@@ -69,7 +70,7 @@ class decoder_mix(nn.Module):
 
         #self.z2z = nn.ModuleList([nn.Identity() for i in range(self.n_mix)])
 
-
+        self.decoder_nonlin=NONLIN(self.decoder_nonlinearity)
         if (self.type == 'tvae' and args.decoder_gaus is not None and 'uu' in args.decoder_gaus):
             self.u2u = nn.ModuleList([nn.Linear(self.u_dim, self.u_dim, bias=False) for i in range(self.n_mix)])
             for ll in self.u2u:
@@ -123,7 +124,7 @@ class decoder_mix(nn.Module):
                 h += [self.bnh(self.z2h(hzz))]
 
         h=torch.stack(h,dim=0)
-        h=F.relu(h)
+        h=self.decoder_nonlin(h)
         x = []
 
         for h_, r in zip(h, rng):

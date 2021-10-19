@@ -123,9 +123,9 @@ class Reshape(nn.Module):
 
 
 class NONLIN(nn.Module):
-    def __init__(self, ll,low=-1., high=1.):
+    def __init__(self, type,low=-1., high=1.):
         super(NONLIN, self).__init__()
-        self.type=ll['type']
+        self.type=type
         if 'HardT' in self.type:
             self.HT=nn.Hardtanh(low,high)
 
@@ -139,6 +139,10 @@ class NONLIN(nn.Module):
             return(F.sigmoid(input))
         elif ('relu' in self.type):
             return(F.relu(input))
+        elif ('smx' in self.type):
+            return F.softmax(input,dim=1)
+        elif ('iden'):
+            return(input)
 
 class Channel_Norm(nn.Module):
     def __init__(self,sh):

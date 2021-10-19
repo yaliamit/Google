@@ -1,15 +1,16 @@
 --type=vae
---num_train=5000
---nepoch=200
+--num_train=50000
+--nepoch=20
 --sdim=64
 --transformation=aff
 --mb_size=500
 --dataset=mnist
 --lr=.001
 --nval=0
---nti=500
---sched=0
+--nti=50
 --OPT
+--CONS
+--decoder_nonlinearity=iden
 --output_cont=0
 #--cont_training
 #--decoder_gaus=zz
@@ -17,6 +18,6 @@
 --image_levels=0
 --enc_layers
 name:input;num_filters:1
-name:conv1;num_filters:64;filter_size:5
-name:non_linearity1;type:softmax
+name:conv1;num_filters:8;filter_size:5
+name:non_linearity1;type:smx
 
