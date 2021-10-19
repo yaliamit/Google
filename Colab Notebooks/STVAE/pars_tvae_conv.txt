@@ -13,12 +13,16 @@
 --decoder_nonlinearity=iden
 --output_cont=0
 --model_out=TRY
+--model=TRY
+#--run_existing
+#--sample
 #--cont_training
 #--decoder_gaus=zz
 --n_mix=1
 --image_levels=0
 --enc_layers
 name:input;num_filters:1
-name:conv1;num_filters:8;filter_size:5
+name:conv1;num_filters:8;filter_size:9
 name:non_linearity1;type:smx;lims:(0,10)
+name:pool1;pool_size:4;inject:inject
 

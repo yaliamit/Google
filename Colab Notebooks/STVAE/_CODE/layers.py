@@ -121,6 +121,21 @@ class Reshape(nn.Module):
 
         return(out)
 
+class Inject(nn.Module):
+    def __init__(self, ps):
+        super(Inject,self).__init__()
+
+        self.ps=ps
+    def forward(self,input):
+
+        if input.is_cuda:
+            dv=input.get_device()
+        else:
+            dv=torch.device('cpu')
+        out=torch.zeros(input.shape[0],input.shape[1],input.shape[2]*self.ps,input.shape[3]*self.ps).to(dv)
+        out[:,:,0:out.shape[2]:self.ps,0:out.shape[3]:self.ps]=input
+
+        return out
 
 class NONLIN(nn.Module):
     def __init__(self, type,low=-1., high=1.):
