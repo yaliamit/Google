@@ -1,10 +1,10 @@
 --type=vae
---num_train=50000
+--num_train=5000
 --nepoch=20
 --sdim=64
 --transformation=aff
 --mb_size=500
---dataset=mnist
+--dataset=MNIST
 --lr=.001
 --nval=0
 --nti=50
