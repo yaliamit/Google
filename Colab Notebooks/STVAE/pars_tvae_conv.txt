@@ -12,12 +12,13 @@
 --CONS
 --decoder_nonlinearity=iden
 --output_cont=0
+--model_out=TRY
 #--cont_training
 #--decoder_gaus=zz
 --n_mix=1
 --image_levels=0
 --enc_layers
 name:input;num_filters:1
-name:conv1;num_filters:8;filter_size:5
+name:conv1;num_filters:8;filter_size:5;
 name:non_linearity1;type:smx
 

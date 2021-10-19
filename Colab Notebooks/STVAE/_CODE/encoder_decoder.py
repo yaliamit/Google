@@ -59,6 +59,7 @@ class decoder_mix(nn.Module):
         self.type=model.type
         self.gauss_prior=model.gauss_prior
         self.decoder_nonlinearity=model.decoder_nonlinearity
+        self.penalty=model.penalty
         h_dim_a = self.x_dim
         # Full or diagonal normal dist of next level after sample.
         self.z2z=None; self.u2u=None
@@ -126,7 +127,8 @@ class decoder_mix(nn.Module):
         h=torch.stack(h,dim=0)
         h=self.decoder_nonlin(h)
         x = []
-
+        if self.penalty is not None:
+            self.penalty * torch.sum(torch.abs(h))
         for h_, r in zip(h, rng):
             r_ind = 0
             #xx = self.h2x[r_ind](h_)
