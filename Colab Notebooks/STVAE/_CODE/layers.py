@@ -130,6 +130,7 @@ class Inject(nn.Module):
 
         if input.is_cuda:
             dv=input.get_device()
+            print(dv)
         else:
             dv=torch.device('cpu')
         out=torch.zeros(input.shape[0],input.shape[1],input.shape[2]*self.ps,input.shape[3]*self.ps).to(dv)
