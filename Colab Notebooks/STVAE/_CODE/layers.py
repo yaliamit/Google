@@ -128,6 +128,8 @@ class NONLIN(nn.Module):
         self.type=type
         if 'HardT' in self.type:
             self.HT=nn.Hardtanh(low,high)
+        if 'smx' in self.type:
+            self.tau=high
 
     def forward(self,input):
 
@@ -140,7 +142,7 @@ class NONLIN(nn.Module):
         elif ('relu' in self.type):
             return(F.relu(input))
         elif ('smx' in self.type):
-            return F.softmax(input,dim=1)
+            return F.softmax(input*self.tau,dim=1)
         elif ('iden'):
             return(input)
 

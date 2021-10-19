@@ -127,8 +127,7 @@ class decoder_mix(nn.Module):
         h=torch.stack(h,dim=0)
         h=self.decoder_nonlin(h)
         x = []
-        if self.penalty is not None:
-            self.penalty * torch.sum(torch.abs(h))
+        
         for h_, r in zip(h, rng):
             r_ind = 0
             #xx = self.h2x[r_ind](h_)
