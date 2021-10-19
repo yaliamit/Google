@@ -129,8 +129,8 @@ class Inject(nn.Module):
     def forward(self,input):
 
         if input.is_cuda:
-            dv=input.get_device()
-            print(dv)
+            num=input.get_device()
+            dv=torch.device('cuda:'+str(num))
         else:
             dv=torch.device('cpu')
         out=torch.zeros(input.shape[0],input.shape[1],input.shape[2]*self.ps,input.shape[3]*self.ps).to(dv)
@@ -188,7 +188,10 @@ class Subsample(nn.Module):
 
         self.stride=stride
         if self.stride is not None:
-            self.pd=(stride-1)//2
+            if stride % 2 ==0:
+                self.pd=0
+            else:
+                self.pd=(stride-1)//2
 
 
     def forward(self,z,dv):
@@ -197,7 +200,7 @@ class Subsample(nn.Module):
             return(z)
         else:
             if self.pd>0:
-                temp=torch.zeros_like(z+2*self.pd).to(dv)
+                temp=torch.zeros(z.shape[0],z.shape[1],z.shape[2]+2*self.pd,z.shape[3]+2*self.pd).to(dv)
                 temp[:,:,self.pd:self.pd+z.shape[2],self.pd:self.pd+z.shape[3]]=z
                 tempss=temp[:,:,::self.stride,::self.stride]
             else:

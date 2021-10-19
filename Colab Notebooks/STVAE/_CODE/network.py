@@ -172,11 +172,8 @@ class network(nn.Module):
                         pp=(ll['pool_size']-1)//2
                         self.layers.add_module(ll['name'],nn.MaxPool2d(ll['pool_size'], stride=stride, padding=pp))
                         if self.back:
-                            if 'inject' in ll:
-                                self.back_layers.add_module(ll['name']+'_bk',Inject(stride))
-                            else:
                             #self.back_layers.add_module(ll['name']+'_bk',nn.UpsamplingNearest2d(scale_factor=stride))
-                                self.back_layers.add_module(ll['name']+'_bk',nn.UpsamplingNearest2d(size=out.shape[2:4]))
+                            self.back_layers.add_module(ll['name']+'_bk',nn.UpsamplingNearest2d(size=out.shape[2:4]))
                     out = getattr(self.layers, ll['name'])(OUTS[inp_ind])
                     OUTS[ll['name']]=out
 
@@ -216,6 +213,9 @@ class network(nn.Module):
                         if 'stride' in ll:
                             stride = ll['stride']
                         self.layers.add_module(ll['name'], Subsample(stride=stride))
+                        if self.back:
+                            #self.back_layers.add_module(ll['name']+'_bk',nn.UpsamplingNearest2d(scale_factor=stride))
+                            self.back_layers.add_module(ll['name']+'_bk',Inject(stride))
                     out = getattr(self.layers, ll['name'])(OUTS[inp_ind],self.dv)
                     OUTS[ll['name']] = out
                 if ('norm') in ll['name']:

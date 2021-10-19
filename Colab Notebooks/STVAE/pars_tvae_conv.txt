@@ -24,5 +24,5 @@
 name:input;num_filters:1
 name:conv1;num_filters:8;filter_size:9
 name:non_linearity1;type:smx;lims:(0,10)
-name:pool1;pool_size:4;inject:inject
+name:subsample1;stride:4
 
