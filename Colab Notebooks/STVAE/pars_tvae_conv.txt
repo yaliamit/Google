@@ -1,5 +1,5 @@
 --type=vae
---num_train=5000
+--num_train=50000
 --nepoch=20
 --sdim=64
 --transformation=aff
