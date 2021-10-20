@@ -139,11 +139,13 @@ class network(nn.Module):
                                 self.layers.add_module(ll['name'],nn.Conv2d(inp_feats,ll['num_filters'],ll['filter_size'],stride=stride,padding=pd, bias=bis))
                             if 'zero' in ll:
                                 temp=getattr(self.layers, ll['name'])
-                                temp.weight.data=torch.zeros_like(temp.weight.data)
+                                temp.weight.data=ll['zero']*torch.ones_like(temp.weight.data)
                         else:
                             self.layers.add_module(ll['name'],nn.Conv2d(inp_feats,ll['num_filters'],ll['filter_size'],stride=1,padding=pd))
                             self.back_layers.add_module(ll['name']+'_bk',nn.Conv2d(ll['num_filters'],inp_feats,ll['filter_size'],stride=1,padding=pd))
-
+                            if 'zero' in ll:
+                                temp=getattr(self.back_layers, ll['name']+'_bk')
+                                temp.weight.data[0,0]=ll['zero']*torch.ones_like(temp.weight.data[0,0])
 
                     out=getattr(self.layers, ll['name'])(OUTS[inp_ind])
                     OUTS[ll['name']]=out
