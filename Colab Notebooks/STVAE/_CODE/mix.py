@@ -69,6 +69,7 @@ class STVAE_mix(nn.Module):
         self.optimizer_type = args.optimizer
         self.decoder_nonlinearity = args.decoder_nonlinearity
         self.penalty=args.penalize_activations
+        self.tps_num=args.tps_num
         if args.output_cont>0.:
             self.output_cont=nn.Parameter(torch.tensor(args.output_cont), requires_grad=False)
         else:
@@ -162,7 +163,10 @@ class STVAE_mix(nn.Module):
             elif self.tf=='tps':
                 self.theta = u + self.idty.unsqueeze(0)
                 grid = self.gridGen(self.theta)
+            #elif self.tf == 'shifts':
+
             x = F.grid_sample(x.view(-1,self.input_channels,self.h,self.w), grid, padding_mode='border',align_corners=True)
+
 
         return x
 

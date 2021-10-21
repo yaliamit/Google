@@ -146,7 +146,7 @@ class network(nn.Module):
                             if 'zero' in ll:
                                 temp=getattr(self.back_layers, ll['name']+'_bk')
                                 temp.weight.data[0,0]=ll['zero']*torch.ones_like(temp.weight.data[0,0])
-
+                                
                     out=getattr(self.layers, ll['name'])(OUTS[inp_ind])
                     OUTS[ll['name']]=out
                 if 'non_linearity' in ll['name']:

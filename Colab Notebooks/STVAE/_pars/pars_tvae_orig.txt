@@ -1,10 +1,10 @@
---type=vae
+--type=tvae
 --num_train=50000
 --nepoch=10
 --sdim=20
---transformation=aff
+--transformation=tps
 --mb_size=500
---dataset=mnist
+--dataset=MNIST
 --num_mu_iter=10
 --lr=.001
 --nval=0
