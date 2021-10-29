@@ -123,14 +123,14 @@ def save_net(net,par_file,predir):
 
 
 def train_net(par_file,predir, RESULTS, device):
-  net=main_loc(par_file,device)
+  net, _, _=main_loc(par_file,device)
   RESULTS+=[net.results]
   save_net(net,par_file,predir)
 
 
 def run_net(par_file, device, net=None):
-  net,ed=main_loc(par_file, device, net)
-  return net,ed
+  net,ed, args=main_loc(par_file, device, net)
+  return net,ed, args
 
 
 

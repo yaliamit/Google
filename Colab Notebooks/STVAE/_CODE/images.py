@@ -14,7 +14,7 @@ def make_sample(model,args,ex_file, datadirs=""):
 
     X=[]
     for i in np.int32(np.arange(0,args.num_sample,model.bsz)):
-        x = model.sample_from_z_prior()
+        x = model.sample_from_z_prior(lower=args.lower_decoder)
         X += [x.detach().cpu().numpy()]
 
     X=np.uint8(np.concatenate(X,axis=0)*255)
@@ -29,7 +29,7 @@ def make_images(test,model,ex_file,args, datadirs=""):
 
         if not os.path.isdir(datadirs+'_Images'):
             os.makedirs(datadirs+'_Images', exist_ok=True)
-        ex_f=datadirs+'_Images/'+ex_file.split('.')[0]
+        ex_f=datadirs+'_Images/'+args.out_file.split('.')[0]
         old_bsz=model.bsz
         model.bsz = 100
         num_mu_iter=None
@@ -39,15 +39,15 @@ def make_images(test,model,ex_file,args, datadirs=""):
         if (args.n_class):
             for c in range(model.n_class):
                 ind=(test[1]==c)
-                show_reconstructed_images([test[0][ind]],model,ex_f,args.nti,c, args.erode)
+                show_reconstructed_images([test[0][ind]],model,ex_f,args,c)
         else:
-            show_reconstructed_images(test,model,ex_f,args.nti,None, args.erode)
+            show_reconstructed_images(test,model,ex_f,args,None)
 
         if args.n_mix>1:
             for clust in range(args.n_mix):
-                show_sampled_images(model,ex_f,clust)
+                show_sampled_images(model,ex_f,clust,lower=args.lower_decoder)
         else:
-            show_sampled_images(model, ex_f)
+            show_sampled_images(model, ex_f, lower=args.lower_decoder)
 
 
 
@@ -83,25 +83,27 @@ def create_image(XX, model, ex_file):
 
     #print("Saved the sampled images")
 
-def show_sampled_images(model,ex_file,clust=None):
+def show_sampled_images(model,ex_file,clust=None, lower=False):
     theta = torch.zeros(model.bsz, model.u_dim)
-    X=model.sample_from_z_prior(theta,clust)
+    X=model.sample_from_z_prior(theta,clust,lower=lower)
     XX=X.detach().cpu().numpy()
     if clust is not None:
         ex_file=ex_file+'_'+str(clust)
     create_image(XX, model, ex_file)
 
 
-def show_reconstructed_images(test,model,ex_file,num_iter=None, cl=None, erd=False):
+def show_reconstructed_images(test,model,ex_file, args, cl=None):
 
     np.random.shuffle(test[0])
-    inp=torch.from_numpy(erode(erd,test[0][0:100]))
+    inp=torch.from_numpy(erode(args.erode,test[0][0:100]))
 
-
+    num_iter=args.nti
     if (cl is not None):
-        X,_,_,_=model.recon(inp,num_iter,cl)
+        X,_,_,_=model.recon(inp,num_iter,cl,lower=args.lower_decoder)
     else:
-        X,_,_,_ = model.recon(inp, num_iter)
+        X,_,_,_ = model.recon(inp, num_iter,lower=args.lower_decoder)
+        if args.lower_decoder:
+            X,_,_,_ = model.recon(inp, num_iter, lower=False, back_ground=X)
     X = X.cpu().detach().numpy().reshape(inp.shape)
     XX=np.concatenate([inp[0:50],X[0:50]])
     if (cl is not None):
@@ -137,16 +139,21 @@ def erode(do_er,data):
     #rdata=rotate_dataset_rand(data) #,angle=40,scale=.2)
     rdata=data
     if (do_er):
-        el=np.zeros((3,3))
-        el[0,1]=el[1,0]=el[1,2]=el[2,1]=el[1,1]=1
-        rr=np.random.rand(len(data))<.5
+
+        # el=np.zeros((3,3))
+        # el[0,1]=el[1,0]=el[1,2]=el[2,1]=el[1,1]=1
+        rr=np.random.randint(3,6,size=(len(data),2))
+        ii=np.random.randint(0,len(data),size=len(data))
         ndata=np.zeros_like(data)
-        for r,ndd,dd in zip(rr,ndata,rdata):
-            if (r):
-                dda=ndimage.binary_erosion(dd[0,:,:]>0,el).astype(dd.dtype)
-            else:
-                dda=ndimage.binary_dilation(dd[0,:,:]>.9,el).astype(dd.dtype)
-            ndd[0,:,:]=dda
+        for j in range(len(ndata)):
+            temp=data[j]
+            ndata[j]=data[ii[j]]
+            ndata[j,0,rr[j,0]:,rr[j,1]:]=np.maximum(ndata[j,0,rr[j,0]:,rr[j,1]:],temp[0,:(28-rr[j,0]),:(28-rr[j,1])])
+        #     if (r):
+        #         dda=ndimage.binary_erosion(dd[0,:,:]>0,el).astype(dd.dtype)
+        #     else:
+        #         dda=ndimage.binary_dilation(dd[0,:,:]>.9,el).astype(dd.dtype)
+        #     ndd[0,:,:]=dda
     else:
         ndata=rdata
 

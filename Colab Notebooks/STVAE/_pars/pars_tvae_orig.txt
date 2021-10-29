@@ -1,8 +1,8 @@
---type=tvae
---num_train=50000
---nepoch=10
+--type=vae
+--num_train=5000
+--nepoch=2
 --sdim=20
---transformation=tps
+--transformation=aff
 --mb_size=500
 --dataset=MNIST
 --num_mu_iter=10
@@ -15,9 +15,9 @@
 --opt_jump=1
 --optimizer=Adam
 #--cont_training
---out_file=vae_s29_d256_d256_mx10.txt
---model_out=vae_s20_d256_d256_mx10
---model=vae_s20_d256_d256_mx10
+--out_file=TRY.txt
+--model_out=TRY
+--model=TRY
 --decoder_gaus=zz
 --n_mix=1
 --image_levels=0

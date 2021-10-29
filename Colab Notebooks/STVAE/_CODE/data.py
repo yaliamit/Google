@@ -18,7 +18,7 @@ def get_pre():
         elif 'midway' in aa[1]:
             pre='/home/yaliamit/Google/'
         else:
-            pre = 'ME/My Drive/'
+            pre = 'ME/MyDrive/'
     else:
         pre = '/Users/amit/Google Drive/'
 

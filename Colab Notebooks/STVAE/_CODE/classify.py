@@ -47,7 +47,11 @@ def run_classify(train,opt_pre,opt_post,opt_mix,opt_class,device,args,fout,locs,
 
 def run_epoch_classify(model, train, num_mu_iter,fout):
 
-        mu, logvar, pi = model.initialize_mus(train[0], True)
+
+        sdim=model.s_dim
+        if (lower_decoder):
+            sdim=sdim
+        mu, logvar, pi = model.initialize_mus(train[0], sdim, True)
 
         model.eval()
 

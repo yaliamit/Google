@@ -3,6 +3,7 @@ import torch
 import numpy as np
 import sys
 from mix import STVAE_mix
+from mix_by_class import STVAE_mix_by_class
 import pprint
 from get_net_text import get_network
 import network
@@ -22,7 +23,7 @@ def get_names(args):
     STRINGS = []
     EX_FILES = []
     SMS = []
-    if (args.run_existing):
+    if (args.run_existing or args.cont_training):
         # This overides model file name
         names = args.model
         for i, name in enumerate(names):
@@ -51,7 +52,7 @@ def get_names(args):
             dca = vars(args)
             pprint.pprint(dcA, fout)
             different_items = {k: [v, dca[k]] for k, v in dcA.items() if k in dca and v != dca[k]}
-            print('Difference in model args and input args', file=fout)
+            fout.write('Difference in model args and input args\n')
             pprint.pprint(different_items, fout)
 
         fout.flush()
@@ -81,7 +82,10 @@ def get_models(device, fout, sh,STRINGS,ARGS, args):
 
 
 def  make_model(args, sh, device, fout):
-        model = STVAE_mix(sh, device, args).to(device)
+        if args.n_class > 1:
+           model=STVAE_mix_by_class(sh,device,args).to(device)
+        else:
+            model = STVAE_mix(sh, device, args).to(device)
         tot_pars = 0
         for keys, vals in model.state_dict().items():
             fout.write(keys + ',' + str(np.array(vals.shape)) + '\n')

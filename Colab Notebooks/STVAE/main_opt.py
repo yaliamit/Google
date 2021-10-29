@@ -116,14 +116,15 @@ os.system('cat '+par_file+'.txt junk>'+par_file+'_temp.txt')
 
 temp_file=par_file+'_temp'
 if count_non<4:
-    net,_=run_net(temp_file, device)
+    net,_,args=run_net(temp_file, device)
     if net.optimizer_type=='Adam':
         net.optimizer = torch.optim.Adam(net.optimizer.param_groups[0]['params'], lr=net.lr, weight_decay=net.wd)
     else:
         net.optimizer = torch.optim.SGD(net.optimizer.param_groups[0]['params'], lr=net.lr)
 
-    net,_=run_net(temp_file, device, net)
-    save_net(net,temp_file,predir)
+    net,_,args=run_net(temp_file, device, net)
+    if not args.run_existing:
+        save_net(net,temp_file,predir)
 else:
     tlay=None
     toldn=None
