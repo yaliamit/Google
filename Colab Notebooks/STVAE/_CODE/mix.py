@@ -199,8 +199,8 @@ class STVAE_mix(nn.Module):
 
     def dens_apply(self,s_mu,s_logvar,lpi,pi):
         n_mix=pi.shape[1]
-        s_mu = s_mu.reshape(-1, n_mix, s_mu.shape[1])
-        s_logvar = s_logvar.reshape(-1, n_mix, s_logvar.shape[1])
+        s_mu = s_mu.reshape(s_mu.shape[0], n_mix, -1)
+        s_logvar = s_logvar.reshape(s_logvar.shape[0], n_mix, -1)
         sd=torch.exp(s_logvar/2)
         var=sd*sd
 
@@ -271,7 +271,7 @@ class STVAE_mix(nn.Module):
         if (targ is None and self.n_class > 0):
             n_mix = self.n_mix_perclass
         if (self.type != 'ae'):
-            s = self.sample(mu, logvar, mu.shape[1]*n_mix)
+            s = self.sample(mu, logvar, mu.shape[1])
         else:
             s=mu
         s=s.reshape(data_to_match.shape[0],n_mix,-1).transpose(0,1)
@@ -437,8 +437,8 @@ class STVAE_mix(nn.Module):
         lpi = torch.log(pi)
         with torch.no_grad():
             recon_batch = self.decoder_and_trans(ss_mu)
-            if back_ground is not None:
-                recon_batch = recon_batch * (recon_batch >= .2) + back_ground * (recon_batch < .2)
+            #if back_ground is not None:
+            #    recon_batch = recon_batch * (recon_batch >= .2) + back_ground * (recon_batch < .2)
             recloss = self.mixed_loss(recon_batch, inp, pi)
             totloss = self.dens_apply(s_mu, s_var, lpi, pi)[0]
 

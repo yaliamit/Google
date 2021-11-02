@@ -39,11 +39,11 @@ def make_images(test,model,ex_file,args, datadirs=""):
         if (args.n_class):
             for c in range(model.n_class):
                 ind=(test[1]==c)
-                show_reconstructed_images([test[0][ind]],model,ex_f,args,c)
+                show_reconstructed_images([test[0][ind]],model,ex_f,args,c,extra=test[0])
         else:
             show_reconstructed_images(test,model,ex_f,args,None)
 
-        if args.n_mix>1:
+        if model.n_mix>1:
             for clust in range(args.n_mix):
                 show_sampled_images(model,ex_f,clust,lower=args.lower_decoder)
         else:
@@ -92,14 +92,16 @@ def show_sampled_images(model,ex_file,clust=None, lower=False):
     create_image(XX, model, ex_file)
 
 
-def show_reconstructed_images(test,model,ex_file, args, cl=None):
+def show_reconstructed_images(test,model,ex_file, args, cl=None, extra=None):
 
     np.random.shuffle(test[0])
-    inp=torch.from_numpy(erode(args.erode,test[0][0:100]))
+    inp=torch.from_numpy(erode(args.erode,test[0][0:100],extra=extra))
 
     num_iter=args.nti
     if (cl is not None):
         X,_,_,_=model.recon(inp,num_iter,cl,lower=args.lower_decoder)
+        if args.lower_decoder:
+            X,_,_,_ = model.recon(inp, num_iter, cl, lower=False, back_ground=X)
     else:
         X,_,_,_ = model.recon(inp, num_iter,lower=args.lower_decoder)
         if args.lower_decoder:
@@ -134,21 +136,22 @@ def add_clutter(recon_data):
 
 
 
-def erode(do_er,data):
+def erode(do_er,data,extra=None):
 
     #rdata=rotate_dataset_rand(data) #,angle=40,scale=.2)
     rdata=data
+    if extra is None:
+        extra=data
     if (do_er):
 
         # el=np.zeros((3,3))
         # el[0,1]=el[1,0]=el[1,2]=el[2,1]=el[1,1]=1
         rr=np.random.randint(3,6,size=(len(data),2))
-        ii=np.random.randint(0,len(data),size=len(data))
+        ii=np.random.randint(0,len(extra),size=len(data))
         ndata=np.zeros_like(data)
         for j in range(len(ndata)):
-            temp=data[j]
-            ndata[j]=data[ii[j]]
-            ndata[j,0,rr[j,0]:,rr[j,1]:]=np.maximum(ndata[j,0,rr[j,0]:,rr[j,1]:],temp[0,:(28-rr[j,0]),:(28-rr[j,1])])
+            ndata[j]=data[j]
+            ndata[j,0,rr[j,0]:,rr[j,1]:]=np.maximum(ndata[j,0,rr[j,0]:,rr[j,1]:],extra[ii[j],0,:(28-rr[j,0]),:(28-rr[j,1])])
         #     if (r):
         #         dda=ndimage.binary_erosion(dd[0,:,:]>0,el).astype(dd.dtype)
         #     else:

@@ -116,12 +116,15 @@ class STVAE_mix_by_class(STVAE_mix):
         fout.write('====> Epoch {}: Accuracy: {:.4f}\n'.format(d_type,acc))
         return(iid,RY,cl_rate,acc)
 
-    def recon(self,input,num_mu_iter,cl, lower=False):
+    def recon(self,input,num_mu_iter,cl, lower=False, back_ground=None):
 
 
         enc_out=None
         sdim=self.s_dim
-        if lower:
+        if not lower:
+            self.lower=False
+            sdim=self.s_dim
+        else:
             self.lower=True
             sdim = self.decoder_m.z2h._modules['0'].lin.out_features
 
@@ -144,7 +147,7 @@ class STVAE_mix_by_class(STVAE_mix):
                 self.update_s(mu[c], logvar[c], ppi[c], self.mu_lr[0])
                 for it in range(num_mu_iter):
                     inp_d = inp.detach()
-                    self.compute_loss_and_grad(inp_d,input, None, 'test', self.optimizer_s, opt='mu',rng=rng)
+                    self.compute_loss_and_grad(inp_d,input, None, 'test', self.optimizer_s, opt='mu',rng=rng, back_ground=back_ground)
                 if (self.s_dim == 1):
                     s_mu = torch.ones(self.mu.shape[0], self.n_mix_perclass, self.s_dim).transpose(0, 1).to(self.dv)
                 else:
@@ -167,6 +170,8 @@ class STVAE_mix_by_class(STVAE_mix):
             s_mu = s_mu[cl].reshape(-1, self.n_mix_perclass, self.s_dim).transpose(0, 1)
         with torch.no_grad():
             recon_batch = self.decoder_and_trans(s_mu,rng)
+            #if back_ground is not None:
+            #    recon_batch = recon_batch * (recon_batch >= .2) + back_ground * (recon_batch < .2)
 
         recon_batch = recon_batch.transpose(0, 1)
         ii = torch.argmax(pi, dim=1)
