@@ -49,6 +49,7 @@ class network(nn.Module):
         self.randomize=args.layerwise_randomize
         self.lnti=lnti
         self.no_standardize=args.no_standardize
+        self.clapp_dim=args.clapp_dim
         if hasattr(args,'thr'):
             self.thr=args.thr
             self.delta=args.delta
@@ -70,7 +71,10 @@ class network(nn.Module):
         self.perturb=None
         if (hasattr(args,'perturb')):
             self.perturb=args.perturb
-
+        if self.clapp_dim is not None:
+            self.add_module('clapp', nn.Linear(self.clapp_dim, self.clapp_dim))
+            if self.update_layers is not None:
+                self.update_layers.append('clapp')
         if sh is not None and self.first:
             temp = torch.zeros([1]+list(sh[1:])) #.to(device)
             # Run the network once on dummy data to get the correct dimensions.
@@ -288,7 +292,8 @@ class network(nn.Module):
 
 
         if self.first==1:
-            if self.embedd_type == 'clapp':
+            if self.embedd_type == 'clapp' and self.clapp_dim is None:
+                self.clapp_dim=in_dim
                 self.add_module('clapp',nn.Linear(in_dim,in_dim))
                 if self.update_layers is not None:
                     self.update_layers.append('clapp')
