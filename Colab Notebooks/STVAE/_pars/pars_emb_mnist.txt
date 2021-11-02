@@ -17,6 +17,7 @@
 --CONS
 --fa=0
 --embedd
+--embedd_type=clapp
 --embedd_layer=pool2
 --optimizer=Adam
 --layerwise

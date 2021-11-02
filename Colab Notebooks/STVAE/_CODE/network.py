@@ -58,6 +58,7 @@ class network(nn.Module):
         else:
             self.fout=sys.stdout
         self.embedd_type=args.embedd_type
+
         self.ed = Edge(self.dv, dtr=.03).to(self.dv)
         # The loss function
         if args.hinge:
@@ -287,6 +288,10 @@ class network(nn.Module):
 
 
         if self.first==1:
+            if self.embedd_type == 'clapp':
+                self.add_module('clapp',nn.Linear(in_dim,in_dim))
+                if self.update_layers is not None:
+                    self.update_layers.append('clapp')
             #print(self.layers, file=self.fout)
             tot_pars = 0
             KEYS=[]
@@ -307,7 +312,7 @@ class network(nn.Module):
                 else:
                     found = False
                     for u in self.update_layers:
-                        if u == k.split('.')[1]:
+                        if u == k.split('.')[1] or u==k.split('.')[0]:
                             found=True
                             if self.first==1:
                                 self.fout.write('TO optimizer '+k+ str(np.array(p.shape))+'\n')
@@ -368,7 +373,11 @@ class network(nn.Module):
                 loss, acc = get_embedd_loss_binary(out0,out1,self.dv,self.no_standardize)
             elif self.embedd_type=='L1dist_hinge':
                 loss, acc = get_embedd_loss_new(out0,out1,self.dv,self.no_standardize, thr=self.thr, delta=self.delta)
-
+            elif self.embedd_type=='clapp':
+                out0=out0.reshape(out0.shape[0],-1)
+                out1=out1.reshape(out1.shape[0],-1)
+                out0=self.clapp(out0)
+                loss, acc = get_embedd_loss_clapp(out0,out1,self.dv,self.thr)
         # Classification training
         else:
             if self.randomize is not None and dtype=="train":

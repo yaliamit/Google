@@ -162,6 +162,7 @@ def train_new_old(args,train,test,fout,device,net=None):
     val = None
     if net is None:
         args.lr = args.hid_lr
+        args.embedd_type=None
         args.hid_lnti, args.hid_layers_dict = prep.get_network(args.hid_layers)
         args.perturb=0
         #args.sched=[0,0]
