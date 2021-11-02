@@ -8,7 +8,7 @@ def process_args(parser):
     parser.add_argument('--future', type=int, default=0, help='how many other images to take into account in embedding loss')
     parser.add_argument('--full_dim', type=int, default=256, help='fully connected layer size')
     parser.add_argument('--hid_hid', type=int, default=256, help='fully connected layer size')
-    parser.add_argument('--clapp_dim',type=int, default=None, help='dimension of clapp matrix for SSL')
+    parser.add_argument('--clapp_dim',nargs="*", type=int, default=None, help='dimension of clapp matrix for SSL')
     parser.add_argument('--hid_drop', type=float, default=0., help='dropout')
     parser.add_argument('--CC', type=float, default=1., help='inverse penalty in logistic regression')
     parser.add_argument('--transformation', default='aff', help='type of transformation: aff or tps')

@@ -72,7 +72,8 @@ class network(nn.Module):
         if (hasattr(args,'perturb')):
             self.perturb=args.perturb
         if self.clapp_dim is not None:
-            self.add_module('clapp', nn.Linear(self.clapp_dim, self.clapp_dim))
+            self.add_module('clapp', nn.Conv2d(self.clapp_dim[1], self.clapp_dim[1], 1))
+            #self.add_module('clapp', nn.Linear(self.clapp_dim, self.clapp_dim))
             if self.update_layers is not None:
                 self.update_layers.append('clapp')
         if sh is not None and self.first:
@@ -293,8 +294,9 @@ class network(nn.Module):
 
         if self.first==1:
             if self.embedd_type == 'clapp' and self.clapp_dim is None:
-                self.clapp_dim=in_dim
-                self.add_module('clapp',nn.Linear(in_dim,in_dim))
+                self.clapp_dim=prev_shape
+                # self.add_module('clapp', nn.Linear(self.clapp_dim, self.clapp_dim))
+                self.add_module('clapp',nn.Conv2d(self.clapp_dim[1],self.clapp_dim[1],1))
                 if self.update_layers is not None:
                     self.update_layers.append('clapp')
             #print(self.layers, file=self.fout)
@@ -379,9 +381,10 @@ class network(nn.Module):
             elif self.embedd_type=='L1dist_hinge':
                 loss, acc = get_embedd_loss_new(out0,out1,self.dv,self.no_standardize, thr=self.thr, delta=self.delta)
             elif self.embedd_type=='clapp':
-                out0=out0.reshape(out0.shape[0],-1)
-                out1=out1.reshape(out1.shape[0],-1)
+
                 out0=self.clapp(out0)
+                out0 = out0.reshape(out0.shape[0], -1)
+                out1 = out1.reshape(out1.shape[0], -1)
                 loss, acc = get_embedd_loss_clapp(out0,out1,self.dv,self.thr)
         # Classification training
         else:
