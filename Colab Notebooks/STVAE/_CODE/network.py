@@ -370,6 +370,7 @@ class network(nn.Module):
         # Embedding training with image and its deformed counterpart
         if type(input) is list:
             out0,ot0=self.forward(input[0])
+            out0=out0.detach()
             out1,ot1=self.forward(input[1])
             if self.embedd_type=='orig':
                 loss, acc = get_embedd_loss(out0,out1,self.dv,self.thr)
@@ -381,7 +382,6 @@ class network(nn.Module):
             elif self.embedd_type=='L1dist_hinge':
                 loss, acc = get_embedd_loss_new(out0,out1,self.dv,self.no_standardize, thr=self.thr, delta=self.delta)
             elif self.embedd_type=='clapp':
-
                 out0=self.clapp(out0)
                 out0 = out0.reshape(out0.shape[0], -1)
                 out1 = out1.reshape(out1.shape[0], -1)
