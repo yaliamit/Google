@@ -146,7 +146,7 @@ def copy_from_old_to_new(model, args, fout, SMS, strings,device, sh):
         model.load_state_dict(SMS['model.state.dict'])
         return
     else:
-        lnti, layers_dict = get_network(SMS['args'].layers, nf=sh[1])
+        lnti, layers_dict = get_network(SMS['args'].layers, nf=sh[0])
         model_old = network.network(device, SMS['args'], layers_dict, lnti, fout=fout, sh=sh, first=2).to(device)
     model_old.load_state_dict(SMS['model.state.dict'])
     model_old.bn=args.bn
