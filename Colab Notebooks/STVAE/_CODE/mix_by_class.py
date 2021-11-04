@@ -29,25 +29,25 @@ class STVAE_mix_by_class(STVAE_mix):
 
         self.eval()
         if self.opt:
-            mu, logvar, ppi = self.initialize_mus(train[0], self.s_dim, True)
+            mu, logvar, ppi = self.initialize_mus(len(train.dataset), self.s_dim, True)
             mu = mu.reshape(-1, self.n_class, self.n_mix_perclass * self.s_dim).transpose(0, 1)
             logvar = logvar.reshape(-1, self.n_class, self.n_mix_perclass * self.s_dim).transpose(0, 1)
             ppi = ppi.reshape(-1, self.n_class, self.n_mix_perclass).transpose(0, 1)
 
-        ii = np.arange(0, train[0].shape[0], 1)
-        tr = train[0][ii]
-        etr = train[1][ii]
-        y = train[2][ii]
+
 
         acc=0
         accb=0
-        DF=[]; RY=[]
-        for j in np.arange(0, len(y), self.bsz):
+        DF=[]; RY=[]; YY=[]
+        for j in np.arange(0, len(train.dataset), self.bsz):
             KD = []
             BB = []
             fout.write('Batch '+str(j)+'\n')
             fout.flush()
-            data = torch.from_numpy(tr[j:j + self.bsz]).float().to(self.dv)
+            bb = next(iter(train))
+            data_in = bb[0].to(self.dv)  # torch.from_numpy(tr[j:j + self.bsz]).float()
+            data = bb[0].to(self.dv)
+            y=bb[1].to(self.dv)
             #data = self.preprocess(data_in)
             data_d = data.detach()
             if (len(data)<self.bsz):
@@ -102,17 +102,20 @@ class STVAE_mix_by_class(STVAE_mix):
             rr=rr.detach().cpu().numpy()
             ii=np.argsort(rr,axis=1)
             DF+=[np.diff(np.take_along_axis(rr, ii[:, 0:2], axis=1), axis=1)]
-            acc += np.sum(np.equal(ry, y[j:j + self.bsz]))
+            y=y.detach().cpu().numpy()
+            acc += np.sum(np.equal(ry, y))
+            YY+=[y]
             acc_temp = acc/(j+len(data))
             fout.write('====> Epoch {}: Accuracy: {:.4f}\n'.format(d_type, acc_temp))
             fout.flush()
             #accb += np.sum(np.equal(by, y[j:j + self.bsz]))
         RY=np.concatenate(RY)
+        YY=np.concatenate(YY)
         DF=np.concatenate(DF,axis=0)
         iip = DF[:,0]>=conf_thresh
         iid = np.logical_not(iip)
-        cl_rate=np.sum(np.equal(RY[iip],y[iip]))
-        acc/=len(tr)
+        cl_rate=np.sum(np.equal(RY[iip],YY[iip]))
+        acc/=len(train.dataset)
         fout.write('====> Epoch {}: Accuracy: {:.4f}\n'.format(d_type,acc))
         return(iid,RY,cl_rate,acc)
 

@@ -9,6 +9,60 @@ import scipy.ndimage
 import pylab as py
 import matplotlib.colors as col
 from images import deform_data
+from torchvision import transforms, datasets
+from torch.utils import data
+import random
+
+
+
+
+def get_stl10_unlabeled(batch_size, size=60000):
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+    ])
+
+    train = datasets.STL10('./data', split='unlabeled', transform=transform, download=True)
+
+    if size != len(train):
+        train = data.Subset(train, random.sample(range(len(train)), size))
+
+    train_loader = data.DataLoader(train, batch_size=batch_size, shuffle=True)
+
+    return train_loader, None
+
+
+def get_stl10_labeled(batch_size):
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+
+    ])
+
+    train = datasets.STL10('./data', split='train', transform=transform, download=True)
+
+    test = datasets.STL10('./data', split='test', transform=transform, download=True)
+
+    train_loader = data.DataLoader(train, batch_size=batch_size, shuffle=True)
+
+    test_loader = data.DataLoader(test, batch_size=batch_size, shuffle=True)
+
+
+    return train_loader, test_loader
+
+
+def get_mnist_labeled(batch_size):
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+
+    ])
+
+    train = datasets.MNIST('./data',  transform=transform, download=True)
+
+
+    train_loader = data.DataLoader(train, batch_size=batch_size, shuffle=True)
+
+
+
+    return train_loader
 
 def get_pre():
     aa=os.uname()
@@ -113,7 +167,12 @@ def get_data_pre(args,dataset):
         test=[train[0][0:10000],train[1][0:10000]]
     print('In get_data_pre: num_train', train[0].shape[0])
     print('Num test:',test[0].shape[0])
-
+    train=data.DataLoader(list(zip(train[0],train[1])),batch_size=args.mb_size)
+    if val[0] is not None:
+        val=data.DataLoader(list(zip(val[0],val[1])),batch_size=args.mb_size)
+    else:
+        val=None
+    test=data.DataLoader(list(zip(test[0],test[1])),batch_size=args.mb_size,shuffle=True)
     return [train, val, test]
 
 

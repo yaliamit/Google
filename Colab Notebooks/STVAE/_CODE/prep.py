@@ -65,7 +65,7 @@ def get_models(device, fout, sh,STRINGS,ARGS, args):
     models = []
     if 'ae' in args.type:
         for strings, args in zip(STRINGS, ARGS):
-            model=make_model(args, sh[1:], device, fout)
+            model=make_model(args, sh, device, fout)
             models += [model]
     elif args.network:
         # parse the existing network coded in ARGS[0]
@@ -74,7 +74,7 @@ def get_models(device, fout, sh,STRINGS,ARGS, args):
             arg = args
         # Layers defining the new network.
         if arg.layers is not None:
-            lnti, layers_dict = get_network(arg.layers, nf=sh[1])
+            lnti, layers_dict = get_network(arg.layers, nf=sh[0])
             # Initialize the network
             models = [network.network(device, arg, layers_dict, lnti, fout=fout, sh=sh).to(device)]
 

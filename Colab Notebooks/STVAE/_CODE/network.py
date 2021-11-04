@@ -77,7 +77,7 @@ class network(nn.Module):
             if self.update_layers is not None:
                 self.update_layers.append('clapp')
         if sh is not None and self.first:
-            temp = torch.zeros([1]+list(sh[1:])) #.to(device)
+            temp = torch.zeros([1]+list(sh)) #.to(device)
             # Run the network once on dummy data to get the correct dimensions.
             dv=self.dv
             self.dv=torch.device("cpu")
@@ -375,9 +375,6 @@ class network(nn.Module):
             out0,ot0=self.forward(input[0])
             if self.embedd_type=='orig':
                 loss, acc = get_embedd_loss(out0,out1,self.dv,self.thr)
-                #loss1, acc=simclr_loss(out0,out1,self.dv, self.no_standardize)
-                #loss2=self.CLR(torch.cat((out0,out1),dim=0))
-                #print(loss,loss2)
             elif self.embedd_type=='binary':
                 loss, acc = get_embedd_loss_binary(out0,out1,self.dv,self.no_standardize)
             elif self.embedd_type=='L1dist_hinge':
@@ -418,49 +415,41 @@ class network(nn.Module):
             self.train()
         else:
             self.eval()
-        num_tr=train[0].shape[0]
+        num_tr=len(train.dataset)
         ii = np.arange(0, num_tr, 1)
         if (d_type=='train'):
           np.random.shuffle(ii)
         jump = self.bsz
-        trin = train[0][ii]
-        targ = train[2][ii]
-        self.n_class = np.max(targ) + 1
+        #trin = train[0][ii]
+        #targ = train[2][ii]
+        nc = 0
+        for bb in enumerate(train):
+            nc = max(nc, max(bb[1][1]))
+        self.n_class = nc
 
         ll=1
-        if self.randomize is not None:
-            ll=len(self.randomize)//2
-            nrep=(num_tr//jump)//ll
-            lnums=np.repeat(np.array(range(ll)),nrep)
-            np.random.shuffle(lnums)
-
         full_loss=np.zeros(ll); full_acc=np.zeros(ll); count=np.zeros(ll)
 
         # Loop over batches.
-
-        targ_in=targ
-        TIME=0
         for j in np.arange(0, num_tr, jump,dtype=np.int32):
             lnum=0
-            if self.randomize:
-                lnum=lnums[j//jump]
+            batch = next(iter(train))
+            data_in = batch[0] #torch.from_numpy(batch[0][j:j + jump]).float()
             if (d_type == 'train'):
                 self.optimizer.zero_grad()
             if self.embedd:
-                data_in=torch.from_numpy(trin[j:j + jump]).float()
                 with torch.no_grad():
-                    data_out1=deform_data(data_in,self.perturb,self.trans,self.s_factor,self.h_factor,self.embedd)
-                data=[data_in.to(self.dv),data_out1.to(self.dv)]
+                    data_out=deform_data(data_in,self.perturb,self.trans,self.s_factor,self.h_factor,self.embedd)
+                    data_in=deform_data(data_in,self.perturb,self.trans,self.s_factor,self.h_factor,self.embedd)
+                data=[data_in.to(self.dv),data_out.to(self.dv)]
             else:
-                dd=torch.from_numpy(trin[j:j + jump])
-
                 if self.perturb>0.and d_type=='train':
                    with torch.no_grad():
-                     dd = deform_data(dd, self.perturb, self.trans, self.s_factor, self.h_factor,self.embedd)
-                data = dd.to(self.dv,dtype=torch.float32)
+                     data_in = deform_data(data_in, self.perturb, self.trans, self.s_factor, self.h_factor,self.embedd)
+                data = data_in.to(self.dv,dtype=torch.float32)
 
 
-            target = torch.from_numpy(targ_in[j:j + jump]).to(self.dv, dtype=torch.long)
+            target = batch[1][j:j + jump].to(self.dv, dtype=torch.long)
 
             with torch.no_grad() if (d_type!='train') else dummy_context_mgr():
                 loss, acc = self.loss_and_acc(data, target,dtype=d_type, lnum=lnum)
