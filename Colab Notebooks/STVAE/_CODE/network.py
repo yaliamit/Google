@@ -447,10 +447,10 @@ class network(nn.Module):
             if (d_type == 'train'):
                 self.optimizer.zero_grad()
             if self.embedd:
+                data_in=torch.from_numpy(trin[j:j + jump]).float()
                 with torch.no_grad():
-                    data_in=torch.from_numpy(trin[j:j + jump]).float()
                     data_out1=deform_data(data_in,self.perturb,self.trans,self.s_factor,self.h_factor,self.embedd)
-                    data=[data_in.to(self.dv),data_out1.to(self.dv)]
+                data=[data_in.to(self.dv),data_out1.to(self.dv)]
             else:
                 dd=torch.from_numpy(trin[j:j + jump])
 
