@@ -69,22 +69,22 @@ def train_model(model, args, ex_file, DATA, fout):
     datadirs = predir + 'Colab Notebooks/STVAE/'
 
 
-    fout.write("Num train:{0}\n".format(len(DATA[0].dataset)))
-
+    fout.write("Num train:{0}\n".format(DATA[0][0].shape[0]))
     train=DATA[0]; val=DATA[1]; test=DATA[2]
-    numtr=len(train.dataset)
     trainMU=None; trainLOGVAR=None; trPI=None
     valMU=None; valLOGVAR=None; valPI=None
     model.optimizer.param_groups[0]['lr']=args.lr
     model.get_scheduler(args)
     if 'ae' in args.type:
-        trainMU, trainLOGVAR, trPI = model.initialize_mus(numtr, model.s_dim, args.OPT)
-        if val is not None:
-            valMU, valLOGVAR, valPI = model.initialize_mus(len(val.dataset),model.s_dim, args.OPT)
+        trainMU, trainLOGVAR, trPI = model.initialize_mus(train[0], model.s_dim, args.OPT)
+        valMU, valLOGVAR, valPI = model.initialize_mus(val[0],model.s_dim, args.OPT)
 
     time1=time.time()
     VAL_ACC=[]
-
+    tes = [test[0], test[0], test[1]]
+    if (val[0] is not None):
+        vall=[val[0],val[0],val[1]]
+    tran = [train[0], train[0], train[1]]
     if args.OPT and args.cont_training:
         print("Updating training optimal parameters before continuing")
         trainMU, trainLOGVAR, trPI, tr_acc = model.run_epoch(tran, 0, args.nti, trainMU, trainLOGVAR, trPI,
@@ -95,14 +95,14 @@ def train_model(model, args, ex_file, DATA, fout):
         #if (model.scheduler is not None):
         #    model.scheduler.step()
         t1 = time.time()
-        # if args.erode:
-        #     tre = erode(args.erode, train[0])
-        #     tran = [train[0], tre, train[1]]
-        trainMU, trainLOGVAR, trPI, tr_acc = model.run_epoch(train, epoch, args.num_mu_iter, trainMU, trainLOGVAR, trPI,d_type='train', fout=fout)
-        if (val is not None): # and (np.mod(epoch, 10) == 9 or epoch == 0)):
+        if args.erode:
+            tre = erode(args.erode, train[0])
+            tran = [train[0], tre, train[1]]
+        trainMU, trainLOGVAR, trPI, tr_acc = model.run_epoch(tran, epoch, args.num_mu_iter, trainMU, trainLOGVAR, trPI,d_type='train', fout=fout)
+        if (val[0] is not None): # and (np.mod(epoch, 10) == 9 or epoch == 0)):
              #prepare_recons(model, DATA, args, fout)
              #_,_,_,val_acc=model.run_epoch(vall, epoch, args.nvi, valMU, valLOGVAR, valPI, d_type='val', fout=fout)
-             _,_,_,val_acc=model.run_epoch(val, epoch, args.nvi, trainMU, trainLOGVAR, trPI, d_type='val', fout=fout)
+             _,_,_,val_acc=model.run_epoch(vall, epoch, args.nvi, trainMU, trainLOGVAR, trPI, d_type='val', fout=fout)
 
              VAL_ACC+=[val_acc[0],tr_acc[1]]
         else:
@@ -121,8 +121,8 @@ def train_model(model, args, ex_file, DATA, fout):
 
     if 'ae' in args.type:
         if (args.n_class):
-            model.run_epoch_classify(train, 'train', fout=fout, num_mu_iter=args.nti)
-            model.run_epoch_classify(test, 'test', fout=fout, num_mu_iter=args.nti)
+            model.run_epoch_classify(tran, 'train', fout=fout, num_mu_iter=args.nti)
+            model.run_epoch_classify(tes, 'test', fout=fout, num_mu_iter=args.nti)
         elif args.cl is None:
             #if not args.OPT:
                 #LLG=model.compute_likelihood(test[0],250)
@@ -130,11 +130,11 @@ def train_model(model, args, ex_file, DATA, fout):
             rho=model.rho.detach().cpu().numpy()
             print('rho',np.exp(rho)/np.sum(np.exp(rho)),file=fout)
             if args.hid_layers is None:
-                testMU, testLOGVAR, testPI = model.initialize_mus(numtr, model.s_dim, args.OPT)
+                testMU, testLOGVAR, testPI = model.initialize_mus(train[0], model.s_dim, args.OPT)
                 print('args.nti',args.nti,args.mu_lr,file=fout)
-                model.run_epoch(train, 0, args.nti, testMU, testLOGVAR, testPI, d_type='train_test', fout=fout)
-                testMU, testLOGVAR, testPI = model.initialize_mus(len(test.dataset), model.s_dim, args.OPT)
-                model.run_epoch(test, 0, args.nti, testMU, testLOGVAR, testPI, d_type='test_test', fout=fout)
+                model.run_epoch(tran, 0, args.nti, testMU, testLOGVAR, testPI, d_type='train_test', fout=fout)
+                testMU, testLOGVAR, testPI = model.initialize_mus(test[0], model.s_dim, args.OPT)
+                model.run_epoch(tes, 0, args.nti, testMU, testLOGVAR, testPI, d_type='test_test', fout=fout)
 
         fout.write('writing to ' + ex_file + '\n')
         make_images(test, model, ex_file, args, datadirs=datadirs)
@@ -142,7 +142,7 @@ def train_model(model, args, ex_file, DATA, fout):
         make_sample(model,args, ex_file, datadirs=datadirs)
 
     else:
-        _,_,_,test_acc=model.run_epoch(test, 0, args.nti, None, None, None, d_type='test', fout=fout)
+        _,_,_,test_acc=model.run_epoch(tes, 0, args.nti, None, None, None, d_type='test', fout=fout)
 
     model.results=[np.array(VAL_ACC).transpose().reshape(-1,2)]+[test_acc[0]]
     return(model)

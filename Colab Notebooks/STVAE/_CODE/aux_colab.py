@@ -105,8 +105,6 @@ def save_net(net,par_file,predir):
   bb = f.read().split()
   aa = [ll for ll in bb if '#' not in ll]
   args=parser.parse_args(aa)
-  if hasattr(net,'clapp_dim'):
-    args.clapp_dim=net.clapp_dim
   f.close()
   model=net
   if args.model_out is not None:

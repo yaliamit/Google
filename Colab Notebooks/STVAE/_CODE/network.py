@@ -77,7 +77,7 @@ class network(nn.Module):
             if self.update_layers is not None:
                 self.update_layers.append('clapp')
         if sh is not None and self.first:
-            temp = torch.zeros([1]+list(sh)) #.to(device)
+            temp = torch.zeros([1]+list(sh[1:])) #.to(device)
             # Run the network once on dummy data to get the correct dimensions.
             dv=self.dv
             self.dv=torch.device("cpu")
@@ -415,32 +415,39 @@ class network(nn.Module):
             self.train()
         else:
             self.eval()
-        num_tr=len(train.dataset)
+        num_tr=train[0].shape[0]
         ii = np.arange(0, num_tr, 1)
         if (d_type=='train'):
           np.random.shuffle(ii)
-        jump = train.batch_size
-        #trin = train[0][ii]
-        #targ = train[2][ii]
-        nc = 0
-        for bb in enumerate(train):
-            nc = max(nc, max(bb[1][1]))
-        self.n_class = nc+1
+        jump = self.bsz
+        trin = train[0][ii]
+        targ = train[2][ii]
+        self.n_class = np.max(targ) + 1
 
         ll=1
+        if self.randomize is not None:
+            ll=len(self.randomize)//2
+            nrep=(num_tr//jump)//ll
+            lnums=np.repeat(np.array(range(ll)),nrep)
+            np.random.shuffle(lnums)
+
         full_loss=np.zeros(ll); full_acc=np.zeros(ll); count=np.zeros(ll)
 
         # Loop over batches.
+
+        targ_in=targ
+        TIME=0
         for j in np.arange(0, num_tr, jump,dtype=np.int32):
             lnum=0
-            batch = next(iter(train))
-            data_in = batch[0] #torch.from_numpy(batch[0][j:j + jump]).float()
+            data_in = torch.from_numpy(trin[j:j + jump]).float()
+            if self.randomize:
+                lnum=lnums[j//jump]
             if (d_type == 'train'):
                 self.optimizer.zero_grad()
             if self.embedd:
                 with torch.no_grad():
                     data_out=deform_data(data_in,self.perturb,self.trans,self.s_factor,self.h_factor,self.embedd)
-                    #data_in=deform_data(data_in,self.perturb,self.trans,self.s_factor,self.h_factor,self.embedd)
+                    data_in=deform_data(data_in,self.perturb,self.trans,self.s_factor,self.h_factor,self.embedd)
                 data=[data_in.to(self.dv),data_out.to(self.dv)]
             else:
                 if self.perturb>0.and d_type=='train':
@@ -449,7 +456,7 @@ class network(nn.Module):
                 data = data_in.to(self.dv,dtype=torch.float32)
 
 
-            target = batch[1].to(self.dv, dtype=torch.long)
+            target = torch.from_numpy(targ_in[j:j + jump]).to(self.dv, dtype=torch.long)
 
             with torch.no_grad() if (d_type!='train') else dummy_context_mgr():
                 loss, acc = self.loss_and_acc(data, target,dtype=d_type, lnum=lnum)
@@ -479,19 +486,16 @@ class network(nn.Module):
 
         return trainMU, trainLOGVAR, trPI, [full_acc/(count*jump), full_loss/(count)]
 
-    def get_embedding(self, train, num_t):
+    def get_embedding(self, train):
 
         lay=self.embedd_layer
-        jump = train.batch_size
-        num_tr=len(train.dataset)
-        if num_t is not None:
-            num_tr = min(num_tr,num_t)
-
+        trin = train
+        jump = self.bsz
+        num_tr = train.shape[0]
         self.eval()
         OUT=[]
         for j in np.arange(0, num_tr, jump, dtype=np.int32):
-            bb=next(iter(train))
-            data = bb[0].to(self.dv)
+            data = (torch.from_numpy(trin[j:j + jump]).float()).to(self.dv)
 
             with torch.no_grad():
                 out=self.forward(data, everything=True)[1][lay].detach().cpu().numpy()

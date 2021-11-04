@@ -65,7 +65,7 @@ def get_models(device, fout, sh,STRINGS,ARGS, args):
     models = []
     if 'ae' in args.type:
         for strings, args in zip(STRINGS, ARGS):
-            model=make_model(args, sh, device, fout)
+            model=make_model(args, sh[1:], device, fout)
             models += [model]
     elif args.network:
         # parse the existing network coded in ARGS[0]
@@ -74,7 +74,7 @@ def get_models(device, fout, sh,STRINGS,ARGS, args):
             arg = args
         # Layers defining the new network.
         if arg.layers is not None:
-            lnti, layers_dict = get_network(arg.layers, nf=sh[0])
+            lnti, layers_dict = get_network(arg.layers, nf=sh[1])
             # Initialize the network
             models = [network.network(device, arg, layers_dict, lnti, fout=fout, sh=sh).to(device)]
 
@@ -146,7 +146,7 @@ def copy_from_old_to_new(model, args, fout, SMS, strings,device, sh):
         model.load_state_dict(SMS['model.state.dict'])
         return
     else:
-        lnti, layers_dict = get_network(SMS['args'].layers, nf=sh[0])
+        lnti, layers_dict = get_network(SMS['args'].layers, nf=sh[1])
         model_old = network.network(device, SMS['args'], layers_dict, lnti, fout=fout, sh=sh, first=2).to(device)
     model_old.load_state_dict(SMS['model.state.dict'])
     model_old.bn=args.bn

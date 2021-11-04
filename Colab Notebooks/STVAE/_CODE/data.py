@@ -10,10 +10,8 @@ import pylab as py
 import matplotlib.colors as col
 from images import deform_data
 from torchvision import transforms, datasets
-from torch.utils.data import DataLoader, Subset
+from torch.utils import data
 import random
-
-
 
 
 def get_stl10_unlabeled(batch_size, size=60000):
@@ -24,15 +22,18 @@ def get_stl10_unlabeled(batch_size, size=60000):
     train = datasets.STL10('./data', split='unlabeled', transform=transform, download=True)
 
     if size != len(train):
-        train = Subset(train, random.sample(range(len(train)), size))
+        train = data.Subset(train, random.sample(range(len(train)), size))
 
-    train_loader = DataLoader(train, batch_size=batch_size, shuffle=True)
+    train_loader = data.DataLoader(train, batch_size=batch_size, shuffle=True)
 
-    return train_loader, None, None
+    return train_loader, None
 
 
 def get_stl10_labeled(batch_size):
     transform = transforms.Compose([
+
+        transforms.Resize(32),
+
         transforms.ToTensor(),
 
     ])
@@ -41,28 +42,13 @@ def get_stl10_labeled(batch_size):
 
     test = datasets.STL10('./data', split='test', transform=transform, download=True)
 
-    train_loader = DataLoader(train, batch_size=batch_size, shuffle=True)
-
-    test_loader = DataLoader(test, batch_size=batch_size, shuffle=True)
-
-
-    return train_loader, test_loader, None
-
-
-def get_mnist_labeled(batch_size):
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-
-    ])
-
-    train = datasets.MNIST('./data',  transform=transform, download=True)
-
-
     train_loader = data.DataLoader(train, batch_size=batch_size, shuffle=True)
 
+    test_loader = data.DataLoader(test, batch_size=batch_size, shuffle=True)
 
 
-    return train_loader
+    return train_loader, test_loader
+
 
 def get_pre():
     aa=os.uname()
@@ -118,9 +104,6 @@ def get_data_pre(args,dataset):
         PARS['one_class'] = args.cl
 
     train, val, test, image_dim = get_data(PARS)
-    if type(train) is DataLoader:
-        return [train,val,test]
-
     if (False): #args.edges):
         train=[pre_edges(train[0],dtr=args.edge_dtr).transpose(0,3,1,2),np.argmax(train[1], axis=1)]
         test=[pre_edges(test[0],dtr=args.edge_dtr).transpose(0,3,1,2),np.argmax(test[1], axis=1)]
@@ -170,12 +153,7 @@ def get_data_pre(args,dataset):
         test=[train[0][0:10000],train[1][0:10000]]
     print('In get_data_pre: num_train', train[0].shape[0])
     print('Num test:',test[0].shape[0])
-    train=DataLoader(list(zip(train[0],train[1])),batch_size=args.mb_size)
-    if val[0] is not None:
-        val=DataLoader(list(zip(val[0],val[1])),batch_size=args.mb_size)
-    else:
-        val=None
-    test=DataLoader(list(zip(test[0],test[1])),batch_size=args.mb_size)
+
     return [train, val, test]
 
 
@@ -420,10 +398,7 @@ def get_letters(PARS):
 
 
 def get_data(PARS):
-    if ('stl') in PARS['data_set']:
-        train,val,test=get_stl10_unlabeled(50,size=1000)
-        return train,val,test,train.dataset[0][0].shape[0]
-    elif ('cifar' in PARS['data_set']):
+    if ('cifar' in PARS['data_set']):
         train, val, test=get_cifar(PARS)
     else:
         train, val, test = get_letters(PARS)
