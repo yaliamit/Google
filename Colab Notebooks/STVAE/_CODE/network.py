@@ -419,7 +419,7 @@ class network(nn.Module):
         ii = np.arange(0, num_tr, 1)
         if (d_type=='train'):
           np.random.shuffle(ii)
-        jump = self.bsz
+        jump = train.batch_size
         #trin = train[0][ii]
         #targ = train[2][ii]
         nc = 0
@@ -482,7 +482,7 @@ class network(nn.Module):
     def get_embedding(self, train, num_t):
 
         lay=self.embedd_layer
-        jump = self.bsz
+        jump = train.batch_size
         num_tr=len(train.dataset)
         if num_t is not None:
             num_tr = min(num_tr,num_t)

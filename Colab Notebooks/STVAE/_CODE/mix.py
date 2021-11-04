@@ -350,7 +350,7 @@ class STVAE_mix(nn.Module):
         pi = PI
         self.epoch=epoch
 
-        for j in np.arange(0, len(train.dataset), self.bsz):
+        for j in np.arange(0, len(train.dataset), train.batch_size):
             bb=next(iter(train))
             data_in = bb[0].to(self.dv) #torch.from_numpy(tr[j:j + self.bsz]).float()
             data = bb[0].to(self.dv) #torch.from_numpy(etr[j:j + self.bsz]).float()
