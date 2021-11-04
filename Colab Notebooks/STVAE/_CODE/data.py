@@ -175,7 +175,7 @@ def get_data_pre(args,dataset):
         val=DataLoader(list(zip(val[0],val[1])),batch_size=args.mb_size)
     else:
         val=None
-    test=DataLoader(list(zip(test[0],test[1])),batch_size=args.mb_size,shuffle=True)
+    test=DataLoader(list(zip(test[0],test[1])),batch_size=args.mb_size)
     return [train, val, test]
 
 
