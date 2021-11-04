@@ -380,7 +380,7 @@ class network(nn.Module):
             elif self.embedd_type=='binary':
                 loss, acc = get_embedd_loss_binary(out0,out1,self.dv,self.no_standardize)
             elif self.embedd_type=='L1dist_hinge':
-                loss, acc = get_embedd_loss_new(out1,out0,self.dv,self.no_standardize, thr=self.thr, delta=self.delta)
+                loss, acc = get_embedd_loss_new(out0,out1,self.dv,self.no_standardize, thr=self.thr, delta=self.delta)
             elif self.embedd_type=='clapp':
                 out0=self.clapp(out0)
                 out0 = out0.reshape(out0.shape[0], -1)
