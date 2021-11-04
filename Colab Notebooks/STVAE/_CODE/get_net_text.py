@@ -1,6 +1,6 @@
 
 def process_network_line(line, global_drop):
-    # break line on the ; each segment is a parameter for the layer of that line
+    # break line on the ; each segment is a parameter for the layer of that line. OK
     if  len(line)==0 or line[0]=='#':
         return None
     sss = str.split(line, ';')
