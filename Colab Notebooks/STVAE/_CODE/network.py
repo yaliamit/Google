@@ -425,7 +425,7 @@ class network(nn.Module):
         nc = 0
         for bb in enumerate(train):
             nc = max(nc, max(bb[1][1]))
-        self.n_class = nc
+        self.n_class = nc+1
 
         ll=1
         full_loss=np.zeros(ll); full_acc=np.zeros(ll); count=np.zeros(ll)
@@ -449,7 +449,7 @@ class network(nn.Module):
                 data = data_in.to(self.dv,dtype=torch.float32)
 
 
-            target = batch[1][j:j + jump].to(self.dv, dtype=torch.long)
+            target = batch[1].to(self.dv, dtype=torch.long)
 
             with torch.no_grad() if (d_type!='train') else dummy_context_mgr():
                 loss, acc = self.loss_and_acc(data, target,dtype=d_type, lnum=lnum)
@@ -479,16 +479,19 @@ class network(nn.Module):
 
         return trainMU, trainLOGVAR, trPI, [full_acc/(count*jump), full_loss/(count)]
 
-    def get_embedding(self, train):
+    def get_embedding(self, train, num_t):
 
         lay=self.embedd_layer
-        trin = train
         jump = self.bsz
-        num_tr = train.shape[0]
+        num_tr=len(train.dataset)
+        if num_t is not None:
+            num_tr = min(num_tr,num_t)
+
         self.eval()
         OUT=[]
         for j in np.arange(0, num_tr, jump, dtype=np.int32):
-            data = (torch.from_numpy(trin[j:j + jump]).float()).to(self.dv)
+            bb=next(iter(train))
+            data = bb[0].to(self.dv)
 
             with torch.no_grad():
                 out=self.forward(data, everything=True)[1][lay].detach().cpu().numpy()

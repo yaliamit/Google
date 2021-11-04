@@ -10,6 +10,7 @@ from sklearn.svm import SVC, LinearSVC
 from sklearn.linear_model import LinearRegression, Ridge
 from sklearn.mixture import GaussianMixture
 from images import create_image
+from torch.utils.data import DataLoader
 import pickle
 import os
 
@@ -104,20 +105,32 @@ def pre_train_new(model,args,device,fout, data=None):
     datn = args.hid_dataset if args.hid_dataset is not None else args.dataset
     print('getting:' + datn)
     DATA = get_data_pre(args, datn)
-    args.num_class = np.int(np.max(DATA[0][1]) + 1)
+    nc = 0
+    train_labels=[]
+    for bb in enumerate(DATA[0]):
+        nc = max(nc, max(bb[1][1]))
+        train_labels+=[bb[1][1].numpy()]
+    train_labels=np.concatenate(train_labels)
+    test_labels = []
+    for bb in enumerate(DATA[2]):
+        test_labels += [bb[1][1].numpy()]
+    test_labels = np.concatenate(test_labels)
+    args.num_class = np.int(nc + 1)
 
     if 'ae' in args.type:
         _,[tr,tv,te]=prepare_recons(model,DATA,args,fout)
     elif args.embedd:
-        tr = model.get_embedding(DATA[0][0][0:args.network_num_train]) #.detach().cpu().numpy()
+        tr = model.get_embedding(DATA[0],args.num_train) #.detach().cpu().numpy()
         tr = tr.reshape(tr.shape[0], -1)
-        te = model.get_embedding(DATA[2][0]) #.detach().cpu().numpy()
+        te = model.get_embedding(DATA[2],None) #.detach().cpu().numpy()
         te = te.reshape(te.shape[0], -1)
     else:
         return
 
-    trh = [tr, DATA[0][1][0:args.network_num_train]]
-    teh = [te, DATA[2][1]]
+    trh = DataLoader(list(zip(tr, train_labels[0:args.network_num_train])),batch_size=args.mb_size)
+    teh = DataLoader(list(zip(te, test_labels)),batch_size=args.mb_size)
+
+
 
     args.embedd = False
     args.update_layers=None
@@ -156,7 +169,7 @@ def train_new(args,train,test,fout,device):
 def train_new_old(args,train,test,fout,device,net=None):
 
     #fout=sys.stdout
-    print("In from hidden number of training",train[0].shape[0])
+    print("In from hidden number of training",len(train.dataset))
     print('In train new:')
     print(str(args))
     val = None
@@ -166,16 +179,16 @@ def train_new_old(args,train,test,fout,device,net=None):
         args.hid_lnti, args.hid_layers_dict = prep.get_network(args.hid_layers)
         args.perturb=0
         #args.sched=[0,0]
-        net=network.network(device,args,args.hid_layers_dict, args.hid_lnti, sh=train[0].shape).to(device)
+        net=network.network(device,args,args.hid_layers_dict, args.hid_lnti, sh=train.dataset[0][0].shape).to(device)
 
         net.get_scheduler(args)
 
-    tran=[train[0],train[0],train[1]]
+
     freq=50
     for epoch in range(args.hid_nepoch):
         if np.mod(epoch,freq)==0:
             t1=time.time()
-        net.run_epoch(tran,epoch, d_type='train',fout=fout, freq=freq)
+        net.run_epoch(train,epoch, d_type='train',fout=fout, freq=freq)
         if (val is not None and np.mod(epoch,freq)==0):
                 net.run_epoch(val,epoch, type='val',fout=fout, freq=freq)
         if (freq-np.mod(epoch,freq)==1):
@@ -184,8 +197,7 @@ def train_new_old(args,train,test,fout,device,net=None):
         if hasattr(net,'scheduler') and net.scheduler is not None:
             net.scheduler.step()
 
-    tes=[test[0],test[0],test[1]]
-    _,_,_,res=net.run_epoch(tes, 0, d_type='test', fout=fout)
+    _,_,_,res=net.run_epoch(test, 0, d_type='test', fout=fout)
 
     fout.flush()
 
