@@ -505,8 +505,8 @@ class network(nn.Module):
                 BB = next(iter(train))
                 data = BB[0]
             else:
-                data = (torch.from_numpy(train[j:j + jump]).float()).to(self.dv)
-
+                data = (torch.from_numpy(train[j:j + jump]).float())
+            data=data.to(self.dv)
             with torch.no_grad():
                 out=self.forward(data, everything=True)[1][lay].detach().cpu().numpy()
                 OUT+=[out]
