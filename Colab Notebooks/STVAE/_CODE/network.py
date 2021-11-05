@@ -90,7 +90,7 @@ class network(nn.Module):
             fout.flush()
 
 
-    def forward(self,input,everything=False):
+    def forward(self,input,everything=False, end_lay=None):
 
         out = input
         in_dims=[]
@@ -102,7 +102,9 @@ class network(nn.Module):
         old_name=''
         layer_text_new={}
         prev_shape=None
+        DONE=False
         for i,ll in enumerate(self.layer_text):
+            if not DONE:
                 inp_ind = old_name
 
                 if ('parent' in ll):
@@ -291,7 +293,8 @@ class network(nn.Module):
                 in_dim=np.prod(OUTS[ll['name']].shape[1:])
                 in_dims+=[in_dim]
                 old_name=ll['name']
-
+                if end_lay is not None and end_lay in ll['name']:
+                    DONE=True
 
         if self.first==1:
             if self.embedd_type == 'clapp' and self.clapp_dim is None:
@@ -508,7 +511,7 @@ class network(nn.Module):
                 data = (torch.from_numpy(train[j:j + jump]).float())
             data=data.to(self.dv)
             with torch.no_grad():
-                out=self.forward(data, everything=True)[1][lay].detach().cpu().numpy()
+                out=self.forward(data, everything=True, end_lay=lay)[1][lay].detach().cpu().numpy()
                 OUT+=[out]
 
         OUTA=np.concatenate(OUT,axis=0)
