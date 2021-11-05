@@ -51,9 +51,9 @@ def get_stl10_labeled(batch_size,size=0):
     train = Subset(train, random.sample(range(len(train)), size))
     test = Subset(test, random.sample(range(len(test)), len(test)))
 
-    train_loader = DataLoader(train, batch_size=batch_size, shuffle=True)
+    train_loader = DataLoader(train, batch_size=batch_size)
 
-    test_loader = DataLoader(test, batch_size=batch_size, shuffle=True)
+    test_loader = DataLoader(test, batch_size=batch_size)
 
 
     return train_loader, None, test_loader
