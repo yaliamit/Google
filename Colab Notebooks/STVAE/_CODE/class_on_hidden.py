@@ -132,7 +132,7 @@ def pre_train_new(model,args,device,fout, data=None):
             dat=DATA[0]
             dat_te=DATA[2]
         else:
-            dat=DATA[0][0:args.network_num_train]
+            dat=DATA[0][0][0:args.network_num_train]
             dat_te=DATA[2][0]
 
         tr = model.get_embedding(dat) #.detach().cpu().numpy()
