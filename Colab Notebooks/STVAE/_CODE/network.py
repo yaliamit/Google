@@ -490,13 +490,22 @@ class network(nn.Module):
     def get_embedding(self, train):
 
         lay=self.embedd_layer
-        trin = train
-        jump = self.bsz
-        num_tr = train.shape[0]
+
+        if type(train) is DataLoader:
+            jump = train.batch_size
+            num_tr = len(train) * train.batch_size
+        else:
+            jump = self.bsz
+            num_tr = train.shape[0]
+
         self.eval()
         OUT=[]
         for j in np.arange(0, num_tr, jump, dtype=np.int32):
-            data = (torch.from_numpy(trin[j:j + jump]).float()).to(self.dv)
+            if type(train) is DataLoader:
+                BB = next(iter(train))
+                data = BB[0]
+            else:
+                data = (torch.from_numpy(train[j:j + jump]).float()).to(self.dv)
 
             with torch.no_grad():
                 out=self.forward(data, everything=True)[1][lay].detach().cpu().numpy()

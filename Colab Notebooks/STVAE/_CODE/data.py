@@ -55,7 +55,7 @@ def get_stl10_labeled(batch_size,size=0):
     test_loader = DataLoader(test, batch_size=batch_size, shuffle=True)
 
 
-    return train_loader, test_loader, None
+    return train_loader, None, test_loader
 
 
 

@@ -114,15 +114,34 @@ def pre_train_new(model,args,device,fout, data=None):
     if 'ae' in args.type:
         _,[tr,tv,te]=prepare_recons(model,DATA,args,fout)
     elif args.embedd:
-        tr = model.get_embedding(DATA[0][0][0:args.network_num_train]) #.detach().cpu().numpy()
+        if type(DATA[0]) is DataLoader:
+            dat=DATA[0]
+            dat_te=DATA[2]
+        else:
+            dat=DATA[0][0:args.network_num_train]
+            dat_te=DATA[2][0]
+
+        tr = model.get_embedding(dat) #.detach().cpu().numpy()
         tr = tr.reshape(tr.shape[0], -1)
-        te = model.get_embedding(DATA[2][0]) #.detach().cpu().numpy()
+        te = model.get_embedding(dat_te) #.detach().cpu().numpy()
         te = te.reshape(te.shape[0], -1)
     else:
         return
 
-    trh = [tr, DATA[0][1][0:args.network_num_train]]
-    teh = [te, DATA[2][1]]
+    labels_tr=[]
+    labels_te=[]
+    if type(DATA[0]) is DataLoader:
+        for bb in enumerate(DATA[0]):
+            labels_tr+=[bb[1][1].numpy()]
+        for bb in enumerate(DATA[2]):
+            labels_te+=[bb[1][1].numpy()]
+        labels_tr=np.concatenate(labels_tr)
+        labels_te=np.concatenate(labels_te)
+    else:
+        labels_tr=DATA[0][1][0:args.network_num_train]
+        labels_te=DATA[2][1]
+    trh = [tr, labels_tr]
+    teh = [te, labels_te]
 
     args.embedd = False
     args.update_layers=None
