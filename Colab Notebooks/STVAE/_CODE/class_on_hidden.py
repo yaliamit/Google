@@ -166,16 +166,15 @@ def train_new_old(args,train,test,fout,device,net=None):
         args.hid_lnti, args.hid_layers_dict = prep.get_network(args.hid_layers)
         args.perturb=0
         #args.sched=[0,0]
-        net=network.network(device,args,args.hid_layers_dict, args.hid_lnti, sh=train[0].shape).to(device)
+        net=network.network(device,args,args.hid_layers_dict, args.hid_lnti, sh=train[0].shape[1:]).to(device)
 
         net.get_scheduler(args)
 
-    tran=[train[0],train[0],train[1]]
     freq=50
     for epoch in range(args.hid_nepoch):
         if np.mod(epoch,freq)==0:
             t1=time.time()
-        net.run_epoch(tran,epoch, d_type='train',fout=fout, freq=freq)
+        net.run_epoch(train,epoch, d_type='train',fout=fout, freq=freq)
         if (val is not None and np.mod(epoch,freq)==0):
                 net.run_epoch(val,epoch, type='val',fout=fout, freq=freq)
         if (freq-np.mod(epoch,freq)==1):
@@ -184,8 +183,7 @@ def train_new_old(args,train,test,fout,device,net=None):
         if hasattr(net,'scheduler') and net.scheduler is not None:
             net.scheduler.step()
 
-    tes=[test[0],test[0],test[1]]
-    _,_,_,res=net.run_epoch(tes, 0, d_type='test', fout=fout)
+    _,_,_,res=net.run_epoch(test, 0, d_type='test', fout=fout)
 
     fout.flush()
 
