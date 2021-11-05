@@ -17,14 +17,14 @@ import random
 
 
 
-def get_stl10_unlabeled(batch_size, size=60000):
+def get_stl10_unlabeled(batch_size, size=0):
     transform = transforms.Compose([
         transforms.ToTensor(),
     ])
 
     train = datasets.STL10('./data', split='unlabeled', transform=transform, download=True)
 
-    if size != len(train):
+    if size != 0 and size < len(train):
         train = Subset(train, random.sample(range(len(train)), size))
 
     train_loader = DataLoader(train, batch_size=batch_size, shuffle=True)
@@ -46,9 +46,10 @@ def get_stl10_labeled(batch_size,size=0):
 
     test = datasets.STL10('./data', split='test', transform=transform, download=True)
 
-    if size != len(train):
-        train = Subset(train, random.sample(range(len(train)), size))
-        test = Subset(test, random.sample(range(len(test)), size))
+    size=min(size,len(train)) if size>0 else len(train)
+
+    train = Subset(train, random.sample(range(len(train)), size))
+    test = Subset(test, random.sample(range(len(test)), len(test)))
 
     train_loader = DataLoader(train, batch_size=batch_size, shuffle=True)
 

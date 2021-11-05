@@ -107,7 +107,7 @@ def pre_train_new(model,args,device,fout, data=None):
     print('getting:' + datn)
     DATA = get_data_pre(args, datn)
     if type(DATA[0]) is DataLoader:
-        args.num_class = np.max(DATA[0].dataset.labels) + 1
+        args.num_class = np.max(DATA[0].dataset.dataset.labels) + 1
     else:
         args.num_class = np.int(np.max(DATA[0][1]) + 1)
 
