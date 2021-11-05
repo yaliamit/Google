@@ -77,16 +77,14 @@ def train_model(model, args, ex_file, DATA, fout):
     num_train= len(train)*train.batch_size if type(train) is DataLoader else train[0].shape[0]
     if type(val) is DataLoader:
         num_val = len(val) * val.batch_size
-    elif val is  None:
-        pass
-    elif val[0] is not None:
+    elif val is not None:
         num_val=val[0].shape[0]
 
     fout.write("Num train:{0}\n".format(num_train))
 
     if 'ae' in args.type:
         trainMU, trainLOGVAR, trPI = model.initialize_mus(num_train, model.s_dim, args.OPT)
-        if val[0] is not None:
+        if val is not None:
             valMU, valLOGVAR, valPI = model.initialize_mus(num_val,model.s_dim, args.OPT)
 
     time1=time.time()

@@ -373,11 +373,11 @@ def get_cifar(PARS):
     ntr=len(tr)-PARS['nval']
     train_data=np.float32(tr[0:ntr])/255.
     train_labels=one_hot(np.int32(tr_lb[0:ntr]),PARS)
-    val_data=None
-    val_labels=None
+    val=None
     if PARS['nval']:
         val_data=np.float32(tr[ntr:])/255.
         val_labels=one_hot(np.int32(tr_lb[ntr:]),PARS)
+        val=(val_data,val_labels)
     filename = pre+data_set+'_test.hdf5'
     f = h5py.File(filename, 'r')
     key = list(f.keys())[0]
@@ -385,7 +385,7 @@ def get_cifar(PARS):
     test_data = np.float32(f[key])/255.
     key = list(f.keys())[1]
     test_labels=one_hot(np.int32(f[key]),PARS)
-    return (train_data, train_labels), (val_data, val_labels), (test_data, test_labels)
+    return (train_data, train_labels), val , (test_data, test_labels)
 
 def get_letters(PARS):
 
@@ -404,14 +404,14 @@ def get_letters(PARS):
     train_data=train_data[:-10000]
     test_labels=train_labels[-10000:]
     train_labels=train_labels[:-10000]
-    val_data=None; val_labels=None
+    val=None
     if PARS['nval']:
         val_data=train_data[-PARS['nval']:]
         train_data=train_data[:-PARS['nval']]
         val_labels=train_labels[-PARS['nval']:]
         train_labels=train_labels[:-PARS['nval']]
-
-    return (train_data, train_labels), (val_data, val_labels), (test_data, test_labels)
+        val=(val_data,val_labels)
+    return (train_data, train_labels), val, (test_data, test_labels)
 
 
 

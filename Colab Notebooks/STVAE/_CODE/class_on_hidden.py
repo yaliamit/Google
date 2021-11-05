@@ -12,6 +12,8 @@ from sklearn.mixture import GaussianMixture
 from images import create_image
 import pickle
 import os
+from data import get_pre
+from torch.utils.data import DataLoader
 
 def prepare_recons(model, DATA, args,fout):
     dat = []
@@ -104,7 +106,10 @@ def pre_train_new(model,args,device,fout, data=None):
     datn = args.hid_dataset if args.hid_dataset is not None else args.dataset
     print('getting:' + datn)
     DATA = get_data_pre(args, datn)
-    args.num_class = np.int(np.max(DATA[0][1]) + 1)
+    if type(DATA[0]) is DataLoader:
+        args.num_class = np.max(DATA[0].dataset.dataset.labels) + 1
+    else:
+        args.num_class = np.int(np.max(DATA[0][1]) + 1)
 
     if 'ae' in args.type:
         _,[tr,tv,te]=prepare_recons(model,DATA,args,fout)
