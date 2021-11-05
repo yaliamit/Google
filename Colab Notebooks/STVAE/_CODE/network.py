@@ -438,7 +438,7 @@ class network(nn.Module):
             if type(train) is DataLoader:
                 BB=next(iter(train))
                 data_in=BB[0]
-                target=BB[1]
+                target=BB[1].to(self.dv, dtype=torch.long)
             else:
                 data_in = torch.from_numpy(train[0][j:j + jump]).float()
                 target = torch.from_numpy(train[1][j:j + jump]).to(self.dv, dtype=torch.long)
