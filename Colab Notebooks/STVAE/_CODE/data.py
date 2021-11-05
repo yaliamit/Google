@@ -29,7 +29,7 @@ def get_stl10_unlabeled(batch_size, size=60000):
 
     train_loader = DataLoader(train, batch_size=batch_size, shuffle=True)
     trlen=int(size*.8)
-    telen=int(len(train_loader.dataset)-trlen)
+    telen=int(size-trlen)
     trlen=trlen//batch_size
     telen=telen//batch_size
     aa=random_split(train_loader,[trlen, telen],generator = torch.Generator().manual_seed(42))
@@ -110,6 +110,7 @@ def get_data_pre(args,dataset):
     PARS['data_set'] = dataset
     PARS['num_train'] = args.num_train // args.mb_size * args.mb_size
     PARS['nval'] = args.nval
+    PARS['mb_size']=args.mb_size
     if args.cl is not None:
         PARS['one_class'] = args.cl
 
@@ -418,9 +419,9 @@ def get_letters(PARS):
 def get_data(PARS):
     if 'stl' in PARS['data_set']:
         if 'unlabeled' in PARS['data_set']:
-            train,val,test=get_stl10_unlabeled(50,size=PARS['num_train'])
+            train,val,test=get_stl10_unlabeled(PARS['mb_size'],size=PARS['num_train'])
         else:
-            train, val, test = get_stl10_labeled(50, size=PARS['num_train'])
+            train, val, test = get_stl10_labeled(PARS['mb_size'], size=PARS['num_train'])
         return train,val,test,train.dataset[0][0].shape[0]
     elif ('cifar' in PARS['data_set']):
         train, val, test=get_cifar(PARS)
