@@ -194,7 +194,7 @@ def train_new_old(args,train,test,fout,device,net=None):
 
         net.get_scheduler(args)
 
-    freq=50
+    freq=10
     for epoch in range(args.hid_nepoch):
         if np.mod(epoch,freq)==0:
             t1=time.time()
