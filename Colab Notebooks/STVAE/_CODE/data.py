@@ -36,7 +36,7 @@ def get_stl10_unlabeled(batch_size, size=0):
     return aa[0].dataset, None, aa[1].dataset
 
 
-def get_stl10_labeled(batch_size,size=0):
+def get_stl10_labeled_old(batch_size,size=0):
     transform = transforms.Compose([
         transforms.ToTensor(),
 
@@ -58,7 +58,18 @@ def get_stl10_labeled(batch_size,size=0):
 
     return train_loader, None, test_loader
 
+def get_stl10_labeled(data_set,size=0):
 
+
+    pre = get_pre() + 'LSDA_data/STL/'
+    train_data = np.load(pre + data_set + '_train_data.npy')
+    print(train_data.shape)
+    train_labels = np.load(pre + data_set + '_train_labels.npy')
+    test_data = np.load(pre + data_set + '_test_data.npy')
+    print(test_data.shape)
+    test_labels = np.load(pre + data_set + '_test_labels.npy')
+
+    return (train_data, train_labels), None, (test_data, test_labels)
 
 
 def get_pre():
@@ -421,9 +432,11 @@ def get_data(PARS):
     if 'stl' in PARS['data_set']:
         if 'unlabeled' in PARS['data_set']:
             train,val,test=get_stl10_unlabeled(PARS['mb_size'],size=PARS['num_train'])
+            return train, val, test, train.dataset[0][0].shape[0]
         else:
-            train, val, test = get_stl10_labeled(PARS['mb_size'], size=PARS['num_train'])
-        return train,val,test,train.dataset[0][0].shape[0]
+            train, val, test = get_stl10_labeled(PARS['data_set'], size=PARS['num_train'])
+            return train, val, test, train[0].shape[1]
+
     elif ('cifar' in PARS['data_set']):
         train, val, test=get_cifar(PARS)
     else:
