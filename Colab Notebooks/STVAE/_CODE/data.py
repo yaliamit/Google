@@ -127,7 +127,7 @@ def get_data_pre(args,dataset):
         PARS['one_class'] = args.cl
 
     train, val, test, image_dim = get_data(PARS)
-    if type(train) is DataLoader:
+    if type(train) is DataLoader or dataset=='stl10':
         return [train,val,test]
 
     if (False): #args.edges):
