@@ -6,6 +6,7 @@ from losses import *
 import sys
 from layers import *
 import time
+from torch.utils.data import DataLoader
 
 try:
     import torch_xla.core.xla_model as xm
@@ -77,7 +78,7 @@ class network(nn.Module):
             if self.update_layers is not None:
                 self.update_layers.append('clapp')
         if sh is not None and self.first:
-            temp = torch.zeros([1]+list(sh[1:])) #.to(device)
+            temp = torch.zeros([1]+list(sh)) #.to(device)
             # Run the network once on dummy data to get the correct dimensions.
             dv=self.dv
             self.dv=torch.device("cpu")
@@ -369,9 +370,10 @@ class network(nn.Module):
 
         # Embedding training with image and its deformed counterpart
         if type(input) is list:
+
+            out1, ot1 = self.forward(input[1])
             with torch.no_grad():
-                out1, ot1 = self.forward(input[1])
-            out0,ot0=self.forward(input[0])
+                out0,ot0=self.forward(input[0])
             if self.embedd_type=='orig':
                 loss, acc = get_embedd_loss(out0,out1,self.dv,self.thr)
             elif self.embedd_type=='binary':
@@ -414,33 +416,33 @@ class network(nn.Module):
             self.train()
         else:
             self.eval()
-        num_tr=train[0].shape[0]
-        ii = np.arange(0, num_tr, 1)
-        if (d_type=='train'):
-          np.random.shuffle(ii)
-        jump = self.bsz
-        trin = train[0][ii]
-        targ = train[2][ii]
-        self.n_class = np.max(targ) + 1
+
+        if type(train) is DataLoader:
+            jump=train.batch_size
+            self.n_class=np.max(train.dataset.dataset.labels)+1
+            num_tr=len(train)*train.batch_size
+        else:
+            jump = self.bsz
+            self.n_class = np.max(train[1]) + 1
+            num_tr=train[0].shape[0]
 
         ll=1
-        if self.randomize is not None:
-            ll=len(self.randomize)//2
-            nrep=(num_tr//jump)//ll
-            lnums=np.repeat(np.array(range(ll)),nrep)
-            np.random.shuffle(lnums)
-
         full_loss=np.zeros(ll); full_acc=np.zeros(ll); count=np.zeros(ll)
 
         # Loop over batches.
 
-        targ_in=targ
+
         TIME=0
         for j in np.arange(0, num_tr, jump,dtype=np.int32):
             lnum=0
-            data_in = torch.from_numpy(trin[j:j + jump]).float()
-            if self.randomize:
-                lnum=lnums[j//jump]
+            if type(train) is DataLoader:
+                BB=next(iter(train))
+                data_in=BB[0]
+                target=BB[1]
+            else:
+                data_in = torch.from_numpy(train[0][j:j + jump]).float()
+                target = torch.from_numpy(train[1][j:j + jump]).to(self.dv, dtype=torch.long)
+
             if (d_type == 'train'):
                 self.optimizer.zero_grad()
             if self.embedd:
@@ -455,7 +457,6 @@ class network(nn.Module):
                 data = data_in.to(self.dv,dtype=torch.float32)
 
 
-            target = torch.from_numpy(targ_in[j:j + jump]).to(self.dv, dtype=torch.long)
 
             with torch.no_grad() if (d_type!='train') else dummy_context_mgr():
                 loss, acc = self.loss_and_acc(data, target,dtype=d_type, lnum=lnum)

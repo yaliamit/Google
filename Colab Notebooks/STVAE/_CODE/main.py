@@ -5,6 +5,7 @@ import numpy as np
 from data import get_data_pre
 from images import make_images, make_sample
 import pylab as py
+from torch.utils.data import DataLoader
 # Testing
 
 def main_loc(par_file, device,net=None):
@@ -20,12 +21,17 @@ def main_loc(par_file, device,net=None):
 
   # Get data
   DATA=get_data_pre(args,args.dataset)
-  args.num_class=np.int(np.max(DATA[0][1])+1)
+  if type(DATA[0]) is DataLoader:
+      sh=DATA[0].dataset[0][0].shape
+      args.num_class=np.max(DATA[0].dataset.dataset.labels)+1
+  else:
+      sh=DATA[0][0].shape[1:]
+      args.num_class=np.int(np.max(DATA[0][1])+1)
   ARGS[0].num_class=args.num_class
   print('NUMCLASS',args.num_class)
 
   # Training an autoencoder.
-  sh=DATA[0][0].shape
+
 
   if net is None:
     models=prep.get_models(device, fout, sh, STRINGS, ARGS, args)

@@ -117,20 +117,20 @@ class STVAE_mix(nn.Module):
        else:
             x=self.decoder_m.h_to_x(input, self.enc_conv, rng=rng)
             return x,None
-    def initialize_mus(self,train, s_dim,OPT=None):
+    def initialize_mus(self,len, s_dim,OPT=None):
         trMU=None
         trLOGVAR=None
         trPI=None
         sdim=s_dim
         if self.n_mix>0:
             sdim=sdim*self.n_mix
-        if (train is not None):
-            trMU = torch.zeros(train.shape[0], sdim) #.to(self.dv)
-            trLOGVAR = torch.zeros(train.shape[0], sdim) #.to(self.dv)
+        if (len is not None):
+            trMU = torch.zeros(len, sdim) #.to(self.dv)
+            trLOGVAR = torch.zeros(len, sdim) #.to(self.dv)
             #EE = (torch.eye(self.n_mix) * 5. + torch.ones(self.n_mix)).to(self.dv)
             #ii=torch.randint(0,self.n_mix,[train.shape[0]])
             #trPI=EE[ii]
-            trPI=torch.zeros(train.shape[0], self.n_mix) #.to(self.dv)
+            trPI=torch.zeros(len, self.n_mix) #.to(self.dv)
         return trMU, trLOGVAR, trPI
 
     def update_s(self,mu,logvar,pi,mu_lr,wd=0, both=True):
@@ -314,7 +314,6 @@ class STVAE_mix(nn.Module):
         return self.get_loss(data_to_match,targ, mu,logvar,pi,rng,back_ground=back_ground)
 
 
-
     def compute_loss_and_grad(self,data,data_to_match,targ,d_type,optim, opt='par', rng=None,back_ground=None):
 
         optim.zero_grad()
@@ -348,8 +347,7 @@ class STVAE_mix(nn.Module):
         # if (d_type=='train'):
         #   np.random.shuffle(ii)
         tr = train[0][ii]
-        etr = train[1][ii]
-        y = train[2][ii]
+        y = train[1][ii]
         mu = MU[ii]
         logvar = LOGVAR[ii]
         pi = PI[ii]
@@ -357,7 +355,7 @@ class STVAE_mix(nn.Module):
         #print('batch_size',self.bsz)
         for j in np.arange(0, len(y), self.bsz):
             data_in = torch.from_numpy(tr[j:j + self.bsz]).float().to(self.dv)
-            data = torch.from_numpy(etr[j:j + self.bsz]).float().to(self.dv)
+            data = torch.from_numpy(tr[j:j + self.bsz]).float().to(self.dv)
             if self.perturb > 0. and d_type == 'train' and not self.opt:
                 with torch.no_grad():
                     data = deform_data(data, self.dv, self.perturb, self.trans, self.s_factor, self.h_factor, True)

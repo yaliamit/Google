@@ -35,14 +35,13 @@ def make_images(test,model,ex_file,args, datadirs=""):
         num_mu_iter=None
         torch.manual_seed(args.seed)
         np.random.seed(args.seed)
-        te=next(iter(test))
-        print(te[1])
+
         if (args.n_class):
             for c in range(model.n_class):
-                ind=(te[1]==c)
-                show_reconstructed_images([te[0][ind]],model,ex_f,args,c,extra=next(iter(test))[0])
+                ind=(test[1]==c)
+                show_reconstructed_images([test[0][ind]],model,ex_f,args,c,extra=test[0])
         else:
-            show_reconstructed_images(te[0],model,ex_f,args,None)
+            show_reconstructed_images(test,model,ex_f,args,None)
 
         if model.n_mix>1:
             for clust in range(args.n_mix):
@@ -95,8 +94,8 @@ def show_sampled_images(model,ex_file,clust=None, lower=False):
 
 def show_reconstructed_images(test,model,ex_file, args, cl=None, extra=None):
 
-    aa=test.numpy()
-    inp=torch.from_numpy(erode(args.erode,aa,extra=extra))
+    np.random.shuffle(test[0])
+    inp=torch.from_numpy(erode(args.erode,test[0][0:100],extra=extra))
 
     num_iter=args.nti
     if (cl is not None):
@@ -152,7 +151,7 @@ def erode(do_er,data,extra=None):
         ndata=np.zeros_like(data)
         for j in range(len(ndata)):
             ndata[j]=data[j]
-            ndata[j,0,rr[j,0]:,rr[j,1]:]=np.maximum(ndata[j,0,rr[j,0]:,rr[j,1]:],extra[ii[j],0,:(28-rr[j,0]),:(28-rr[j,1])])
+            ndata[j,0,rr[j,0]:,rr[j,1]:]=np.maximum(ndata[j,0,rr[j,0]:,rr[j,1]:],extra[ii[j],:(28-rr[j,0]),:(28-rr[j,1])])
         #     if (r):
         #         dda=ndimage.binary_erosion(dd[0,:,:]>0,el).astype(dd.dtype)
         #     else:

@@ -36,8 +36,7 @@ class STVAE_mix_by_class(STVAE_mix):
 
         ii = np.arange(0, train[0].shape[0], 1)
         tr = train[0][ii]
-        etr = train[1][ii]
-        y = train[2][ii]
+        y = train[1][ii]
 
         acc=0
         accb=0
