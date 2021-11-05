@@ -77,6 +77,8 @@ def train_model(model, args, ex_file, DATA, fout):
     num_train= len(train)*train.batch_size if type(train) is DataLoader else train[0].shape[0]
     if type(val) is DataLoader:
         num_val = len(val) * val.batch_size
+    elif val is  None:
+        pass
     elif val[0] is not None:
         num_val=val[0].shape[0]
 
@@ -102,9 +104,7 @@ def train_model(model, args, ex_file, DATA, fout):
         #    model.scheduler.step()
         t1 = time.time()
         trainMU, trainLOGVAR, trPI, tr_acc = model.run_epoch(train, epoch, args.num_mu_iter, trainMU, trainLOGVAR, trPI,d_type='train', fout=fout)
-        if (val is not None or val[0] is not None): # and (np.mod(epoch, 10) == 9 or epoch == 0)):
-             #prepare_recons(model, DATA, args, fout)
-             #_,_,_,val_acc=model.run_epoch(vall, epoch, args.nvi, valMU, valLOGVAR, valPI, d_type='val', fout=fout)
+        if (val is not None):
              _,_,_,val_acc=model.run_epoch(val, epoch, args.nvi, trainMU, trainLOGVAR, trPI, d_type='val', fout=fout)
 
              VAL_ACC+=[val_acc[0],tr_acc[1]]
