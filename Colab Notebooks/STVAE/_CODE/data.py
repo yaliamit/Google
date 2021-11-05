@@ -122,22 +122,22 @@ def get_data_pre(args,dataset):
     if (False): #args.edges):
         train=[pre_edges(train[0],dtr=args.edge_dtr).transpose(0,3,1,2),np.argmax(train[1], axis=1)]
         test=[pre_edges(test[0],dtr=args.edge_dtr).transpose(0,3,1,2),np.argmax(test[1], axis=1)]
-        if val[0] is not None:
+        if val is not None:
             val = [pre_edges(val[0],dtr=args.edge_dtr).transpose(0, 3, 1, 2), np.argmax(val[1], axis=1)]
     else:
         if train[1].ndim>1:
             trl=np.argmax(train[1], axis=1)
             tel=np.argmax(test[1],axis=1)
-            if val[0] is not None:
+            if val is not None:
               vall=np.argmax(val[1],axis=1)
         else:
             trl=train[1]
             tel=test[1]
-            if val[0] is not None:
+            if val is not None:
                 vall=val[1]
         train = [enlarge(quantize(train[0].transpose(0, 3, 1, 2),args.image_levels),args.new_dim),trl]
         test = [enlarge(quantize(test[0].transpose(0, 3, 1, 2), args.image_levels),args.new_dim), tel]
-        if val[0] is not None:
+        if val is not None:
             val = [enlarge(quantize(val[0].transpose(0, 3, 1, 2),args.image_levels),args.new_dim), vall]
 
     if args.edges:
@@ -153,7 +153,7 @@ def get_data_pre(args,dataset):
             tr=torch.from_numpy(test[0][j:j+jump]).to(device)
             edges_te+=[ed(tr).cpu().numpy()]
         test=[np.concatenate(edges_te,axis=0),test[1]]
-        if val[0] is not None:
+        if val is not None:
             edges_va = []
             for j in np.arange(0, test[0].shape[0], jump):
                 tr = torch.from_numpy(val[0][j:j + jump]).to(device)
