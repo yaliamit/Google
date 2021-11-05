@@ -111,6 +111,20 @@ def pre_train_new(model,args,device,fout, data=None):
     else:
         args.num_class = np.int(np.max(DATA[0][1]) + 1)
 
+    labels_tr = []
+    labels_te = []
+    if type(DATA[0]) is DataLoader:
+        for bb in enumerate(DATA[0]):
+            labels_tr += [bb[1][1].numpy()]
+        for bb in enumerate(DATA[2]):
+            labels_te += [bb[1][1].numpy()]
+        labels_tr = np.concatenate(labels_tr)
+        labels_te = np.concatenate(labels_te)
+    else:
+        labels_tr = DATA[0][1][0:args.network_num_train]
+        labels_te = DATA[2][1]
+
+
     if 'ae' in args.type:
         _,[tr,tv,te]=prepare_recons(model,DATA,args,fout)
     elif args.embedd:
@@ -128,18 +142,7 @@ def pre_train_new(model,args,device,fout, data=None):
     else:
         return
 
-    labels_tr=[]
-    labels_te=[]
-    if type(DATA[0]) is DataLoader:
-        for bb in enumerate(DATA[0]):
-            labels_tr+=[bb[1][1].numpy()]
-        for bb in enumerate(DATA[2]):
-            labels_te+=[bb[1][1].numpy()]
-        labels_tr=np.concatenate(labels_tr)
-        labels_te=np.concatenate(labels_te)
-    else:
-        labels_tr=DATA[0][1][0:args.network_num_train]
-        labels_te=DATA[2][1]
+
     trh = [tr, labels_tr]
     teh = [te, labels_te]
 

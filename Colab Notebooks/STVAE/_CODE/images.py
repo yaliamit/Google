@@ -198,7 +198,7 @@ def deform_data(x_in,perturb,trans,s_factor,h_factor,embedd):
           rr[:,[0,4]]=0
         theta = (u+rr).view(-1, 2, 3)
         grid = F.affine_grid(theta, [nn,1,h,w],align_corners=True)
-        x_out=F.grid_sample(x_in,grid,padding_mode='zeros',align_corners=True)
+        x_out=F.grid_sample(x_in,grid,padding_mode='border',align_corners=True)
 
         if x_in.shape[1]==3 and s_factor>0:
             v=torch.rand(nn,2)
