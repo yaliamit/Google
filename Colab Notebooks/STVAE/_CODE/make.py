@@ -102,7 +102,7 @@ def train_model(model, args, ex_file, DATA, fout):
         #    model.scheduler.step()
         t1 = time.time()
         trainMU, trainLOGVAR, trPI, tr_acc = model.run_epoch(train, epoch, args.num_mu_iter, trainMU, trainLOGVAR, trPI,d_type='train', fout=fout)
-        if (val[0] is not None): # and (np.mod(epoch, 10) == 9 or epoch == 0)):
+        if (val is not None or val[0] is not None): # and (np.mod(epoch, 10) == 9 or epoch == 0)):
              #prepare_recons(model, DATA, args, fout)
              #_,_,_,val_acc=model.run_epoch(vall, epoch, args.nvi, valMU, valLOGVAR, valPI, d_type='val', fout=fout)
              _,_,_,val_acc=model.run_epoch(val, epoch, args.nvi, trainMU, trainLOGVAR, trPI, d_type='val', fout=fout)

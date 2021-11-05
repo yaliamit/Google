@@ -416,8 +416,11 @@ def get_letters(PARS):
 
 
 def get_data(PARS):
-    if ('stl') in PARS['data_set']:
-        train,val,test=get_stl10_unlabeled(50,size=PARS['num_train'])
+    if 'stl' in PARS['data_set']:
+        if 'unlabeled' in PARS['data_set']:
+            train,val,test=get_stl10_unlabeled(50,size=PARS['num_train'])
+        else:
+            train, val, test = get_stl10_labeled(50, size=PARS['num_train'])
         return train,val,test,train.dataset[0][0].shape[0]
     elif ('cifar' in PARS['data_set']):
         train, val, test=get_cifar(PARS)
