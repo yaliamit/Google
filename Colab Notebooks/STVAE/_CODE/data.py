@@ -33,9 +33,9 @@ def get_stl10_unlabeled_sub(batch_size, size=0):
     LLte=-1*np.ones(telen)
 
     train=DL(list(zip(tr, LLtr)), batch_size=batch_size, num_class=0,
-               num=size, shape=tr[0].shape,shuffle=False)
+               num=trlen, shape=tr[0].shape,shuffle=False)
     test = DL(list(zip(te, LLte)), batch_size=batch_size, num_class=0,
-               num=size, shape=te[0].shape, shuffle=False)
+               num=telen, shape=te[0].shape, shuffle=False)
 
     return (train,None,test)
 
