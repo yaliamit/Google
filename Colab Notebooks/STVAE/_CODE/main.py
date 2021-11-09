@@ -5,8 +5,6 @@ from data import get_data_pre
 from images import make_images, show_examples_of_deformed_images
 import pylab as py
 
-
-
 def main_loc(par_file, device,net=None):
 
   embed_data=None

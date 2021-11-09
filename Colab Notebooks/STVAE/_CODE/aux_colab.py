@@ -93,19 +93,20 @@ def show_results(pars, datadirs, LW,sho=False):
     fig.show()
 
 
-def save_net(net,par_file,predir):
+def save_net(net,par_file,predir,args=None):
 
 
-  parser = argparse.ArgumentParser(fromfile_prefix_chars='@',
+  if args is None:
+    parser = argparse.ArgumentParser(fromfile_prefix_chars='@',
         description='Variational Autoencoder with Spatial Transformation')
 
-  parser=process_args(parser)
-  datadirs = predir + 'Colab Notebooks/STVAE/'
-  f = open(datadirs+par_file + '.txt', 'r')
-  bb = f.read().split()
-  aa = [ll for ll in bb if '#' not in ll]
-  args=parser.parse_args(aa)
-  f.close()
+    parser=process_args(parser)
+    datadirs = predir + 'Colab Notebooks/STVAE/'
+    f = open(datadirs+par_file + '.txt', 'r')
+    bb = f.read().split()
+    aa = [ll for ll in bb if '#' not in ll]
+    args=parser.parse_args(aa)
+    f.close()
   model=net
   if args.model_out is not None:
       ss=args.model_out+'.pt'
