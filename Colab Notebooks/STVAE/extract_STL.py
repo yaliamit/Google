@@ -1,7 +1,7 @@
 from torch.utils.data import DataLoader, Subset, random_split
 from torchvision import transforms, datasets
 import os
-
+import numpy as np
 
 
 class DL(DataLoader):
@@ -32,3 +32,24 @@ transform = transforms.Compose([
     ])
 
 train = datasets.STL10(get_pre()+'LSDA_data/STL', split='unlabeled', transform=transform, download=True)
+
+
+def extract_sub_images(numtr,pr):
+
+    batch_size=1000
+    shape = train.data.shape[1:]
+    DATA = DL(train, batch_size=batch_size, num_class=0, num=numtr, shape=shape, shuffle=True)
+
+    II=[]
+    size=32
+    for bb in enumerate(DATA[0]):
+
+        ii=np.random.randint(size/2,size/2+size,[DATA[0].batch_size,pr,2])
+        for k,b in enumerate(bb[1][0]):
+            for j in range(pr):
+                II+=[np.expand_dims(b[:,ii[k][j,0]:ii[k][j,0]+size,ii[k][j,1]:ii[k][j,1]+size].numpy(),axis=0)]
+
+    print(len(II))
+    III=np.concatenate(II)
+
+    np.save('stl_unlabeled_sub',III)
