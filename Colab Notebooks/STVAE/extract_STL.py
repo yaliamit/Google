@@ -26,14 +26,6 @@ def get_pre():
 
     return pre
 
-transform = transforms.Compose([
-        transforms.ToTensor(),
-
-    ])
-
-train = datasets.STL10(get_pre()+'LSDA_data/STL', split='unlabeled', transform=transform, download=True)
-
-
 def extract_sub_images(numtr,pr):
 
     batch_size=1000
@@ -53,3 +45,14 @@ def extract_sub_images(numtr,pr):
     III=np.concatenate(II)
 
     np.save('stl_unlabeled_sub',III)
+
+transform = transforms.Compose([
+        transforms.ToTensor(),
+
+    ])
+
+train = datasets.STL10(get_pre()+'LSDA_data/STL', split='unlabeled', transform=transform, download=True)
+
+
+
+extract_sub_images(50000,3)
