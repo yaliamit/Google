@@ -34,9 +34,9 @@ def extract_sub_images(numtr,pr):
 
     II=[]
     size=32
-    for bb in enumerate(DATA[0]):
+    for bb in enumerate(DATA):
 
-        ii=np.random.randint(size/2,size/2+size,[DATA[0].batch_size,pr,2])
+        ii=np.random.randint(size/2,size/2+size,[DATA.batch_size,pr,2])
         for k,b in enumerate(bb[1][0]):
             for j in range(pr):
                 II+=[np.expand_dims(b[:,ii[k][j,0]:ii[k][j,0]+size,ii[k][j,1]:ii[k][j,1]+size].numpy(),axis=0)]
