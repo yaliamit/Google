@@ -130,8 +130,8 @@ def show_sampled_images(model,ex_file,clust=None, lower=False):
 
 def show_reconstructed_images(test,model,ex_file, args, cl=None, extra=None):
 
-    np.random.shuffle(test[0])
-    inp=torch.from_numpy(erode(args.erode,test[0][0:100],extra=extra))
+    #np.random.shuffle(test[0])
+    inp=torch.from_numpy(erode(args.erode,test,extra=extra))
 
     num_iter=args.nti
     if (cl is not None):

@@ -1,6 +1,6 @@
 --type=vae
---num_train=50000
---nepoch=20
+--num_train=500
+--nepoch=1
 --sdim=20
 --transformation=aff
 --mb_size=500
