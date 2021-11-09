@@ -1,12 +1,11 @@
 from make import train_model, test_models
 from class_on_hidden import pre_train_new, cluster_hidden
 import prep
-import numpy as np
 from data import get_data_pre
-from images import make_images, make_sample
+from images import make_images, show_examples_of_deformed_images
 import pylab as py
-from torch.utils.data import DataLoader
-# Testing
+
+
 
 def main_loc(par_file, device,net=None):
 
@@ -21,30 +20,31 @@ def main_loc(par_file, device,net=None):
 
   # Get data
   DATA=get_data_pre(args,args.dataset)
-  if type(DATA[0]) is DataLoader:
-      sh=DATA[0].dataset[0][0].shape
-      args.num_class=np.max(DATA[0].dataset.dataset.labels)+1
-  else:
-      sh=DATA[0][0].shape[1:]
-      args.num_class=np.int(np.max(DATA[0][1])+1)
+  if args.deform:
+      show_examples_of_deformed_images(DATA,args)
+      exit()
+  #if type(DATA[0]) is DL:
+  sh=DATA[0].shape
+  args.num_class=DATA[0].num_class
+  #else:
+  #    sh=DATA[0][0].shape[1:]
+  #    args.num_class=np.int(np.max(DATA[0][1])+1)
   ARGS[0].num_class=args.num_class
   print('NUMCLASS',args.num_class)
 
   # Training an autoencoder.
 
 
-  if net is None:
-    models=prep.get_models(device, fout, sh, STRINGS, ARGS, args)
-    return models[0], embed_data, args
-  else:
-    models=[net]
+  #if net is None:
+  models=prep.get_models(device, fout, sh, STRINGS, ARGS, args)
+  #   return models[0], embed_data, args
+  # else:
+  #   models=[net]
   fout.flush()
   model_out=models[0]
 
   if args.cont_training:
-
       prep.copy_from_old_to_new(models[0], args, fout, SMS[0], STRINGS[0], device, sh)
-
       models[0].nti = args.nti
       models[0].opt_jump = args.opt_jump
       train_model(models[0], args, EX_FILES[0], DATA, fout)

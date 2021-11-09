@@ -34,6 +34,8 @@ sys.path.insert(1, datadirs+'_CODE')
 # ss=shifts([1,1])
 # bb=ss(aa)
 
+
+
 def  to_npy():
 
 
@@ -107,22 +109,24 @@ for a in sys.argv:
 
 
 if count_non<3:
-    par_file='pars_emb_cifar'
+    par_file='t_par'
 else:
     par_file=sys.argv[2]
     print(par_file)
 
 os.system('cat '+par_file+'.txt junk>'+par_file+'_temp.txt')
 
+
+
 temp_file=par_file+'_temp'
 if count_non<4:
     net,_,args=run_net(temp_file, device)
-    if net.optimizer_type=='Adam':
-        net.optimizer = torch.optim.Adam(net.optimizer.param_groups[0]['params'], lr=net.lr, weight_decay=net.wd)
-    else:
-        net.optimizer = torch.optim.SGD(net.optimizer.param_groups[0]['params'], lr=net.lr)
-
-    net,_,args=run_net(temp_file, device, net)
+    # if net.optimizer_type=='Adam':
+    #     net.optimizer = torch.optim.Adam(net.optimizer.param_groups[0]['params'], lr=net.lr, weight_decay=net.wd)
+    # else:
+    #     net.optimizer = torch.optim.SGD(net.optimizer.param_groups[0]['params'], lr=net.lr)
+    #
+    # net,_,args=run_net(temp_file, device, net)
     if not args.run_existing:
         save_net(net,temp_file,predir)
 else:

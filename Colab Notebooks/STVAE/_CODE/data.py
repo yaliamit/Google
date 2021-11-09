@@ -8,13 +8,36 @@ import h5py
 import scipy.ndimage
 import pylab as py
 import matplotlib.colors as col
-from images import deform_data
 from torchvision import transforms, datasets
 from torch.utils.data import DataLoader, Subset, random_split
 import torch
 import random
 
+class DL(DataLoader):
+    def __init__(self, input, batch_size, num_class, num, shape, shuffle=False):
+        super(DL, self).__init__(input,batch_size,shuffle)
+        self.num=num
+        self.num_class=num_class
+        self.shape=shape
 
+def get_stl10_unlabeled_sub(batch_size, size=0):
+
+
+    ST=np.load(get_pre()+'LSDA_data/STL/stl10_binary/stl_unlabeled_sub.npy')
+    ST=ST[0:size]
+    trlen = int(size * .95)
+    telen = int(size - trlen)
+    tr=ST[0:trlen]
+    te=ST[-telen:]
+    LLtr=-1*np.ones(trlen)
+    LLte=-1*np.ones(telen)
+
+    train=DL(list(zip(tr, LLtr)), batch_size=batch_size, num_class=0,
+               num=size, shape=tr[0].shape,shuffle=False)
+    test = DL(list(zip(te, LLte)), batch_size=batch_size, num_class=0,
+               num=size, shape=te[0].shape, shuffle=False)
+
+    return (train,None,test)
 
 
 def get_stl10_unlabeled(batch_size, size=0):
@@ -22,18 +45,20 @@ def get_stl10_unlabeled(batch_size, size=0):
         transforms.ToTensor(),
     ])
 
-    train = datasets.STL10('./data', split='unlabeled', transform=transform, download=True)
-
+    train = datasets.STL10(get_pre()+'LSDA_data/STL', split='unlabeled', transform=transform, download=True)
+    num_class=len(train.classes)
+    shape=train.data.shape[1:]
     if size != 0 and size <= len(train):
         train = Subset(train, random.sample(range(len(train)), size))
+    trlen = int(size * .95)
+    telen = int(size - trlen)
+    [train,test]=random_split(train,[trlen, telen],generator = torch.Generator().manual_seed(42))
 
-    train_loader = DataLoader(train, batch_size=batch_size, shuffle=True)
-    trlen=int(size*.8)
-    telen=int(size-trlen)
-    trlen=trlen//batch_size
-    telen=telen//batch_size
-    aa=random_split(train_loader,[trlen, telen],generator = torch.Generator().manual_seed(42))
-    return aa[0].dataset, None, aa[1].dataset
+    # train_loader = DataLoader(train, batch_size=batch_size, shuffle=True)
+    # test_loader=DataLoader(test, batch_size=batch_size, shuffle=True)
+    train_loader = DL(train, batch_size=batch_size, num_class=num_class, num=trlen, shape=shape, shuffle=True)
+    test_loader=DL(test, batch_size=batch_size,  num_class=num_class, num=telen, shape=shape, shuffle=True)
+    return train_loader, None, test_loader
 
 
 def get_stl10_labeled_old(batch_size,size=0):
@@ -42,18 +67,20 @@ def get_stl10_labeled_old(batch_size,size=0):
 
     ])
 
-    train = datasets.STL10('./data', split='train', transform=transform, download=True)
-
-    test = datasets.STL10('./data', split='test', transform=transform, download=True)
+    train = datasets.STL10(get_pre()+'LSDA_data/STL', split='train', transform=transform, download=True)
+    num_class = len(train.classes)
+    shape = train.data.shape[1:]
+    test = datasets.STL10(get_pre()+'LSDA_data/STL', split='test', transform=transform, download=True)
 
     size=min(size,len(train)) if size>0 else len(train)
-
+    numtr=size
+    numte=len(test) if size>0 and size==len(train) else size
     train = Subset(train, random.sample(range(len(train)), size))
-    test = Subset(test, random.sample(range(len(test)), len(test)))
+    test = Subset(test, random.sample(range(len(test)), numte))
 
-    train_loader = DataLoader(train, batch_size=batch_size)
+    train_loader = DL(train, batch_size=batch_size, num_class=num_class, num=numtr, shape=shape, shuffle=True)
 
-    test_loader = DataLoader(test, batch_size=batch_size)
+    test_loader = DL(test, batch_size=batch_size, num_class=num_class, num=numte, shape=shape, shuffle=True)
 
 
     return train_loader, None, test_loader
@@ -127,7 +154,7 @@ def get_data_pre(args,dataset):
         PARS['one_class'] = args.cl
 
     train, val, test, image_dim = get_data(PARS)
-    if type(train) is DataLoader or dataset=='stl10':
+    if type(train) is DL or dataset=='stl10':
         return [train,val,test]
 
     if (False): #args.edges):
@@ -179,11 +206,13 @@ def get_data_pre(args,dataset):
         test=[train[0][0:10000],train[1][0:10000]]
     print('In get_data_pre: num_train', train[0].shape[0])
     print('Num test:',test[0].shape[0])
-    #train=DataLoader(list(zip(train[0],train[1])),batch_size=args.mb_size)
-    #if val[0] is not None:
-    #    val=DataLoader(list(zip(val[0],val[1])),batch_size=args.mb_size)
-    #else:
-    #    val=None
+    num_class=np.max(train[1])+1
+    train=DL(list(zip(train[0],train[1])),batch_size=args.mb_size, num_class=num_class,
+             num=train[0].shape[0], shape=train[0].shape[1:],shuffle=False)
+    if val is not None:
+        val=DataLoader(list(zip(val[0],val[1])),batch_size=args.mb_size)
+    test = DL(list(zip(test[0], test[1])), batch_size=args.mb_size, num_class=num_class,
+               num=test[0].shape[0], shape=test[0].shape[1:],shuffle=False)
     #test=DataLoader(list(zip(test[0],test[1])),batch_size=args.mb_size)
     return [train, val, test]
 
@@ -430,13 +459,16 @@ def get_letters(PARS):
 
 def get_data(PARS):
     if 'stl' in PARS['data_set']:
-        if 'unlabeled' in PARS['data_set']:
+        if 'sub' in PARS['data_set']:
+            train, val, test=get_stl10_unlabeled_sub(PARS['mb_size'],size=PARS['num_train'])
+        elif 'unlabeled' in PARS['data_set']:
             train,val,test=get_stl10_unlabeled(PARS['mb_size'],size=PARS['num_train'])
-            return train, val, test, train.dataset[0][0].shape[0]
-        else:
-            train, val, test = get_stl10_labeled(PARS['data_set'], size=PARS['num_train'])
-            return train, val, test, train[0].shape[1]
 
+        else:
+            train, val, test = get_stl10_labeled_old(PARS['mb_size'], size=PARS['num_train'])
+            # train, val, test = get_stl10_labeled(PARS['data_set'], size=PARS['num_train'])
+            # return train, val, test, train[0].shape[1]
+        return train, val, test, train.shape[0]
     elif ('cifar' in PARS['data_set']):
         train, val, test=get_cifar(PARS)
     else:

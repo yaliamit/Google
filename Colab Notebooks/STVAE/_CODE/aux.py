@@ -103,6 +103,7 @@ def process_args(parser):
     parser.add_argument('--verbose', action='store_true', help='only optimize over pi')
     parser.add_argument('--edges', action='store_true', help='compute edges')
     parser.add_argument('--no_standardize', action='store_true', help='standardize embeddings')
+    parser.add_argument('--deform', action='store_true', help='show deformations')
     parser.add_argument('--lower_decoder', action='store_true', help='start decoding from lowerlayer')
     parser.add_argument('--bn', default='none', help='type of batch normalizations')
     parser.add_argument('--edge_dtr', type=float, default=0., help='difference minimum for edge')

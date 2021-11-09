@@ -343,26 +343,29 @@ class STVAE_mix(nn.Module):
             self.eval()
 
         tr_recon_loss = 0;tr_full_loss = 0
-        ii = np.arange(0, train[0].shape[0], 1)
-        # if (d_type=='train'):
-        #   np.random.shuffle(ii)
-        tr = train[0][ii]
-        y = train[1][ii]
-        mu = MU[ii]
-        logvar = LOGVAR[ii]
-        pi = PI[ii]
+        # ii = np.arange(0, train[0].shape[0], 1)
+        # # if (d_type=='train'):
+        # #   np.random.shuffle(ii)
+        # tr = train[0][ii]
+        # y = train[1][ii]
+        mu = MU#[ii]
+        logvar = LOGVAR#[ii]
+        pi = PI#[ii]
         self.epoch=epoch
         #print('batch_size',self.bsz)
-        for j in np.arange(0, len(y), self.bsz):
-            data_in = torch.from_numpy(tr[j:j + self.bsz]).float().to(self.dv)
-            data = torch.from_numpy(tr[j:j + self.bsz]).float().to(self.dv)
+        for j in np.arange(0, train.num, train.batch_size):
+            BB=next(iter(train))
+            data_in=BB[0].to(self.dv)
+            data=BB[0].to(self.dv)
+            #data_in = torch.from_numpy(tr[j:j + self.bsz]).float().to(self.dv)
+            #data = torch.from_numpy(tr[j:j + self.bsz]).float().to(self.dv)
             if self.perturb > 0. and d_type == 'train' and not self.opt:
                 with torch.no_grad():
                     data = deform_data(data, self.dv, self.perturb, self.trans, self.s_factor, self.h_factor, True)
             data_d = data.detach()
             target=None
             if (self.n_class>0):
-                target = torch.from_numpy(y[j:j + self.bsz]).float().to(self.dv)
+                target = BB[1].to(self.dv) #torch.from_numpy(y[j:j + self.bsz]).float().to(self.dv)
             if self.opt:
                 self.update_s(mu[j:j + self.bsz, :], logvar[j:j + self.bsz, :], pi[j:j + self.bsz], self.mu_lr[0],both=self.nosep)
                 if np.mod(epoch, self.opt_jump) == 0:
@@ -386,9 +389,9 @@ class STVAE_mix(nn.Module):
 
         if (True): #(np.mod(epoch, 10) == 9 or epoch == 0):
             fout.write('\n====> Epoch {}: {} Reconstruction loss: {:.4f}, Full loss: {:.4F}\n'.format(d_type,
-        epoch, tr_recon_loss / len(tr), tr_full_loss/len(tr)))
+        epoch, tr_recon_loss / train.num, tr_full_loss/train.num))
 
-        return mu, logvar, pi, [tr_full_loss/len(tr), tr_recon_loss / len(tr)]
+        return mu, logvar, pi, [tr_full_loss/train.num, tr_recon_loss / train.num]
 
     def recon(self,input,num_mu_iter=None, lower=False,back_ground=None):
 
@@ -403,7 +406,7 @@ class STVAE_mix(nn.Module):
             sdim=self.decoder_m.z2h._modules['0'].lin.out_features
 
         if self.opt:
-            mu, logvar, ppi = self.initialize_mus(input, sdim, True)
+            mu, logvar, ppi = self.initialize_mus(input.num, sdim, True)
 
         num_inp=input.shape[0]
         #self.setup_id(num_inp)
@@ -505,13 +508,13 @@ class STVAE_mix(nn.Module):
        EEE = torch.randn(num_samples, num_inp, self.n_mix, self.s_dim).to(self.dv)
        lsfrho=torch.log_softmax(self.rho, 0)
        lns=np.log(num_samples)
-       for j in np.arange(0, num_inp, bsz):
+       for j in np.arange(0, Input.num, Input.batch_size):
 
-            input = Input[j:j+bsz].to(self.dv)
+            input = next(iter(Input))[0]
 
 
             if self.opt:
-                mu, logvar, ppi = self.initialize_mus(input, True)
+                mu, logvar, ppi = self.initialize_mus(Input.batch_size, True)
 
 
 

@@ -4,6 +4,41 @@ import os
 import torch.nn.functional as F
 from imageio import imsave
 from scipy import ndimage
+from data import get_stl10_unlabeled
+
+def extract_sub_images(numtr,pr):
+
+    DATA=get_stl10_unlabeled(batch_size=1000, size=numtr)
+    II=[]
+    size=32
+    for bb in enumerate(DATA[0]):
+
+        ii=np.random.randint(size/2,size/2+size,[DATA[0].batch_size,pr,2])
+        for k,b in enumerate(bb[1][0]):
+            for j in range(pr):
+                II+=[np.expand_dims(b[:,ii[k][j,0]:ii[k][j,0]+size,ii[k][j,1]:ii[k][j,1]+size].numpy(),axis=0)]
+
+    print(len(II))
+    III=np.concatenate(II)
+
+    np.save('stl_unlabeled_sub',III)
+
+
+
+def show_examples_of_deformed_images(DATA,args):
+
+    BB=next(iter(DATA[2]))
+    inp=BB[0]
+    out=deform_data(inp, args.perturb, args.transformation, args.s_factor, args.h_factor, False)
+
+    GG=[]
+    for i in range(50):
+        GG+=[np.expand_dims(inp[i].numpy(),axis=0)]
+        GG+=[np.expand_dims(out[i].numpy(),axis=0)]
+    GG=np.concatenate(GG)
+    img = create_img(GG, inp.shape[1], inp.shape[2], inp.shape[3])
+
+    imsave('deformed.png', np.uint8(img * 255))
 
 def make_sample(model,args,ex_file, datadirs=""):
 
@@ -35,13 +70,14 @@ def make_images(test,model,ex_file,args, datadirs=""):
         num_mu_iter=None
         torch.manual_seed(args.seed)
         np.random.seed(args.seed)
-
+        CC=next(iter(test))
+        BB=[CC[0].numpy(),CC[1].numpy()]
         if (args.n_class):
             for c in range(model.n_class):
-                ind=(test[1]==c)
-                show_reconstructed_images([test[0][ind]],model,ex_f,args,c,extra=test[0])
+                ind=(BB[1]==c)
+                show_reconstructed_images(BB[0][ind],model,ex_f,args,c,extra=BB[0])
         else:
-            show_reconstructed_images(test,model,ex_f,args,None)
+            show_reconstructed_images(BB[0],model,ex_f,args,None)
 
         if model.n_mix>1:
             for clust in range(args.n_mix):
@@ -274,6 +310,7 @@ def hsv_to_rgb(input):
     output = output.reshape(sh)
     output = output.transpose(1, 3)
     return output
+
 
 
 class Edge(torch.nn.Module):

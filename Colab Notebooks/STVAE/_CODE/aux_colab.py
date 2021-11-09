@@ -133,9 +133,6 @@ def run_net(par_file, device, net=None):
   return net,ed, args
 
 
-
-
-
 def make_par_file_for_this_layer(args, oldn, i, d, pert, lines, layers_dict, datadirs):
 
     skip_name1 = 'pool'
@@ -231,13 +228,13 @@ def seq(par_file, predir, device, tlay=None, toldn=None):
             if outn is not None:
                 pert*=1.
                 net,_,_ = run_net('t_par'+args.t_par, device)
-                if args.optimizer=='Adam':
-                    net.optimizer = torch.optim.Adam(net.optimizer.param_groups[0]['params'], lr=net.lr,weight_decay=net.wd)
-                else:
-                    net.optimixer=torch.optim.SGD(net.optimizer.param_groups[0]['params'],lr=net.lr)
-                #net.optimizer = torch.optim.Adam(net.parameters(), lr=0.001)
-                print('aux_colab',net.optimizer.param_groups[0]['weight_decay'])
-                net,_,_ = run_net('t_par'+args.t_par, device, net)
+                # if args.optimizer=='Adam':
+                #     net.optimizer = torch.optim.Adam(net.optimizer.param_groups[0]['params'], lr=net.lr,weight_decay=net.wd)
+                # else:
+                #     net.optimixer=torch.optim.SGD(net.optimizer.param_groups[0]['params'],lr=net.lr)
+                # #net.optimizer = torch.optim.Adam(net.parameters(), lr=0.001)
+                # print('aux_colab',net.optimizer.param_groups[0]['weight_decay'])
+                # net,_,_ = run_net('t_par'+args.t_par, device, net)
                 RESULTS += [net.results]
                 save_net(net, 't_par'+args.t_par, predir)
                 #train_net('t_par',predir, RESULTS,device)

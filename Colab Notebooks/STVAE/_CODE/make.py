@@ -3,8 +3,8 @@ import os
 import time
 from images import erode,make_images, make_sample
 import torch
-from data import get_pre
-from torch.utils.data import DataLoader
+from data import get_pre, DL
+
 
 def save_net_int(model,model_out,args,predir):
 
@@ -37,7 +37,7 @@ def test_models(ARGS, SMS, test, models, fout):
     CF=None
     #CF = [conf] + list(np.zeros(ls - 1))
     # Combine output from a number of existing models. Only hard ones move to next model?
-    tes=[test[0],test[0],test[1]]
+    tes=[test[0],test[1]]
     if (ARGS[0].n_class):
         for sm, model, args, cf in zip(SMS, models, ARGS, CF):
             model.load_state_dict(sm['model.state.dict'])
@@ -74,13 +74,14 @@ def train_model(model, args, ex_file, DATA, fout):
     valMU=None; valLOGVAR=None; valPI=None
     model.optimizer.param_groups[0]['lr']=args.lr
     model.get_scheduler(args)
-    num_train= len(train)*train.batch_size if type(train) is DataLoader else train[0].shape[0]
-    if type(val) is DataLoader:
-        num_val = len(val) * val.batch_size
-    elif val is not None:
-        num_val=val[0].shape[0]
+    num_train= train.num if type(train) is DL else train[0].shape[0]
+    num_test= test.num if type(test) is DL else test[0].shape[0]
+    if type(val) is DL:
+        num_val = val.num
+    #elif val is not None:
+    #   num_val=val[0].shape[0]
 
-    fout.write("Num train:{0}\n".format(num_train))
+    fout.write("Num train:{0}, Num test:{1}\n".format(num_train,num_test))
 
     if 'ae' in args.type:
         trainMU, trainLOGVAR, trPI = model.initialize_mus(num_train, model.s_dim, args.OPT)
@@ -131,10 +132,10 @@ def train_model(model, args, ex_file, DATA, fout):
             rho=model.rho.detach().cpu().numpy()
             print('rho',np.exp(rho)/np.sum(np.exp(rho)),file=fout)
             if args.hid_layers is None:
-                testMU, testLOGVAR, testPI = model.initialize_mus(train[0], model.s_dim, args.OPT)
+                testMU, testLOGVAR, testPI = model.initialize_mus(num_train, model.s_dim, args.OPT)
                 print('args.nti',args.nti,args.mu_lr,file=fout)
                 model.run_epoch(train, 0, args.nti, testMU, testLOGVAR, testPI, d_type='train_test', fout=fout)
-                testMU, testLOGVAR, testPI = model.initialize_mus(test[0], model.s_dim, args.OPT)
+                testMU, testLOGVAR, testPI = model.initialize_mus(num_test, model.s_dim, args.OPT)
                 model.run_epoch(test, 0, args.nti, testMU, testLOGVAR, testPI, d_type='test_test', fout=fout)
 
         fout.write('writing to ' + ex_file + '\n')

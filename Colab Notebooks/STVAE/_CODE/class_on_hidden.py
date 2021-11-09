@@ -13,7 +13,7 @@ from images import create_image
 import pickle
 import os
 from data import get_pre
-from torch.utils.data import DataLoader
+from data import DL
 
 def prepare_recons(model, DATA, args,fout):
     dat = []
@@ -106,53 +106,32 @@ def pre_train_new(model,args,device,fout, data=None):
     datn = args.hid_dataset if args.hid_dataset is not None else args.dataset
     print('getting:' + datn)
     DATA = get_data_pre(args, datn)
-    if type(DATA[0]) is DataLoader:
-        args.num_class = np.max(DATA[0].dataset.dataset.labels) + 1
+    if type(DATA[0]) is DL:
+        args.num_class = DATA[0].num_class
     else:
         args.num_class = np.int(np.max(DATA[0][1]) + 1)
-
-    labels_tr = []
-    labels_te = []
-    if type(DATA[0]) is DataLoader:
-        for bb in enumerate(DATA[0]):
-            labels_tr += [bb[1][1].numpy()]
-        for bb in enumerate(DATA[2]):
-            labels_te += [bb[1][1].numpy()]
-        labels_tr = np.concatenate(labels_tr)
-        labels_te = np.concatenate(labels_te)
-    else:
-        labels_tr = DATA[0][1][0:args.network_num_train]
-        labels_te = DATA[2][1]
-
-
     if 'ae' in args.type:
         _,[tr,tv,te]=prepare_recons(model,DATA,args,fout)
     elif args.embedd:
-        if type(DATA[0]) is DataLoader:
-            dat=DATA[0]
-            dat_te=DATA[2]
-        else:
-            dat=DATA[0][0][0:args.network_num_train]
-            dat_te=DATA[2][0]
 
-        tr = model.get_embedding(dat) #.detach().cpu().numpy()
-        tr = tr.reshape(tr.shape[0], -1)
-        te = model.get_embedding(dat_te) #.detach().cpu().numpy()
-        te = te.reshape(te.shape[0], -1)
+        tr = model.get_embedding(DATA[0]) #.detach().cpu().numpy()
+        tr[0] = tr[0].reshape(tr[0].shape[0], -1)
+        trdl = DL(list(zip(tr[0], tr[1])), batch_size=args.mb_size, num_class=args.num_class,
+                  num=tr[0].shape[0], shape=tr[0].shape[1:], shuffle=False)
+        te = model.get_embedding(DATA[2]) #.detach().cpu().numpy()
+        te[0] = te[0].reshape(te[0].shape[0], -1)
+        tedl = DL(list(zip(te[0], te[1])), batch_size=args.mb_size, num_class=args.num_class,
+                  num=te[0].shape[0], shape=te[0].shape[1:], shuffle=False)
     else:
         return
-
-
-    trh = [tr, labels_tr]
-    teh = [te, labels_te]
 
     args.embedd = False
     args.update_layers=None
     args.lr=args.hid_lr
     if 'xla' in device.type:
-        return [trh, teh]
+        return [tr, te]
     else:
-        res=train_new(args,trh,teh,fout,device)
+        res=train_new(args,trdl,tedl,fout,device)
         if hasattr(model, 'results'):
             model.results[1]=res[0]
         else:
@@ -183,7 +162,7 @@ def train_new(args,train,test,fout,device):
 def train_new_old(args,train,test,fout,device,net=None):
 
     #fout=sys.stdout
-    print("In from hidden number of training",train[0].shape[0])
+    print("In from hidden number of training",train.num)
     print('In train new:')
     print(str(args))
     val = None
@@ -193,8 +172,7 @@ def train_new_old(args,train,test,fout,device,net=None):
         args.hid_lnti, args.hid_layers_dict = prep.get_network(args.hid_layers)
         args.perturb=0
         #args.sched=[0,0]
-        net=network.network(device,args,args.hid_layers_dict, args.hid_lnti, sh=train[0].shape[1:]).to(device)
-
+        net=network.network(device,args,args.hid_layers_dict, args.hid_lnti, sh=train.shape).to(device)
         net.get_scheduler(args)
 
     freq=10

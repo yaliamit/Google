@@ -6,7 +6,7 @@ from losses import *
 import sys
 from layers import *
 import time
-from torch.utils.data import DataLoader
+from data import DL
 
 try:
     import torch_xla.core.xla_model as xm
@@ -420,14 +420,14 @@ class network(nn.Module):
         else:
             self.eval()
 
-        if type(train) is DataLoader:
-            jump=train.batch_size
-            self.n_class=np.max(train.dataset.dataset.labels)+1
-            num_tr=len(train)*train.batch_size
-        else:
-            jump = self.bsz
-            self.n_class = np.max(train[1]) + 1
-            num_tr=train[0].shape[0]
+        #if type(train) is DL:
+        jump=train.batch_size
+        self.n_class=train.num_class
+        num_tr=train.num
+        #else:
+        #    jump = self.bsz
+        #    self.n_class = np.max(train[1]) + 1
+        #    num_tr=train[0].shape[0]
 
         ll=1
         full_loss=np.zeros(ll); full_acc=np.zeros(ll); count=np.zeros(ll)
@@ -438,13 +438,13 @@ class network(nn.Module):
         TIME=0
         for j in np.arange(0, num_tr, jump,dtype=np.int32):
             lnum=0
-            if type(train) is DataLoader:
-                BB=next(iter(train))
-                data_in=BB[0]
-                target=BB[1].to(self.dv, dtype=torch.long)
-            else:
-                data_in = torch.from_numpy(train[0][j:j + jump]).float()
-                target = torch.from_numpy(train[1][j:j + jump]).to(self.dv, dtype=torch.long)
+            #if type(train) is DL:
+            BB=next(iter(train))
+            data_in=BB[0]
+            target=BB[1].to(self.dv, dtype=torch.long)
+            #else:
+            #    data_in = torch.from_numpy(train[0][j:j + jump]).float()
+            #    target = torch.from_numpy(train[1][j:j + jump]).to(self.dv, dtype=torch.long)
 
             if (d_type == 'train'):
                 self.optimizer.zero_grad()
@@ -494,29 +494,33 @@ class network(nn.Module):
 
         lay=self.embedd_layer
 
-        if type(train) is DataLoader:
-            jump = train.batch_size
-            num_tr = len(train) * train.batch_size
-        else:
-            jump = self.bsz
-            num_tr = train.shape[0]
+        #if type(train) is DL:
+        jump = train.batch_size
+        num_tr = train.num
+        #else:
+        #    jump = self.bsz
+        #    num_tr = train.shape[0]
 
         self.eval()
         OUT=[]
+        labels=[]
         for j in np.arange(0, num_tr, jump, dtype=np.int32):
-            if type(train) is DataLoader:
-                BB = next(iter(train))
-                data = BB[0]
-            else:
-                data = (torch.from_numpy(train[j:j + jump]).float())
+            #if type(train) is DL:
+            BB = next(iter(train))
+            data = BB[0]
+            labels+=[BB[1].numpy()]
+            #else:
+            #    data = (torch.from_numpy(train[0][j:j + jump]).float())
+            #    labels+=[train[1][j:j+jump]]
             data=data.to(self.dv)
             with torch.no_grad():
                 out=self.forward(data, everything=True, end_lay=lay)[1][lay].detach().cpu().numpy()
                 OUT+=[out]
 
         OUTA=np.concatenate(OUT,axis=0)
+        labels=np.concatenate(labels)
 
-        return OUTA
+        return [OUTA,labels]
 
     def get_scheduler(self,args):
         self.scheduler = None
