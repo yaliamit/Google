@@ -2,7 +2,7 @@ from torch.utils.data import DataLoader, Subset, random_split
 from torchvision import transforms, datasets
 import os
 import numpy as np
-
+import random
 
 class DL(DataLoader):
     def __init__(self, input, batch_size, num_class, num, shape, shuffle=False):
@@ -27,17 +27,19 @@ def get_pre():
     return pre
 
 def extract_sub_images(numtr,pr):
+    train = datasets.STL10(get_pre() + 'LSDA_data/STL', split='unlabeled', transform=transform, download=True)
 
     batch_size=1000
     shape = train.data.shape[1:]
+    train = Subset(train, random.sample(range(len(train)), numtr))
     DATA = DL(train, batch_size=batch_size, num_class=0, num=numtr, shape=shape, shuffle=True)
 
     II=[]
     size=32
     for bb in enumerate(DATA):
-
         ii=np.random.randint(size/2,size/2+size,[DATA.batch_size,pr,2])
         for k,b in enumerate(bb[1][0]):
+            print(k)
             for j in range(pr):
                 II+=[np.expand_dims(b[:,ii[k][j,0]:ii[k][j,0]+size,ii[k][j,1]:ii[k][j,1]+size].numpy(),axis=0)]
 
@@ -51,8 +53,8 @@ transform = transforms.Compose([
 
     ])
 
-train = datasets.STL10(get_pre()+'LSDA_data/STL', split='unlabeled', transform=transform, download=True)
 
 
 
-extract_sub_images(50000,3)
+
+extract_sub_images(1000,3)
