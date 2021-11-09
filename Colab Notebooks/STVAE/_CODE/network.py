@@ -170,7 +170,7 @@ class network(nn.Module):
                     OUTS[ll['name']] = getattr(self.layers, ll['name'])(OUTS[inp_ind])
                 if ('Avg' in ll['name']):
                     if self.first:
-                        HW=(np.int32(OUTS[inp_ind].shape[2]/2),np.int32(OUTS[inp_ind].shape[3]/2))
+                        HW=(np.int32(OUTS[inp_ind].shape[2]/ll['rate']),np.int32(OUTS[inp_ind].shape[3]/ll['rate']))
                         self.layers.add_module(ll['name'],nn.AvgPool2d(HW,HW))
                     out = getattr(self.layers, ll['name'])(OUTS[inp_ind])
                     OUTS[ll['name']] = out
