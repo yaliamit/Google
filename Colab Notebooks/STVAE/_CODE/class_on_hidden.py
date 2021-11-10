@@ -13,6 +13,7 @@ from images import create_image
 import pickle
 import os
 from data import get_pre
+from torch.utils.data import Subset
 from data import DL
 
 def prepare_recons(model, DATA, args,fout):

@@ -41,12 +41,13 @@ class STVAE_mix_by_class(STVAE_mix):
         acc=0
         accb=0
         DF=[]; RY=[]; YY=[]
+        tra=iter(train)
         for j in np.arange(0, train.num, train.batch_size):
             KD = []
             BB = []
             fout.write('Batch '+str(j)+'\n')
             fout.flush()
-            bb=next(iter(train))
+            bb=next(tra)
             data = bb[0].to(self.dv)
             y=bb[1].numpy()
             YY+=[y]

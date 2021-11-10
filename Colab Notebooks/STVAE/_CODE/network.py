@@ -436,10 +436,11 @@ class network(nn.Module):
 
 
         TIME=0
+        tra=iter(train)
         for j in np.arange(0, num_tr, jump,dtype=np.int32):
             lnum=0
             #if type(train) is DL:
-            BB=next(iter(train))
+            BB=next(tra)
             data_in=BB[0]
             target=BB[1].to(self.dv, dtype=torch.long)
             #else:
@@ -504,9 +505,10 @@ class network(nn.Module):
         self.eval()
         OUT=[]
         labels=[]
+        tra=iter(train)
         for j in np.arange(0, num_tr, jump, dtype=np.int32):
             #if type(train) is DL:
-            BB = next(iter(train))
+            BB = next(tra)
             data = BB[0]
             labels+=[BB[1].numpy()]
             #else:

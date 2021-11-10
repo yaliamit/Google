@@ -75,12 +75,22 @@ def get_stl10_labeled_old(batch_size,size=0):
     size=min(size,len(train)) if size>0 else len(train)
     numtr=size
     numte=len(test) if size>0 and size==len(train) else size
-    train = Subset(train, random.sample(range(len(train)), size))
-    test = Subset(test, random.sample(range(len(test)), numte))
+    train = Subset(train, range(numtr))
+    test = Subset(test, range(numte))
 
-    train_loader = DL(train, batch_size=batch_size, num_class=num_class, num=numtr, shape=shape, shuffle=True)
+    train_loader = DL(train, batch_size=batch_size, num_class=num_class, num=numtr, shape=shape, shuffle=False)
 
-    test_loader = DL(test, batch_size=batch_size, num_class=num_class, num=numte, shape=shape, shuffle=True)
+    test_loader = DL(test, batch_size=batch_size, num_class=num_class, num=numte, shape=shape, shuffle=False)
+
+    # DD=[]; LL=[]
+    # for b in enumerate(test_loader):
+    #     DD+=[b[1][0].numpy()]
+    #     LL+=[b[1][1].numpy()]
+    #
+    # DD=np.concatenate(DD)
+    # LL=np.concatenate(LL)
+    # np.save('stl10_test_data',DD)
+    # np.save('slt10_test_labels',LL)
 
 
     return train_loader, None, test_loader
@@ -465,9 +475,9 @@ def get_data(PARS):
             train,val,test=get_stl10_unlabeled(PARS['mb_size'],size=PARS['num_train'])
 
         else:
-            train, val, test = get_stl10_labeled_old(PARS['mb_size'], size=PARS['num_train'])
-            # train, val, test = get_stl10_labeled(PARS['data_set'], size=PARS['num_train'])
-            # return train, val, test, train[0].shape[1]
+            traino, valo, testo = get_stl10_labeled_old(PARS['mb_size'], size=PARS['num_train'])
+            train, val, test = get_stl10_labeled(PARS['data_set'], size=PARS['num_train'])
+            return traino, valo, testo, traino.shape[0]
         return train, val, test, train.shape[0]
     elif ('cifar' in PARS['data_set']):
         train, val, test=get_cifar(PARS)

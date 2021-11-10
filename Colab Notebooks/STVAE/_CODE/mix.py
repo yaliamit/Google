@@ -353,8 +353,9 @@ class STVAE_mix(nn.Module):
         pi = PI#[ii]
         self.epoch=epoch
         #print('batch_size',self.bsz)
+        tra=iter(train)
         for j in np.arange(0, train.num, train.batch_size):
-            BB=next(iter(train))
+            BB=next(tra)
             data_in=BB[0].to(self.dv)
             data=BB[0].to(self.dv)
             #data_in = torch.from_numpy(tr[j:j + self.bsz]).float().to(self.dv)
@@ -508,9 +509,10 @@ class STVAE_mix(nn.Module):
        EEE = torch.randn(num_samples, num_inp, self.n_mix, self.s_dim).to(self.dv)
        lsfrho=torch.log_softmax(self.rho, 0)
        lns=np.log(num_samples)
+       tra=iter(train)
        for j in np.arange(0, Input.num, Input.batch_size):
 
-            input = next(iter(Input))[0]
+            input = next(tra)[0]
 
 
             if self.opt:
