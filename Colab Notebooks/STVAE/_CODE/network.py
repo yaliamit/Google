@@ -494,26 +494,17 @@ class network(nn.Module):
     def get_embedding(self, train):
 
         lay=self.embedd_layer
-
-        #if type(train) is DL:
         jump = train.batch_size
         num_tr = train.num
-        #else:
-        #    jump = self.bsz
-        #    num_tr = train.shape[0]
 
         self.eval()
         OUT=[]
         labels=[]
         tra=iter(train)
         for j in np.arange(0, num_tr, jump, dtype=np.int32):
-            #if type(train) is DL:
             BB = next(tra)
             data = BB[0]
             labels+=[BB[1].numpy()]
-            #else:
-            #    data = (torch.from_numpy(train[0][j:j + jump]).float())
-            #    labels+=[train[1][j:j+jump]]
             data=data.to(self.dv)
             with torch.no_grad():
                 out=self.forward(data, everything=True, end_lay=lay)[1][lay].detach().cpu().numpy()

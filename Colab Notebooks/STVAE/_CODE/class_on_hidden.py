@@ -115,11 +115,15 @@ def pre_train_new(model,args,device,fout, data=None):
         _,[tr,tv,te]=prepare_recons(model,DATA,args,fout)
     elif args.embedd:
 
-        tr = model.get_embedding(DATA[0]) #.detach().cpu().numpy()
+        tr = model.get_embedding(DATA[0])
+        if args.AVG:
+            tr=[np.mean(tr[0],axis=(2,3)),tr[1]]
         tr[0] = tr[0].reshape(tr[0].shape[0], -1)
         trdl = DL(list(zip(tr[0], tr[1])), batch_size=args.mb_size, num_class=args.num_class,
                   num=tr[0].shape[0], shape=tr[0].shape[1:], shuffle=False)
-        te = model.get_embedding(DATA[2]) #.detach().cpu().numpy()
+        te = model.get_embedding(DATA[2])
+        if args.AVG:
+            te=[np.mean(te[0],axis=(2,3)),te[1]]
         te[0] = te[0].reshape(te[0].shape[0], -1)
         tedl = DL(list(zip(te[0], te[1])), batch_size=args.mb_size, num_class=args.num_class,
                   num=te[0].shape[0], shape=te[0].shape[1:], shuffle=False)

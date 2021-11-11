@@ -31,7 +31,7 @@ def extract_sub_images(numtr,pr):
 
     batch_size=1000
     shape = train.data.shape[1:]
-    train = Subset(train, random.sample(range(len(train)), numtr))
+    train = Subset(train, range(numtr))
     DATA = DL(train, batch_size=batch_size, num_class=0, num=numtr, shape=shape, shuffle=True)
 
     II=[]
@@ -39,7 +39,6 @@ def extract_sub_images(numtr,pr):
     for bb in enumerate(DATA):
         ii=np.random.randint(size/2,size/2+size,[DATA.batch_size,pr,2])
         for k,b in enumerate(bb[1][0]):
-            print(k)
             for j in range(pr):
                 II+=[np.expand_dims(b[:,ii[k][j,0]:ii[k][j,0]+size,ii[k][j,1]:ii[k][j,1]+size].numpy(),axis=0)]
 
