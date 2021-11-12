@@ -29,7 +29,7 @@ def show_examples_of_deformed_images(DATA,args):
 
     BB=next(iter(DATA[2]))
     inp=BB[0]
-    out=deform_data(inp, args.perturb, args.transformation, args.s_factor, args.h_factor, False)
+    out=deform_data(inp, args.perturb, args.transformation, args.s_factor, args.h_factor, args.embedd)
 
     GG=[]
     for i in range(50):
@@ -205,6 +205,10 @@ def deform_data(x_in,perturb,trans,s_factor,h_factor,embedd):
         w=x_in.shape[3]
         nn=x_in.shape[0]
         v=((torch.rand(nn, 6) - .5) * perturb)
+        #v=(torch.rand(nn, 6)+.2)
+        #b=2*(torch.bernoulli(.5*torch.ones(nn,6)))-1
+        #v=v*b*perturb
+
         rr = torch.zeros(nn, 6)
         if not embedd:
             ii = torch.randperm(nn)
@@ -220,6 +224,7 @@ def deform_data(x_in,perturb,trans,s_factor,h_factor,embedd):
         elif trans=='scale':
           u[:,[1,3]]=0
         elif 'rotate' in trans:
+          u[:,[2,5]]=0
           u[:,[0,1,3,4]]*=1.5
           ang=u[:,0]
           v=torch.zeros(nn,6)
@@ -233,6 +238,8 @@ def deform_data(x_in,perturb,trans,s_factor,h_factor,embedd):
           u[:,[0,1,3,4]]=v[:,[0,1,3,4]]*s.reshape(-1,1).expand(nn,4)
           rr[:,[0,4]]=0
         theta = (u+rr).view(-1, 2, 3)
+        #print(u)
+        #print(theta)
         grid = F.affine_grid(theta, [nn,1,h,w],align_corners=True)
         x_out=F.grid_sample(x_in,grid,padding_mode='border',align_corners=True)
 
@@ -245,9 +252,9 @@ def deform_data(x_in,perturb,trans,s_factor,h_factor,embedd):
             x_out_hsv[:,0,:,:]=torch.remainder(x_out_hsv[:,0,:,:]+uu,1.)
             x_out=hsv_to_rgb(x_out_hsv)
 
-        ii=torch.where(torch.bernoulli(torch.ones(nn)*.5)==1)
-        for i in ii:
-              x_out[i]=x_out[i].flip(3)
+        # ii=torch.where(torch.bernoulli(torch.ones(nn)*.5)==1)
+        # for i in ii:
+        #       x_out[i]=x_out[i].flip(3)
         return x_out
 
 def rgb_to_hsv(input):

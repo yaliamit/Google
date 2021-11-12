@@ -4,6 +4,7 @@ import prep
 from data import get_data_pre
 from images import make_images, show_examples_of_deformed_images
 import pylab as py
+import sys
 
 def main_loc(par_file, device,net=None):
 
@@ -20,7 +21,7 @@ def main_loc(par_file, device,net=None):
   DATA=get_data_pre(args,args.dataset)
   if args.deform:
       show_examples_of_deformed_images(DATA,args)
-      exit()
+      sys.exit()
   #if type(DATA[0]) is DL:
   sh=DATA[0].shape
   args.num_class=DATA[0].num_class
