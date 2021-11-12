@@ -14,6 +14,7 @@ def process_args(parser):
     parser.add_argument('--transformation', default='aff', help='type of transformation: aff or tps')
     parser.add_argument('--t_par', default='', help='suffix of temp file')
     parser.add_argument('--feats', type=int, default=0, help='Number of features in case data preprocessed')
+    parser.add_argument('--crop', type=int, default=None, help='Size of random crop')
     parser.add_argument('--feats_back', action='store_true',help='reconstruct image from features')
     parser.add_argument('--filts', type=int, default=3, help='Filter size')
     parser.add_argument('--pool', type=int, default=2, help='Pooling size')

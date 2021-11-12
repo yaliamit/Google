@@ -40,14 +40,23 @@ def get_stl10_unlabeled_sub(batch_size, size=0):
     return (train,None,test)
 
 
-def get_stl10_unlabeled(batch_size, size=0):
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-    ])
+def get_stl10_unlabeled(batch_size, size=0, crop=None):
 
+
+    if crop is not None:
+      transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.RandomCrop(crop, padding=None, pad_if_needed=False, fill=0, padding_mode='edge')])
+    else:
+      transform = transforms.Compose([
+          transforms.ToTensor(),
+      ])
     train = datasets.STL10(get_pre()+'LSDA_data/STL', split='unlabeled', transform=transform, download=True)
     num_class=len(train.classes)
-    shape=train.data.shape[1:]
+    if crop is None:
+        shape=train.data.shape[1:]
+    else:
+        shape=[train.data.shape[1],crop,crop]
     if size != 0 and size <= len(train):
         train = Subset(train, random.sample(range(len(train)), size))
     trlen = int(size * .95)
@@ -160,6 +169,7 @@ def get_data_pre(args,dataset):
     PARS['num_train'] = args.num_train // args.mb_size * args.mb_size
     PARS['nval'] = args.nval
     PARS['mb_size']=args.mb_size
+    PARS['crop']=args.crop
     if args.cl is not None:
         PARS['one_class'] = args.cl
 
@@ -472,7 +482,7 @@ def get_data(PARS):
         if 'sub' in PARS['data_set']:
             train, val, test=get_stl10_unlabeled_sub(PARS['mb_size'],size=PARS['num_train'])
         elif 'unlabeled' in PARS['data_set']:
-            train,val,test=get_stl10_unlabeled(PARS['mb_size'],size=PARS['num_train'])
+            train,val,test=get_stl10_unlabeled(PARS['mb_size'],size=PARS['num_train'],crop=PARS['crop'])
 
         else:
             traino, valo, testo = get_stl10_labeled_old(PARS['mb_size'], size=PARS['num_train'])
