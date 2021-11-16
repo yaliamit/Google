@@ -42,7 +42,7 @@ def main_loc(par_file, device,net=None):
   fout.flush()
   model_out=models[0]
 
-  if args.cont_training:
+  if args.cont_training and not args.run_existing:
       prep.copy_from_old_to_new(models[0], args, fout, SMS[0], STRINGS[0], device, sh)
       models[0].nti = args.nti
       models[0].opt_jump = args.opt_jump
