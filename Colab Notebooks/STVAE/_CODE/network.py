@@ -296,13 +296,14 @@ class network(nn.Module):
                 if end_lay is not None and end_lay in ll['name']:
                     DONE=True
 
-        if self.first==1:
+        if self.first:
             if self.embedd_type == 'clapp' and self.clapp_dim is None:
                 self.clapp_dim=prev_shape
                 # self.add_module('clapp', nn.Linear(self.clapp_dim, self.clapp_dim))
                 self.add_module('clapp',nn.Conv2d(self.clapp_dim[1],self.clapp_dim[1],1))
                 if self.update_layers is not None:
                     self.update_layers.append('clapp')
+        if self.first==1:
             #print(self.layers, file=self.fout)
             tot_pars = 0
             KEYS=[]
