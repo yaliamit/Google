@@ -157,8 +157,8 @@ def copy_from_old_to_new(model, args, fout, SMS, strings,device, sh):
     # Loop over parameters of N1
 
     for name, param_old in params_old:
-        if 'clapp' in name:
-            continue
+        #if 'clapp' in name:
+        #    continue
         temp=name.split('.')
         temp[1]+='_fa'
         temp_name='.'.join(temp)
