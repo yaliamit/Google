@@ -97,9 +97,9 @@ def train_model(model, args, ex_file, DATA, fout):
         trainMU, trainLOGVAR, trPI, tr_acc = model.run_epoch(train, 0, args.nti, trainMU, trainLOGVAR, trPI,
                                                              d_type='test', fout=fout)
     print('make', model.optimizer.param_groups[0]['weight_decay'])
-    if 'ga' in get_pre():
-        print('loading on both gpus')
-        model=torch.nn.DataParallel(model, device_ids=[0, 1])
+    # if 'ga' in get_pre():
+    #     print('loading on both gpus')
+    #     model=torch.nn.DataParallel(model, device_ids=[0, 1])
     for epoch in range(args.nepoch):
         #print('time step',model.optimizer.param_groups[0]['lr'])
         #if (model.scheduler is not None):
