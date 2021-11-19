@@ -75,7 +75,10 @@ def train_model(model, args, ex_file, DATA, fout):
     model.optimizer.param_groups[0]['lr']=args.lr
     model.get_scheduler(args)
     num_train= train.num if type(train) is DL else train[0].shape[0]
-    num_test= test.num if type(test) is DL else test[0].shape[0]
+    num_test=0
+    if test is not None:
+        num_test= test.num if type(test) is DL else test[0].shape[0]
+
     if type(val) is DL:
         num_val = val.num
     #elif val is not None:
