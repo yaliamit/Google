@@ -106,7 +106,7 @@ def train_model(model, args, ex_file, DATA, fout):
         #if (model.scheduler is not None):
         #    model.scheduler.step()
         t1 = time.time()
-        trainMU, trainLOGVAR, trPI, tr_acc = model.run_epoch(train, epoch, args.num_mu_iter, trainMU, trainLOGVAR, trPI,d_type='train', fout=fout)
+        trainMU, trainLOGVAR, trPI, tr_acc = run_epoch(model,train, epoch, args.num_mu_iter, trainMU, trainLOGVAR, trPI,d_type='train', fout=fout)
         if (val is not None):
              _,_,_,val_acc=run_epoch(model,val, epoch, args.nvi, trainMU, trainLOGVAR, trPI, d_type='val', fout=fout)
 
