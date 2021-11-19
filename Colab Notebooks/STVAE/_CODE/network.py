@@ -21,6 +21,8 @@ pre=get_pre()
 osu=os.uname()
 
 
+
+
 # Network module
 class network(nn.Module):
     def __init__(self, device,  args, layers, lnti, fout=None, sh=None, first=1):
@@ -28,6 +30,7 @@ class network(nn.Module):
 
         self.grad_clip=args.grad_clip
         self.bn=args.bn
+        #self.patch_size=args.patch_size
         self.trans=args.transformation
         self.wd=args.wd
         self.embedd=args.embedd
@@ -411,7 +414,28 @@ class network(nn.Module):
             loss+=pen
         return loss, acc
 
-
+    # def deform_gaze2(self, x):
+    #     n_negs=1
+    #     bsz = x.size(0)
+    #     patch_size = self.patch_size
+    #     x_unfold = F.unfold(x, kernel_size=patch_size, stride=patch_size // 2)  # (bsz, 256, 49)
+    #     all_patches = x_unfold.permute(0, 2, 1).reshape(bsz * x_unfold.shape[-1], patch_size,
+    #                                                     patch_size)  # (bsz*49, 16, 16)
+    #     output = all_patches.unsqueeze(dim=1)  # bsz*49, 1, 16, 16
+    #     n_patches=np.int(np.sqrt(output.shape[0]//bsz))
+    #     all_embedd = output.reshape(bsz, n_patches, n_patches, output.shape[2], output.shape[3])
+    #     for k in range(n_patches - 2):
+    #         anchor = all_embedd[:, k:k + 1, :, :,:]  # bsz, 1, 7, 64
+    #         positives = all_embedd[:, k + 2:n_patches, :, :,:]  # bsz, n_pos, 7, 64
+    #         # sample with replacement
+    #         rand_idx = torch.randint(output.size(0),
+    #                                  (n_negs * anchor.shape[0] * n_patches * (n_patches - k - 2),))
+    #         negatives = output[rand_idx].reshape(-1, (n_patches - k - 2) * n_negs, n_patches,
+    #                                              output.shape[2],output.shape[3])
+    #
+    #
+    #
+    #     return [positives,negatives]
 
     # Epoch of network training
     def run_epoch(self, train, epoch, num_mu_iter=None, trainMU=None, trainLOGVAR=None, trPI=None, d_type='train', fout='OUT',freq=1):
@@ -452,10 +476,14 @@ class network(nn.Module):
                 self.optimizer.zero_grad()
 
             if self.embedd:
-                with torch.no_grad():
+                #if self.patch_size is not None:
+                #    pass
+                #   # data=self.deform_gaze2(data_in).to(self.dv)
+                #else:
+                 with torch.no_grad():
                     data_out=deform_data(data_in,self.perturb,self.trans,self.s_factor,self.h_factor,self.embedd)
                     data_in=deform_data(data_in,self.perturb,self.trans,self.s_factor,self.h_factor,self.embedd)
-                data=[data_in.to(self.dv),data_out.to(self.dv)]
+                 data=[data_in.to(self.dv),data_out.to(self.dv)]
             else:
                 if self.perturb>0.and d_type=='train':
                    with torch.no_grad():

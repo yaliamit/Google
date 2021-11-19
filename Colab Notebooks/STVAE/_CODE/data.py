@@ -85,18 +85,50 @@ def get_stl10_unlabeled(batch_size, size=0, crop=None):
 def get_stl10_labeled(batch_size,size=0,crop=None):
 
 
-    if crop is None or crop>0:
-        transform = transforms.Compose([
-            transforms.ToTensor()])
-    elif crop<0:
+    if crop is not None:
+        if crop > 0:
+            transform = transforms.Compose([
+                transforms.ToTensor(),
+                transforms.RandomCrop(crop, padding=None, pad_if_needed=False, fill=0, padding_mode='edge')])
+
+            test_transform=transforms.Compose([
+                transforms.ToTensor(),
+                transforms.CenterCrop(crop)])
+        elif crop < 0:
+            transform = transforms.Compose([
+                transforms.ToTensor(),
+                transforms.RandomCrop(-crop, padding=None, pad_if_needed=False, fill=0, padding_mode='edge'),
+                transforms.Grayscale()
+            ]
+            )
+            test_transform = transforms.Compose([
+                transforms.ToTensor(),
+                transforms.CenterCrop(-crop),
+                transforms.Grayscale()
+            ]
+            )
+    else:
         transform = transforms.Compose([
             transforms.ToTensor(),
-        transforms.Grayscale()])
+        ])
+        test_transform = transforms.Compose([
+            transforms.ToTensor(),
+        ])
+
+
 
     train = datasets.STL10(get_pre()+'LSDA_data/STL', split='train', transform=transform, download=True)
     num_class = len(train.classes)
-    shape = train.data.shape[1:]
-    test = datasets.STL10(get_pre()+'LSDA_data/STL', split='test', transform=transform, download=True)
+
+    if crop is None:
+        shape=train.data.shape[1:]
+    else:
+        if crop>0:
+            shape=[train.data.shape[1],crop,crop]
+        elif crop<0:
+            shape=[1,-crop,-crop]
+
+    test = datasets.STL10(get_pre()+'LSDA_data/STL', split='test', transform=test_transform, download=True)
 
     size=min(size,len(train)) if size>0 else len(train)
     numtr=size

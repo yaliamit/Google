@@ -6,6 +6,7 @@ def process_args(parser):
     parser.add_argument('--image_levels', type=int, default=0, help='Image quantization levels')
     parser.add_argument('--new_dim', type=int, default=0, help='new image dimension')
     parser.add_argument('--future', type=int, default=0, help='how many other images to take into account in embedding loss')
+    parser.add_argument('--patch_size', type=int, default=16, help='size of patch in gaze type augmentation')
     parser.add_argument('--full_dim', type=int, default=256, help='fully connected layer size')
     parser.add_argument('--hid_hid', type=int, default=256, help='fully connected layer size')
     parser.add_argument('--clapp_dim',nargs="*", type=int, default=None, help='dimension of clapp matrix for SSL')
