@@ -65,7 +65,8 @@ else:
     if len(sys.argv)==1:
         s="cuda:"+"0"
     else:
-        s="cuda:"+sys.argv[1]
+        gp=sys.argv[1]
+        s="cuda:"+sys.argv[gp]
     device=torch.device(s)
 print(device)
 
