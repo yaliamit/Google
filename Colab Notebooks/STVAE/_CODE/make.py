@@ -95,7 +95,7 @@ def train_model(model, args, ex_file, DATA, fout):
 
     if args.OPT and args.cont_training:
         print("Updating training optimal parameters before continuing")
-        trainMU, trainLOGVAR, trPI, tr_acc = model.run_epoch(train, 0, args.nti, trainMU, trainLOGVAR, trPI,
+        trainMU, trainLOGVAR, trPI, tr_acc = run_epoch(model,train, 0, args.nti, trainMU, trainLOGVAR, trPI,
                                                              d_type='test', fout=fout)
     print('make', model.optimizer.param_groups[0]['weight_decay'])
     if 'ga' in get_pre():
