@@ -414,21 +414,20 @@ class network(nn.Module):
 
 
     # Epoch of network training
-def run_epoch(selfm, train, epoch, num_mu_iter=None, trainMU=None,
-              trainLOGVAR=None, trPI=None, d_type='train', fout='OUT',freq=1):
+    def run_epoch(self, train, epoch, num_mu_iter=None, trainMU=None, trainLOGVAR=None, trPI=None, d_type='train', fout='OUT',freq=1):
 
         if (d_type=='train'):
-            selfm.train()
+            self.train()
         else:
-            selfm.eval()
+            self.eval()
 
         #if type(train) is DL:
         jump=train.batch_size
-        selfm.n_class=train.num_class
+        self.n_class=train.num_class
         num_tr=train.num
         #else:
-        #    jump = selfm.bsz
-        #    selfm.n_class = np.max(train[1]) + 1
+        #    jump = self.bsz
+        #    self.n_class = np.max(train[1]) + 1
         #    num_tr=train[0].shape[0]
 
         ll=1
@@ -444,41 +443,41 @@ def run_epoch(selfm, train, epoch, num_mu_iter=None, trainMU=None,
             #if type(train) is DL:
             BB=next(tra)
             data_in=BB[0]
-            target=BB[1].to(selfm.dv, dtype=torch.long)
+            target=BB[1].to(self.dv, dtype=torch.long)
             #else:
             #    data_in = torch.from_numpy(train[0][j:j + jump]).float()
-            #    target = torch.from_numpy(train[1][j:j + jump]).to(selfm.dv, dtype=torch.long)
+            #    target = torch.from_numpy(train[1][j:j + jump]).to(self.dv, dtype=torch.long)
 
             if (d_type == 'train'):
-                selfm.optimizer.zero_grad()
+                self.optimizer.zero_grad()
 
-            if selfm.embedd:
+            if self.embedd:
                 with torch.no_grad():
-                    data_out=deform_data(data_in,selfm.perturb,selfm.trans,selfm.s_factor,selfm.h_factor,selfm.embedd)
-                    data_in=deform_data(data_in,selfm.perturb,selfm.trans,selfm.s_factor,selfm.h_factor,selfm.embedd)
-                data=[data_in.to(selfm.dv),data_out.to(selfm.dv)]
+                    data_out=deform_data(data_in,self.perturb,self.trans,self.s_factor,self.h_factor,self.embedd)
+                    data_in=deform_data(data_in,self.perturb,self.trans,self.s_factor,self.h_factor,self.embedd)
+                data=[data_in.to(self.dv),data_out.to(self.dv)]
             else:
-                if selfm.perturb>0.and d_type=='train':
+                if self.perturb>0.and d_type=='train':
                    with torch.no_grad():
-                     data_in = deform_data(data_in, selfm.perturb, selfm.trans, selfm.s_factor, selfm.h_factor,selfm.embedd)
-                data = data_in.to(selfm.dv,dtype=torch.float32)
+                     data_in = deform_data(data_in, self.perturb, self.trans, self.s_factor, self.h_factor,self.embedd)
+                data = data_in.to(self.dv,dtype=torch.float32)
 
 
 
             with torch.no_grad() if (d_type!='train') else dummy_context_mgr():
-                loss, acc = selfm.loss_and_acc(data, target,dtype=d_type, lnum=lnum)
+                loss, acc = self.loss_and_acc(data, target,dtype=d_type, lnum=lnum)
             if (d_type == 'train'):
-                selfm.optimizer.zero_grad()
+                self.optimizer.zero_grad()
                 loss.backward()
-                if selfm.grad_clip>0.:
-                    nn.utils.clip_grad_value_(selfm.parameters(),selfm.grad_clip)
+                if self.grad_clip>0.:
+                    nn.utils.clip_grad_value_(self.parameters(),self.grad_clip)
 
 
-                selfm.optimizer.step()
-                if 'xla' in selfm.dv.type:
+                self.optimizer.step()
+                if 'xla' in self.dv.type:
                     xm.mark_step()
-                #if selfm.scheduler is not None:
-                #  selfm.scheduler.step()
+                #if self.scheduler is not None:
+                #  self.scheduler.step()
 
 
             full_loss[lnum] += loss.item()
@@ -493,13 +492,13 @@ def run_epoch(selfm, train, epoch, num_mu_iter=None, trainMU=None,
 
         return trainMU, trainLOGVAR, trPI, [full_acc/(count*jump), full_loss/(count)]
 
-def get_embedding(selfm, train):
+    def get_embedding(self, train):
 
-        lay=selfm.embedd_layer
+        lay=self.embedd_layer
         jump = train.batch_size
         num_tr = train.num
 
-        selfm.eval()
+        self.eval()
         OUT=[]
         labels=[]
         tra=iter(train)
@@ -507,9 +506,9 @@ def get_embedding(selfm, train):
             BB = next(tra)
             data = BB[0]
             labels+=[BB[1].numpy()]
-            data=data.to(selfm.dv)
+            data=data.to(self.dv)
             with torch.no_grad():
-                out=selfm.forward(data, everything=True, end_lay=lay)[1][lay].detach().cpu().numpy()
+                out=self.forward(data, everything=True, end_lay=lay)[1][lay].detach().cpu().numpy()
                 OUT+=[out]
 
         OUTA=np.concatenate(OUT,axis=0)
@@ -517,11 +516,11 @@ def get_embedding(selfm, train):
 
         return [OUTA,labels]
 
-def get_scheduler(selfm,args):
-        selfm.scheduler = None
+    def get_scheduler(self,args):
+        self.scheduler = None
         if args.sched[0] > 0:
             lambda1 = lambda epoch: args.sched[1]**(epoch // np.int32(args.sched[0]))
-            selfm.scheduler = torch.optim.lr_scheduler.LambdaLR(selfm.optimizer, lambda1)
+            self.scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lambda1)
             #self.scheduler=torch.optim.lr_scheduler.MultiStepLR(self.optimizer,[50,100,150,200,250,300,350],args.sched)
             #l2 = lambda epoch: pow((1. - 1. * epoch / args.nepoch), args.sched)
             #scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lr_lambda=l2)

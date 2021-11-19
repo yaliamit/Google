@@ -4,7 +4,6 @@ import time
 from images import erode,make_images, make_sample
 import torch
 from data import get_pre, DL
-from network import run_epoch, get_scheduler
 
 
 def save_net_int(model,model_out,args,predir):
@@ -74,7 +73,7 @@ def train_model(model, args, ex_file, DATA, fout):
     trainMU=None; trainLOGVAR=None; trPI=None
     valMU=None; valLOGVAR=None; valPI=None
     model.optimizer.param_groups[0]['lr']=args.lr
-    get_scheduler(model,args)
+    model.get_scheduler(args)
     num_train= train.num if type(train) is DL else train[0].shape[0]
     num_test= test.num if type(test) is DL else test[0].shape[0]
     if type(val) is DL:
@@ -95,7 +94,7 @@ def train_model(model, args, ex_file, DATA, fout):
 
     if args.OPT and args.cont_training:
         print("Updating training optimal parameters before continuing")
-        trainMU, trainLOGVAR, trPI, tr_acc = run_epoch(model,train, 0, args.nti, trainMU, trainLOGVAR, trPI,
+        trainMU, trainLOGVAR, trPI, tr_acc = model.run_epoch(train, 0, args.nti, trainMU, trainLOGVAR, trPI,
                                                              d_type='test', fout=fout)
     print('make', model.optimizer.param_groups[0]['weight_decay'])
     if 'ga' in get_pre():
@@ -106,9 +105,9 @@ def train_model(model, args, ex_file, DATA, fout):
         #if (model.scheduler is not None):
         #    model.scheduler.step()
         t1 = time.time()
-        trainMU, trainLOGVAR, trPI, tr_acc = run_epoch(model,train, epoch, args.num_mu_iter, trainMU, trainLOGVAR, trPI,d_type='train', fout=fout)
+        trainMU, trainLOGVAR, trPI, tr_acc = model.run_epoch(train, epoch, args.num_mu_iter, trainMU, trainLOGVAR, trPI,d_type='train', fout=fout)
         if (val is not None):
-             _,_,_,val_acc=run_epoch(model,val, epoch, args.nvi, trainMU, trainLOGVAR, trPI, d_type='val', fout=fout)
+             _,_,_,val_acc=model.run_epoch(val, epoch, args.nvi, trainMU, trainLOGVAR, trPI, d_type='val', fout=fout)
 
              VAL_ACC+=[val_acc[0],tr_acc[1]]
         else:
