@@ -85,7 +85,7 @@ def get_stl10_unlabeled(batch_size, size=0, crop=None):
 def get_stl10_labeled(batch_size,size=0,crop=None):
 
 
-    if crop == 10000:
+    if crop is not None:
         if crop > 0:
             transform = transforms.Compose([
                 transforms.ToTensor(),
@@ -97,13 +97,13 @@ def get_stl10_labeled(batch_size,size=0,crop=None):
         elif crop < 0:
             transform = transforms.Compose([
                 transforms.ToTensor(),
-                transforms.RandomCrop(-crop, padding=None, pad_if_needed=False, fill=0, padding_mode='edge'),
+                #transforms.RandomCrop(-crop, padding=None, pad_if_needed=False, fill=0, padding_mode='edge'),
                 transforms.Grayscale()
             ]
             )
             test_transform = transforms.Compose([
                 transforms.ToTensor(),
-                transforms.CenterCrop(-crop),
+                #transforms.CenterCrop(-crop),
                 transforms.Grayscale()
             ]
             )
