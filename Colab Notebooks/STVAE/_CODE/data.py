@@ -72,18 +72,14 @@ def get_stl10_unlabeled(batch_size, size=0, crop=None):
             shape=[1,-crop,-crop]
     if size != 0 and size <= len(train):
         train = Subset(train, random.sample(range(len(train)), size))
-    trlen = size
-    telen = 0 #int(size - trlen)
-    test=None
-    if telen>0:
-        [train,test]=random_split(train,[trlen, telen])
+    trlen = int(size * .95)
+    telen = int(size - trlen)
+    [train,test]=random_split(train,[trlen, telen])
 
     # train_loader = DataLoader(train, batch_size=batch_size, shuffle=True)
     # test_loader=DataLoader(test, batch_size=batch_size, shuffle=True)
     train_loader = DL(train, batch_size=batch_size, num_class=num_class, num=trlen, shape=shape, shuffle=True)
-    test_loader=None
-    if test is not None:
-        test_loader=DL(test, batch_size=batch_size,  num_class=num_class, num=telen, shape=shape, shuffle=True)
+    test_loader=DL(test, batch_size=batch_size,  num_class=num_class, num=telen, shape=shape, shuffle=True)
     return train_loader, None, test_loader
 
 

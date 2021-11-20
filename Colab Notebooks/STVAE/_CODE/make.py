@@ -150,7 +150,8 @@ def train_model(model, args, ex_file, DATA, fout):
         make_sample(model,args, ex_file, datadirs=datadirs)
 
     else:
-        _,_,_,test_acc=model.run_epoch(test, 0, args.nti, None, None, None, d_type='test', fout=fout)
+        if test is not None:
+            _,_,_,test_acc=model.run_epoch(test, 0, args.nti, None, None, None, d_type='test', fout=fout)
 
     model.results=[np.array(VAL_ACC).transpose().reshape(-1,2)]+[test_acc[0]]
     save_net_int(model, args.model_out, args, predir)
