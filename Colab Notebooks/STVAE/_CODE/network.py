@@ -504,8 +504,7 @@ class network(nn.Module):
                 self.optimizer.step()
                 if 'xla' in self.dv.type:
                     xm.mark_step()
-                #if self.scheduler is not None:
-                #  self.scheduler.step()
+
 
 
             full_loss[lnum] += loss.item()
