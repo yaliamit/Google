@@ -124,7 +124,7 @@ def train_model(model, args, ex_file, DATA, fout):
             save_net_int(model, args.model_out+'_'+str(epoch), args, predir)
             time1=time2
         if hasattr(model,'scheduler') and model.scheduler is not None:
-            model.scheduler.step(epoch=epoch)
+            model.scheduler.step()
     test_acc=np.zeros(2)
 
     if 'ae' in args.type:
