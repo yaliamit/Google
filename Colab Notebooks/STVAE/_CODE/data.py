@@ -33,48 +33,26 @@ def get_stl10_unlabeled_sub(batch_size, size=0):
     LLte=-1*np.ones(telen)
 
     train=DL(list(zip(tr, LLtr)), batch_size=batch_size, num_class=0,
-               num=trlen, shape=tr[0].shape,shuffle=True)
+               num=size, shape=tr[0].shape,shuffle=False)
     test = DL(list(zip(te, LLte)), batch_size=batch_size, num_class=0,
-               num=telen, shape=te[0].shape, shuffle=True)
+               num=size, shape=te[0].shape, shuffle=False)
 
     return (train,None,test)
 
 
-def get_stl10_unlabeled(batch_size, size=0, crop=None):
-
-
-    if crop is not None:
-        if crop>0:
-            transform = transforms.Compose([
-                    transforms.ToTensor(),
-                transforms.RandomCrop(crop, padding=None, pad_if_needed=False, fill=0, padding_mode='edge')])
-        elif crop<0:
-            transform = transforms.Compose([
-                transforms.ToTensor(),
-                transforms.RandomCrop(-crop, padding=None, pad_if_needed=False, fill=0, padding_mode='edge'),
-                transforms.Grayscale(),
-                transforms.Normalize(0.4120, 0.2570)
-            ]
-            )
-    else:
-      transform = transforms.Compose([
-          transforms.ToTensor(),
-      ])
+def get_stl10_unlabeled(batch_size, size=0):
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+    ])
 
     train = datasets.STL10(get_pre()+'LSDA_data/STL', split='unlabeled', transform=transform, download=True)
     num_class=len(train.classes)
-    if crop is None:
-        shape=train.data.shape[1:]
-    else:
-        if crop>0:
-            shape=[train.data.shape[1],crop,crop]
-        elif crop<0:
-            shape=[1,-crop,-crop]
+    shape=train.data.shape[1:]
     if size != 0 and size <= len(train):
         train = Subset(train, random.sample(range(len(train)), size))
     trlen = int(size * .95)
     telen = int(size - trlen)
-    [train,test]=random_split(train,[trlen, telen])
+    [train,test]=random_split(train,[trlen, telen],generator = torch.Generator().manual_seed(42))
 
     # train_loader = DataLoader(train, batch_size=batch_size, shuffle=True)
     # test_loader=DataLoader(test, batch_size=batch_size, shuffle=True)
@@ -83,78 +61,42 @@ def get_stl10_unlabeled(batch_size, size=0, crop=None):
     return train_loader, None, test_loader
 
 
-def get_stl10_labeled(batch_size,size=0,crop=None):
+def get_stl10_labeled_old(batch_size,size=0):
+    transform = transforms.Compose([
+        transforms.ToTensor(),
 
-
-    if crop is not None:
-        if crop > 0:
-            transform = transforms.Compose([
-                transforms.ToTensor(),
-                transforms.RandomCrop(crop, padding=None, pad_if_needed=False, fill=0, padding_mode='edge')])
-
-            test_transform=transforms.Compose([
-                transforms.ToTensor(),
-                transforms.CenterCrop(crop)])
-        elif crop < 0:
-            transform = transforms.Compose([
-                transforms.ToTensor(),
-                #transforms.RandomCrop(-crop, padding=None, pad_if_needed=False, fill=0, padding_mode='edge'),
-                transforms.Grayscale(),
-                transforms.Normalize(mean=[0.4120],std=[0.2570])
-            ]
-            )
-            test_transform = transforms.Compose([
-                transforms.ToTensor(),
-                #transforms.CenterCrop(-crop),
-                transforms.Grayscale(),
-                transforms.Normalize(mean=[0.4120], std=[0.2570])
-            ]
-            )
-    else:
-        transform = transforms.Compose([
-            transforms.ToTensor(),
-        ])
-        test_transform = transforms.Compose([
-            transforms.ToTensor(),
-        ])
-
-
+    ])
 
     train = datasets.STL10(get_pre()+'LSDA_data/STL', split='train', transform=transform, download=True)
     num_class = len(train.classes)
-
-    if crop is None:
-        shape=train.data.shape[1:]
-    else:
-        if crop>0:
-            shape=[train.data.shape[1],crop,crop]
-        elif crop<0:
-            shape=[1,-crop,-crop]
-
-    test = datasets.STL10(get_pre()+'LSDA_data/STL', split='test', transform=test_transform, download=True)
+    shape = train.data.shape[1:]
+    test = datasets.STL10(get_pre()+'LSDA_data/STL', split='test', transform=transform, download=True)
 
     size=min(size,len(train)) if size>0 else len(train)
     numtr=size
     numte=len(test) if size>0 and size==len(train) else size
-    train = Subset(train, range(numtr))
-    test = Subset(test, range(numte))
+    train = Subset(train, random.sample(range(len(train)), size))
+    test = Subset(test, random.sample(range(len(test)), numte))
 
-    train_loader = DL(train, batch_size=batch_size, num_class=num_class, num=numtr, shape=shape, shuffle=False)
+    train_loader = DL(train, batch_size=batch_size, num_class=num_class, num=numtr, shape=shape, shuffle=True)
 
-    test_loader = DL(test, batch_size=batch_size, num_class=num_class, num=numte, shape=shape, shuffle=False)
-
-    # DD=[]; LL=[]
-    # for b in enumerate(test_loader):
-    #     DD+=[b[1][0].numpy()]
-    #     LL+=[b[1][1].numpy()]
-    #
-    # DD=np.concatenate(DD)
-    # LL=np.concatenate(LL)
-    # np.save('stl10_test_data',DD)
-    # np.save('slt10_test_labels',LL)
+    test_loader = DL(test, batch_size=batch_size, num_class=num_class, num=numte, shape=shape, shuffle=True)
 
 
     return train_loader, None, test_loader
+
+def get_stl10_labeled(data_set,size=0):
+
+
+    pre = get_pre() + 'LSDA_data/STL/'
+    train_data = np.load(pre + data_set + '_train_data.npy')
+    print(train_data.shape)
+    train_labels = np.load(pre + data_set + '_train_labels.npy')
+    test_data = np.load(pre + data_set + '_test_data.npy')
+    print(test_data.shape)
+    test_labels = np.load(pre + data_set + '_test_labels.npy')
+
+    return (train_data, train_labels), None, (test_data, test_labels)
 
 
 def get_pre():
@@ -208,7 +150,6 @@ def get_data_pre(args,dataset):
     PARS['num_train'] = args.num_train // args.mb_size * args.mb_size
     PARS['nval'] = args.nval
     PARS['mb_size']=args.mb_size
-    PARS['crop']=args.crop
     if args.cl is not None:
         PARS['one_class'] = args.cl
 
@@ -521,11 +462,12 @@ def get_data(PARS):
         if 'sub' in PARS['data_set']:
             train, val, test=get_stl10_unlabeled_sub(PARS['mb_size'],size=PARS['num_train'])
         elif 'unlabeled' in PARS['data_set']:
-            train,val,test=get_stl10_unlabeled(PARS['mb_size'],size=PARS['num_train'],crop=PARS['crop'])
+            train,val,test=get_stl10_unlabeled(PARS['mb_size'],size=PARS['num_train'])
 
         else:
-            train, val, test = get_stl10_labeled(PARS['mb_size'], size=PARS['num_train'],crop=PARS['crop'])
-            return train, val, test, train.shape[0]
+            train, val, test = get_stl10_labeled_old(PARS['mb_size'], size=PARS['num_train'])
+            # train, val, test = get_stl10_labeled(PARS['data_set'], size=PARS['num_train'])
+            # return train, val, test, train[0].shape[1]
         return train, val, test, train.shape[0]
     elif ('cifar' in PARS['data_set']):
         train, val, test=get_cifar(PARS)

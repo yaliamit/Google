@@ -21,8 +21,6 @@ pre=get_pre()
 osu=os.uname()
 
 
-
-
 # Network module
 class network(nn.Module):
     def __init__(self, device,  args, layers, lnti, fout=None, sh=None, first=1):
@@ -30,7 +28,6 @@ class network(nn.Module):
 
         self.grad_clip=args.grad_clip
         self.bn=args.bn
-        #self.patch_size=args.patch_size
         self.trans=args.transformation
         self.wd=args.wd
         self.embedd=args.embedd
@@ -173,7 +170,7 @@ class network(nn.Module):
                     OUTS[ll['name']] = getattr(self.layers, ll['name'])(OUTS[inp_ind])
                 if ('Avg' in ll['name']):
                     if self.first:
-                        HW=(np.int32(OUTS[inp_ind].shape[2]/ll['rate']),np.int32(OUTS[inp_ind].shape[3]/ll['rate']))
+                        HW=(np.int32(OUTS[inp_ind].shape[2]/2),np.int32(OUTS[inp_ind].shape[3]/2))
                         self.layers.add_module(ll['name'],nn.AvgPool2d(HW,HW))
                     out = getattr(self.layers, ll['name'])(OUTS[inp_ind])
                     OUTS[ll['name']] = out
@@ -299,14 +296,13 @@ class network(nn.Module):
                 if end_lay is not None and end_lay in ll['name']:
                     DONE=True
 
-        if self.first:
+        if self.first==1:
             if self.embedd_type == 'clapp' and self.clapp_dim is None:
                 self.clapp_dim=prev_shape
                 # self.add_module('clapp', nn.Linear(self.clapp_dim, self.clapp_dim))
                 self.add_module('clapp',nn.Conv2d(self.clapp_dim[1],self.clapp_dim[1],1))
                 if self.update_layers is not None:
                     self.update_layers.append('clapp')
-        if self.first==1:
             #print(self.layers, file=self.fout)
             tot_pars = 0
             KEYS=[]
@@ -386,7 +382,7 @@ class network(nn.Module):
             elif self.embedd_type=='binary':
                 loss, acc = get_embedd_loss_binary(out0,out1,self.dv,self.no_standardize)
             elif self.embedd_type=='L1dist_hinge':
-                loss, acc = get_embedd_loss_new(out0,out1,self.dv,self.no_standardize, thr=self.thr, delta=self.delta, WW=10.)
+                loss, acc = get_embedd_loss_new(out0,out1,self.dv,self.no_standardize, thr=self.thr, delta=self.delta)
             elif self.embedd_type=='clapp':
                 out0=self.clapp(out0)
                 out0 = out0.reshape(out0.shape[0], -1)
@@ -414,28 +410,7 @@ class network(nn.Module):
             loss+=pen
         return loss, acc
 
-    # def deform_gaze2(self, x):
-    #     n_negs=1
-    #     bsz = x.size(0)
-    #     patch_size = self.patch_size
-    #     x_unfold = F.unfold(x, kernel_size=patch_size, stride=patch_size // 2)  # (bsz, 256, 49)
-    #     all_patches = x_unfold.permute(0, 2, 1).reshape(bsz * x_unfold.shape[-1], patch_size,
-    #                                                     patch_size)  # (bsz*49, 16, 16)
-    #     output = all_patches.unsqueeze(dim=1)  # bsz*49, 1, 16, 16
-    #     n_patches=np.int(np.sqrt(output.shape[0]//bsz))
-    #     all_embedd = output.reshape(bsz, n_patches, n_patches, output.shape[2], output.shape[3])
-    #     for k in range(n_patches - 2):
-    #         anchor = all_embedd[:, k:k + 1, :, :,:]  # bsz, 1, 7, 64
-    #         positives = all_embedd[:, k + 2:n_patches, :, :,:]  # bsz, n_pos, 7, 64
-    #         # sample with replacement
-    #         rand_idx = torch.randint(output.size(0),
-    #                                  (n_negs * anchor.shape[0] * n_patches * (n_patches - k - 2),))
-    #         negatives = output[rand_idx].reshape(-1, (n_patches - k - 2) * n_negs, n_patches,
-    #                                              output.shape[2],output.shape[3])
-    #
-    #
-    #
-    #     return [positives,negatives]
+
 
     # Epoch of network training
     def run_epoch(self, train, epoch, num_mu_iter=None, trainMU=None, trainLOGVAR=None, trPI=None, d_type='train', fout='OUT',freq=1):
@@ -461,11 +436,10 @@ class network(nn.Module):
 
 
         TIME=0
-        tra=iter(train)
         for j in np.arange(0, num_tr, jump,dtype=np.int32):
             lnum=0
             #if type(train) is DL:
-            BB=next(tra)
+            BB=next(iter(train))
             data_in=BB[0]
             target=BB[1].to(self.dv, dtype=torch.long)
             #else:
@@ -476,14 +450,10 @@ class network(nn.Module):
                 self.optimizer.zero_grad()
 
             if self.embedd:
-                #if self.patch_size is not None:
-                #    pass
-                #   # data=self.deform_gaze2(data_in).to(self.dv)
-                #else:
-                 with torch.no_grad():
+                with torch.no_grad():
                     data_out=deform_data(data_in,self.perturb,self.trans,self.s_factor,self.h_factor,self.embedd)
                     data_in=deform_data(data_in,self.perturb,self.trans,self.s_factor,self.h_factor,self.embedd)
-                 data=[data_in.to(self.dv),data_out.to(self.dv)]
+                data=[data_in.to(self.dv),data_out.to(self.dv)]
             else:
                 if self.perturb>0.and d_type=='train':
                    with torch.no_grad():
@@ -504,7 +474,8 @@ class network(nn.Module):
                 self.optimizer.step()
                 if 'xla' in self.dv.type:
                     xm.mark_step()
-
+                #if self.scheduler is not None:
+                #  self.scheduler.step()
 
 
             full_loss[lnum] += loss.item()
@@ -522,17 +493,25 @@ class network(nn.Module):
     def get_embedding(self, train):
 
         lay=self.embedd_layer
+
+        #if type(train) is DL:
         jump = train.batch_size
         num_tr = train.num
+        #else:
+        #    jump = self.bsz
+        #    num_tr = train.shape[0]
 
         self.eval()
         OUT=[]
         labels=[]
-        tra=iter(train)
         for j in np.arange(0, num_tr, jump, dtype=np.int32):
-            BB = next(tra)
+            #if type(train) is DL:
+            BB = next(iter(train))
             data = BB[0]
             labels+=[BB[1].numpy()]
+            #else:
+            #    data = (torch.from_numpy(train[0][j:j + jump]).float())
+            #    labels+=[train[1][j:j+jump]]
             data=data.to(self.dv)
             with torch.no_grad():
                 out=self.forward(data, everything=True, end_lay=lay)[1][lay].detach().cpu().numpy()
