@@ -78,9 +78,9 @@ def get_stl10_labeled_old(batch_size,size=0):
     train = Subset(train, random.sample(range(len(train)), size))
     test = Subset(test, random.sample(range(len(test)), numte))
 
-    train_loader = DL(train, batch_size=batch_size, num_class=num_class, num=numtr, shape=shape, shuffle=True)
+    train_loader = DL(train, batch_size=batch_size, num_class=num_class, num=numtr, shape=shape, shuffle=False)
 
-    test_loader = DL(test, batch_size=batch_size, num_class=num_class, num=numte, shape=shape, shuffle=True)
+    test_loader = DL(test, batch_size=batch_size, num_class=num_class, num=numte, shape=shape, shuffle=False)
 
 
     return train_loader, None, test_loader
