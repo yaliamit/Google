@@ -296,13 +296,14 @@ class network(nn.Module):
                 if end_lay is not None and end_lay in ll['name']:
                     DONE=True
 
-        if self.first==1:
+        if self.first:
             if self.embedd_type == 'clapp' and self.clapp_dim is None:
                 self.clapp_dim=prev_shape
                 # self.add_module('clapp', nn.Linear(self.clapp_dim, self.clapp_dim))
                 self.add_module('clapp',nn.Conv2d(self.clapp_dim[1],self.clapp_dim[1],1))
                 if self.update_layers is not None:
                     self.update_layers.append('clapp')
+        if self.first==1:
             #print(self.layers, file=self.fout)
             tot_pars = 0
             KEYS=[]
@@ -436,10 +437,11 @@ class network(nn.Module):
 
 
         TIME=0
+        tra=iter(train)
         for j in np.arange(0, num_tr, jump,dtype=np.int32):
             lnum=0
             #if type(train) is DL:
-            BB=next(iter(train))
+            BB=next(tra)
             data_in=BB[0]
             target=BB[1].to(self.dv, dtype=torch.long)
             #else:
@@ -474,8 +476,7 @@ class network(nn.Module):
                 self.optimizer.step()
                 if 'xla' in self.dv.type:
                     xm.mark_step()
-                #if self.scheduler is not None:
-                #  self.scheduler.step()
+
 
 
             full_loss[lnum] += loss.item()
@@ -493,25 +494,17 @@ class network(nn.Module):
     def get_embedding(self, train):
 
         lay=self.embedd_layer
-
-        #if type(train) is DL:
         jump = train.batch_size
         num_tr = train.num
-        #else:
-        #    jump = self.bsz
-        #    num_tr = train.shape[0]
 
         self.eval()
         OUT=[]
         labels=[]
+        tra=iter(train)
         for j in np.arange(0, num_tr, jump, dtype=np.int32):
-            #if type(train) is DL:
-            BB = next(iter(train))
+            BB = next(tra)
             data = BB[0]
             labels+=[BB[1].numpy()]
-            #else:
-            #    data = (torch.from_numpy(train[0][j:j + jump]).float())
-            #    labels+=[train[1][j:j+jump]]
             data=data.to(self.dv)
             with torch.no_grad():
                 out=self.forward(data, everything=True, end_lay=lay)[1][lay].detach().cpu().numpy()
