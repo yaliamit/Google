@@ -62,15 +62,27 @@ def get_stl10_unlabeled(batch_size, size=0):
 
 
 def get_stl10_labeled_old(batch_size,size=0):
-    transform = transforms.Compose([
-        transforms.ToTensor(),
 
-    ])
+    crop=64
+    if crop is not None:
+        train_transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.RandomCrop(crop),
+            transforms.RandomHorizontalFlip(),
+            transforms.ColorJitter(brightness=.3,hue=.3,saturation=.3,contrast=.3)
+        ])
+        test_transform=transforms.Compose([
+            transforms.ToTensor(),transforms.CenterCrop(crop)])
+    else:
+        train_transform = transforms.Compose([
+            transforms.ToTensor()])
+        test_transform = transforms.Compose([
+            transforms.ToTensor()])
 
-    train = datasets.STL10(get_pre()+'LSDA_data/STL', split='train', transform=transform, download=True)
+    train = datasets.STL10(get_pre()+'LSDA_data/STL', split='train', transform=train_transform, download=True)
     num_class = len(train.classes)
     shape = train.data.shape[1:]
-    test = datasets.STL10(get_pre()+'LSDA_data/STL', split='test', transform=transform, download=True)
+    test = datasets.STL10(get_pre()+'LSDA_data/STL', split='test', transform=test_transform, download=True)
 
     size=min(size,len(train)) if size>0 else len(train)
     numtr=size
