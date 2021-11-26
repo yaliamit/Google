@@ -61,7 +61,7 @@ def main_loc(par_file, device,net=None):
           oldopt=models[0].opt
           models[0].opt=args.OPT
           models[0].mu_lr=args.mu_lr
-          models[0].patch_size=args.patch_size
+
           if args.show_weights is not None:
                 ww=getattr(models[0].enc_conv.model.back_layers,args.show_weights).weight.data
                 for w in ww[0]:
@@ -76,6 +76,7 @@ def main_loc(par_file, device,net=None):
       elif args.network and (args.embedd or 'ae' in args.type):
           if args.embedd:
               models[0].embedd_layer = args.embedd_layer
+              models[0].patch_size = args.patch_size
           pre_train_new(models[0], args, device, fout, data=DATA)
       elif args.cluster_hidden:
           cluster_hidden(models[0], args, device, DATA, args.datadirs, EX_FILES[0])
