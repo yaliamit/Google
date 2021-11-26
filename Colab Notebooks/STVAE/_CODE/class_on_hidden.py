@@ -190,8 +190,8 @@ def train_new_old(args,train,test,fout,device,net=None):
         if (freq-np.mod(epoch,freq)==1):
             fout.write('epoch: {0} in {1:5.3f} seconds, LR {2:0.5f}\n'.format(epoch,time.time()-t1,net.optimizer.param_groups[0]['lr']))
             fout.flush()
-        if hasattr(net,'scheduler') and net.scheduler is not None:
-            net.scheduler.step()
+        #if hasattr(net,'scheduler') and net.scheduler is not None:
+        #    net.scheduler.step()
 
     _,_,_,res=net.run_epoch(test, 0, d_type='test', fout=fout)
 

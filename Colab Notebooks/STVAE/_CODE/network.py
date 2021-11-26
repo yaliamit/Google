@@ -35,6 +35,9 @@ class network(nn.Module):
         self.first=first
         self.future=args.future
         self.penalize_activations=args.penalize_activations
+        self.patch_size=args.patch_size
+        if self.patch_size is not None:
+            sh=(sh[0],self.patch_size,self.patch_size)
         self.bsz=args.mb_size # Batch size - gets multiplied by number of shifts so needs to be quite small.
         #self.full_dim=args.full_dim
         self.dv=device

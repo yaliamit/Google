@@ -2,7 +2,7 @@ from make import train_model, test_models
 from class_on_hidden import pre_train_new, cluster_hidden
 import prep
 from data import get_data_pre
-from images import make_images, show_examples_of_deformed_images
+from images import make_images, show_examples_of_deformed_images, get_embs
 import pylab as py
 import sys
 
@@ -19,9 +19,7 @@ def main_loc(par_file, device,net=None):
 
   # Get data
   DATA=get_data_pre(args,args.dataset)
-  if args.deform:
-      show_examples_of_deformed_images(DATA,args)
-      sys.exit()
+
   #if type(DATA[0]) is DL:
   sh=DATA[0].shape
   args.num_class=DATA[0].num_class
@@ -36,6 +34,11 @@ def main_loc(par_file, device,net=None):
 
   #if net is None:
   models=prep.get_models(device, fout, sh, STRINGS, ARGS, args)
+  if args.deform:
+      BB=next(iter(DATA[0]))
+      get_embs(models[0],BB[0])
+      #show_examples_of_deformed_images(DATA,args)
+      sys.exit()
   #   return models[0], embed_data, args
   # else:
   #   models=[net]
