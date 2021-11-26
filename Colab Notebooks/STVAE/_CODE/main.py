@@ -61,7 +61,7 @@ def main_loc(par_file, device,net=None):
           oldopt=models[0].opt
           models[0].opt=args.OPT
           models[0].mu_lr=args.mu_lr
-
+          models[0].patch_size=args.patch_size
           if args.show_weights is not None:
                 ww=getattr(models[0].enc_conv.model.back_layers,args.show_weights).weight.data
                 for w in ww[0]:
