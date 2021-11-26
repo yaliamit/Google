@@ -27,6 +27,7 @@ def main_loc(par_file, device,net=None):
   #    sh=DATA[0][0].shape[1:]
   #    args.num_class=np.int(np.max(DATA[0][1])+1)
   ARGS[0].num_class=args.num_class
+  ARGS[0].patch_size=args.patch_size
   print('NUMCLASS',args.num_class)
 
   # Training an autoencoder.
@@ -76,7 +77,6 @@ def main_loc(par_file, device,net=None):
       elif args.network and (args.embedd or 'ae' in args.type):
           if args.embedd:
               models[0].embedd_layer = args.embedd_layer
-              models[0].patch_size = args.patch_size
           pre_train_new(models[0], args, device, fout, data=DATA)
       elif args.cluster_hidden:
           cluster_hidden(models[0], args, device, DATA, args.datadirs, EX_FILES[0])
