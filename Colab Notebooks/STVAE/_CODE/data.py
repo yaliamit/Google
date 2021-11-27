@@ -67,14 +67,14 @@ def get_stl10_unlabeled(batch_size, size=0, crop=None):
     return train_loader, None, test_loader
 
 
-def get_stl10_labeled_old(batch_size,size=0,crop=None):
+def get_stl10_labeled_old(batch_size,size=0,crop=None, jit=0):
 
     if crop is not None:
         train_transform = transforms.Compose([
             transforms.ToTensor(),
             transforms.RandomCrop(crop),
             transforms.RandomHorizontalFlip(),
-            transforms.ColorJitter(brightness=.1,hue=.1,saturation=.1,contrast=.1)
+            transforms.ColorJitter(brightness=jit,hue=jit,saturation=jit,contrast=jit)
         ])
         test_transform=transforms.Compose([
             transforms.ToTensor(),transforms.CenterCrop(crop)])
@@ -168,6 +168,7 @@ def get_data_pre(args,dataset):
     PARS['nval'] = args.nval
     PARS['mb_size']=args.mb_size
     PARS['crop']=args.crop
+    PARS['h_factor']=args.h_factor
     if args.cl is not None:
         PARS['one_class'] = args.cl
 
@@ -482,7 +483,7 @@ def get_data(PARS):
         elif 'unlabeled' in PARS['data_set']:
             train,val,test=get_stl10_unlabeled(PARS['mb_size'],size=PARS['num_train'],crop=PARS['crop'])
         else:
-            train, val, test = get_stl10_labeled_old(PARS['mb_size'], size=PARS['num_train'],crop=PARS['crop'])
+            train, val, test = get_stl10_labeled_old(PARS['mb_size'], size=PARS['num_train'],crop=PARS['crop'],  jit=PARS['h_factor'])
             # train, val, test = get_stl10_labeled(PARS['data_set'], size=PARS['num_train'])
             # return train, val, test, train[0].shape[1]
         return train, val, test, train.shape[0]
