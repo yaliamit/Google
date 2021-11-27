@@ -470,6 +470,8 @@ class network(nn.Module):
                             ljump = data_p[0].shape[0]
                         data=[data_p[0].to(self.dv),data_p[1].to(self.dv)]
             else:
+                if ljump is None:
+                    ljump=jump
                 if self.perturb>0.and d_type=='train':
                    with torch.no_grad():
                      data_in = deform_data(data_in, self.perturb, self.trans, self.s_factor, self.h_factor,self.embedd)
