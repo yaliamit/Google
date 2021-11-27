@@ -500,9 +500,9 @@ class network(nn.Module):
         if freq-np.mod(epoch,freq)==1:
            for l in range(ll):
                 fout.write('\n ====> Ep {}: {} Full loss: {:.4F}, Full acc: {:.6F} \n'.format(d_type,epoch,
-                    full_loss[l] /count[l], full_acc[l]/(count[l]*ljump)))
+                    full_loss[l] /(count[l]*(ljump/jump)), full_acc[l]/(count[l]*ljump)))
 
-        return trainMU, trainLOGVAR, trPI, [full_acc/(count*ljump), full_loss/(count)]
+        return trainMU, trainLOGVAR, trPI, [full_acc/(count*ljump), full_loss/(count*(ljump/jump))]
 
     def get_embedding(self, train):
 
