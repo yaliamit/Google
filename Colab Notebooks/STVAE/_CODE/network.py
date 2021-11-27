@@ -461,7 +461,8 @@ class network(nn.Module):
                         data_in=deform_data(data_in,self.perturb,self.trans,self.s_factor,self.h_factor,self.embedd)
                         data=[data_in.to(self.dv),data_out.to(self.dv)]
                     else:
-                        data=get_embs(data_in, self.patch_size)
+                        data_p=get_embs(data_in, self.patch_size)
+                        data=[data_p[0].to(self.dv),data_p[1].to(self.dv)]
             else:
                 if self.perturb>0.and d_type=='train':
                    with torch.no_grad():
