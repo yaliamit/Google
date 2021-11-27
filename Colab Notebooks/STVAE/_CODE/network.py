@@ -440,6 +440,7 @@ class network(nn.Module):
 
 
         TIME=0
+        ljump = None
         tra=iter(train)
         for j in np.arange(0, num_tr, jump,dtype=np.int32):
             lnum=0
