@@ -1,7 +1,7 @@
 
 from torch import nn, optim
 import contextlib
-from images import deform_data, Edge
+from images import deform_data, Edge, get_embs
 from losses import *
 import sys
 from layers import *
@@ -456,9 +456,12 @@ class network(nn.Module):
 
             if self.embedd:
                 with torch.no_grad():
-                    data_out=deform_data(data_in,self.perturb,self.trans,self.s_factor,self.h_factor,self.embedd)
-                    data_in=deform_data(data_in,self.perturb,self.trans,self.s_factor,self.h_factor,self.embedd)
-                data=[data_in.to(self.dv),data_out.to(self.dv)]
+                    if self.patch_size is None:
+                        data_out=deform_data(data_in,self.perturb,self.trans,self.s_factor,self.h_factor,self.embedd)
+                        data_in=deform_data(data_in,self.perturb,self.trans,self.s_factor,self.h_factor,self.embedd)
+                        data=[data_in.to(self.dv),data_out.to(self.dv)]
+                    else:
+                        data=get_embs(data_in, self.patch_size)
             else:
                 if self.perturb>0.and d_type=='train':
                    with torch.no_grad():

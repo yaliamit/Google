@@ -128,23 +128,21 @@ def show_sampled_images(model,ex_file,clust=None, lower=False):
     create_image(XX, model, ex_file)
 
 
-def get_embs(model,xin):
-
-    xinc=xin[:,:,16:80,16:80]
-    nc=xinc.shape[1]
-    bsz=xinc.shape[0]
-    patch_size=32
+def get_embs(xin, patch_size):
 
 
-    x=F.unfold(xinc,kernel_size=patch_size,stride=patch_size//2) # bsz,3* 256, 49
+    nc=xin.shape[1]
+    bsz=xin.shape[0]
+    x=F.unfold(xin,kernel_size=patch_size,stride=patch_size//2) # bsz,3* 256, 49
     x=x.permute(0,2,1)
     nps=x.shape[1]
     x=x.reshape(bsz,nps,nc,patch_size,patch_size)
-
-    x=x.reshape(bsz*nps, nc, patch_size,patch_size) # bsz*49,3, 16,16
-    ex=model.forward(x)
-
-    print(ex.shape)
+    npss=np.int(np.sqrt(nps))
+    npssh=npss//2
+    x=x.reshape(bsz,npss,npss,nc,patch_size,patch_size)
+    xA=x[:,:,npssh,:,:,:].reshape(bsz*npss,nc,patch_size,patch_size)
+    xB=x[:,:,npssh+1,:,:,:].reshape(bsz*npss,nc,patch_size,patch_size)
+    return [xA,xB]
 
 
 

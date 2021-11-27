@@ -40,10 +40,16 @@ def get_stl10_unlabeled_sub(batch_size, size=0):
     return (train,None,test)
 
 
-def get_stl10_unlabeled(batch_size, size=0):
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-    ])
+def get_stl10_unlabeled(batch_size, size=0, crop=None):
+
+    if crop is None:
+        transform = transforms.Compose([
+            transforms.ToTensor(),
+        ])
+    else:
+        transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.RandomCrop(crop)])
 
     train = datasets.STL10(get_pre()+'LSDA_data/STL', split='unlabeled', transform=transform, download=True)
     num_class=len(train.classes)
@@ -61,15 +67,14 @@ def get_stl10_unlabeled(batch_size, size=0):
     return train_loader, None, test_loader
 
 
-def get_stl10_labeled_old(batch_size,size=0):
+def get_stl10_labeled_old(batch_size,size=0,crop=None):
 
-    crop=64
     if crop is not None:
         train_transform = transforms.Compose([
             transforms.ToTensor(),
             transforms.RandomCrop(crop),
             transforms.RandomHorizontalFlip(),
-            transforms.ColorJitter(brightness=.3,hue=.3,saturation=.3,contrast=.3)
+            transforms.ColorJitter(brightness=.1,hue=.1,saturation=.1,contrast=.1)
         ])
         test_transform=transforms.Compose([
             transforms.ToTensor(),transforms.CenterCrop(crop)])
@@ -162,6 +167,7 @@ def get_data_pre(args,dataset):
     PARS['num_train'] = args.num_train // args.mb_size * args.mb_size
     PARS['nval'] = args.nval
     PARS['mb_size']=args.mb_size
+    PARS['crop']=args.crop
     if args.cl is not None:
         PARS['one_class'] = args.cl
 
@@ -474,10 +480,9 @@ def get_data(PARS):
         if 'sub' in PARS['data_set']:
             train, val, test=get_stl10_unlabeled_sub(PARS['mb_size'],size=PARS['num_train'])
         elif 'unlabeled' in PARS['data_set']:
-            train,val,test=get_stl10_unlabeled(PARS['mb_size'],size=PARS['num_train'])
-
+            train,val,test=get_stl10_unlabeled(PARS['mb_size'],size=PARS['num_train'],crop=PARS['crop'])
         else:
-            train, val, test = get_stl10_labeled_old(PARS['mb_size'], size=PARS['num_train'])
+            train, val, test = get_stl10_labeled_old(PARS['mb_size'], size=PARS['num_train'],crop=PARS['crop'])
             # train, val, test = get_stl10_labeled(PARS['data_set'], size=PARS['num_train'])
             # return train, val, test, train[0].shape[1]
         return train, val, test, train.shape[0]
