@@ -57,7 +57,7 @@ def get_stl10_labeled_old(batch_size,size=0,crop=None, jit=0):
             transforms.ColorJitter(brightness=jit,hue=jit,saturation=jit,contrast=jit)
         ])
         test_transform=transforms.Compose([
-            transforms.ToTensor(),transforms.CenterCrop(crop)])
+            transforms.ToTensor()])
     else:
         train_transform = transforms.Compose([
             transforms.ToTensor()])
