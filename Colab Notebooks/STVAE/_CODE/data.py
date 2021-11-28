@@ -20,26 +20,6 @@ class DL(DataLoader):
         self.num_class=num_class
         self.shape=shape
 
-def get_stl10_unlabeled_sub(batch_size, size=0):
-
-
-    ST=np.load(get_pre()+'LSDA_data/STL/stl10_binary/stl_unlabeled_sub.npy')
-    ST=ST[0:size]
-    trlen = int(size * .95)
-    telen = int(size - trlen)
-    tr=ST[0:trlen]
-    te=ST[-telen:]
-    LLtr=-1*np.ones(trlen)
-    LLte=-1*np.ones(telen)
-
-    train=DL(list(zip(tr, LLtr)), batch_size=batch_size, num_class=0,
-               num=size, shape=tr[0].shape,shuffle=False)
-    test = DL(list(zip(te, LLte)), batch_size=batch_size, num_class=0,
-               num=size, shape=te[0].shape, shuffle=False)
-
-    return (train,None,test)
-
-
 def get_stl10_unlabeled(batch_size, size=0, crop=None):
 
     if crop is None:

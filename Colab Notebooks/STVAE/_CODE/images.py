@@ -140,8 +140,8 @@ def get_embs(xin, patch_size):
     npss=np.int(np.sqrt(nps))
     npssh=npss//2
     x=x.reshape(bsz,npss,npss,nc,patch_size,patch_size)
-    xA=x[:,:,npssh,:,:,:].reshape(bsz*npss,nc,patch_size,patch_size)
-    xB=x[:,:,npssh+1,:,:,:].reshape(bsz*npss,nc,patch_size,patch_size)
+    xA=x[:,npssh,npssh,:,:,:].reshape(bsz,nc,patch_size,patch_size)
+    xB=x[:,npssh,npssh+1,:,:,:].reshape(bsz,nc,patch_size,patch_size)
     return [xA,xB]
 
 
