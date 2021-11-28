@@ -458,12 +458,10 @@ def get_letters(PARS):
 
 def get_data(PARS):
     if 'stl' in PARS['data_set']:
-        if 'sub' in PARS['data_set']:
-            train, val, test=get_stl10_unlabeled_sub(PARS['mb_size'],size=PARS['num_train'])
-        elif 'unlabeled' in PARS['data_set']:
+        if 'unlabeled' in PARS['data_set']:
             train,val,test=get_stl10_unlabeled(PARS['mb_size'],size=PARS['num_train'],crop=PARS['crop'])
         else:
-            train, val, test = get_stl10_labeled_old(PARS['mb_size'], size=PARS['num_train'],crop=PARS['crop'],  jit=PARS['h_factor'])
+            train, val, test = get_stl10_labeled_old(PARS['mb_size'], size=PARS['num_train'],crop=PARS['crop'],  jit=0)
             # train, val, test = get_stl10_labeled(PARS['data_set'], size=PARS['num_train'])
             # return train, val, test, train[0].shape[1]
         return train, val, test, train.shape[0]
