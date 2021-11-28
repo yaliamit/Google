@@ -123,6 +123,7 @@ def pre_train_new(model,args,device,fout, data=None):
                   num=tr[0].shape[0], shape=tr[0].shape[1:], shuffle=False)
         te = model.get_embedding(DATA[2])
         if args.AVG is not None:
+            HW = (np.int32(te[0].shape[2] / args.AVG), np.int32(te[0].shape[3] / args.AVG))
             tea = torch.nn.functional.avg_pool2d(torch.from_numpy(te[0]), HW, HW)
             te=[tea,te[1]]
         te[0] = te[0].reshape(te[0].shape[0], -1)
