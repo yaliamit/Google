@@ -12,8 +12,6 @@ from sklearn.mixture import GaussianMixture
 from images import create_image
 import pickle
 import os
-from data import get_pre
-from torch.utils.data import Subset
 from data import DL
 
 def prepare_recons(model, DATA, args,fout):
@@ -116,14 +114,17 @@ def pre_train_new(model,args,device,fout, data=None):
     elif args.embedd:
 
         tr = model.get_embedding(DATA[0])
-        if args.AVG:
-            tr=[np.mean(tr[0],axis=(2,3)),tr[1]]
+        if args.AVG is not None:
+            HW = (np.int32(tr[0].shape[2] / args.AVG), np.int32(tr[0].shape[3] / args.AVG))
+            tra=torch.nn.functional.avg_pool2d(torch.from_numpy(tr[0]),HW, HW)
+            tr=[tra,tr[1]]
         tr[0] = tr[0].reshape(tr[0].shape[0], -1)
         trdl = DL(list(zip(tr[0], tr[1])), batch_size=args.mb_size, num_class=args.num_class,
                   num=tr[0].shape[0], shape=tr[0].shape[1:], shuffle=False)
         te = model.get_embedding(DATA[2])
-        if args.AVG:
-            te=[np.mean(te[0],axis=(2,3)),te[1]]
+        if args.AVG is not None:
+            tea = torch.nn.functional.avg_pool2d(torch.from_numpy(te[0]), HW, HW)
+            te=[tea,te[1]]
         te[0] = te[0].reshape(te[0].shape[0], -1)
         tedl = DL(list(zip(te[0], te[1])), batch_size=args.mb_size, num_class=args.num_class,
                   num=te[0].shape[0], shape=te[0].shape[1:], shuffle=False)
