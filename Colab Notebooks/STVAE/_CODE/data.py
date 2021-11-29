@@ -20,9 +20,9 @@ class DL(DataLoader):
         self.num_class=num_class
         self.shape=shape
 
-def get_stl10_unlabeled(batch_size, size=0, crop=None):
+def get_stl10_unlabeled(batch_size, size=0, crop=0):
 
-    if crop is None:
+    if crop is 0:
         transform = transforms.Compose([
             transforms.ToTensor(),
         ])
@@ -47,9 +47,9 @@ def get_stl10_unlabeled(batch_size, size=0, crop=None):
     return train_loader, None, test_loader
 
 
-def get_stl10_labeled_old(batch_size,size=0,crop=None, jit=0):
+def get_stl10_labeled_old(batch_size,size=0,crop=0, jit=0):
 
-    if crop is not None:
+    if crop > 0:
         train_transform = transforms.Compose([
             transforms.ToTensor(),
             transforms.RandomCrop(crop),
