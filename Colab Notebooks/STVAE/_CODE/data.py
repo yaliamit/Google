@@ -35,11 +35,13 @@ def get_stl10_unlabeled(batch_size, size=0, crop=0):
     train = datasets.STL10(get_pre()+'LSDA_data/STL', split='unlabeled', transform=transform, download=True)
     num_class=len(train.classes)
     shape=train.data.shape[1:]
+    if crop>0:
+        shape=[train.data.shape[1],crop,crop]
     if size != 0 and size <= len(train):
         train = Subset(train, random.sample(range(len(train)), size))
     trlen = int(size * .95)
     telen = int(size - trlen)
-    [train,test]=random_split(train,[trlen, telen],generator = torch.Generator().manual_seed(42))
+    [train,test]=random_split(train,[trlen, telen])
 
     # train_loader = DataLoader(train, batch_size=batch_size, shuffle=True)
     # test_loader=DataLoader(test, batch_size=batch_size, shuffle=True)
@@ -68,6 +70,8 @@ def get_stl10_labeled_old(batch_size,size=0,crop=0, jit=0):
     train = datasets.STL10(get_pre()+'LSDA_data/STL', split='train', transform=train_transform, download=True)
     num_class = len(train.classes)
     shape = train.data.shape[1:]
+    if crop>0:
+        shape=[train.data.shape[1],crop,crop]
     test = datasets.STL10(get_pre()+'LSDA_data/STL', split='test', transform=test_transform, download=True)
 
     size=min(size,len(train)) if size>0 else len(train)
