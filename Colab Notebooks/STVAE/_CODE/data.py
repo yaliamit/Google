@@ -23,7 +23,7 @@ class DL(DataLoader):
 def get_stl10_unlabeled(batch_size, size=0, crop=0):
 
 
-    if crop is 0:
+    if crop == 0:
         transform = transforms.Compose([
             transforms.ToTensor(),
         ])
