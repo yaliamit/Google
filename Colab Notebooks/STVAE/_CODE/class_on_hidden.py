@@ -197,6 +197,8 @@ def train_new_old(args,train,test,fout,device,net=None):
         #if hasattr(net,'scheduler') and net.scheduler is not None:
         #    net.scheduler.step()
 
+    _,_,_,res=net.run_epoch(train, 0, d_type='test', fout=fout)
+
     _,_,_,res=net.run_epoch(test, 0, d_type='test', fout=fout)
 
     fout.flush()
