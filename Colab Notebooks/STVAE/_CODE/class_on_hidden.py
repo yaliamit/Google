@@ -114,7 +114,7 @@ def pre_train_new(model,args,device,fout, data=None):
     elif args.embedd:
 
         tr = model.get_embedding(DATA[0])
-        print('Clasification training shape:',DATA[0][0].shape,tr[0].shape)
+        print('Clasification training shape:',tr[0].shape,DATA[0].shape)
         if args.AVG is not None:
             HW = (np.int32(tr[0].shape[2] / args.AVG), np.int32(tr[0].shape[3] / args.AVG))
             tra=torch.nn.functional.avg_pool2d(torch.from_numpy(tr[0]),HW, HW)
