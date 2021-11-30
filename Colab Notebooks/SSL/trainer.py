@@ -168,7 +168,7 @@ if __name__ == '__main__':
     pars.n_negs = 5
     pars.epochs = 100
     pars.clf_epochs = 2
-    pars.batch_size=250
+    pars.batch_size=200
     pars.loadnet="/ga/amit/Google/Colab Notebooks/SSL/save/20211129-215826/basenet_epoch_100_layer_0.pth"
     print(pars)
 
