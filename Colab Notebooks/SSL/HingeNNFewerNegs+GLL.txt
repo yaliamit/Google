@@ -1,0 +1,12 @@
+    pars = PARS(device, datapath, savepath)
+    pars.process = 'GLL'
+    pars.update = 'BP'
+    pars.architecture = 'VGG6'
+    pars.gaze_shift = False
+    pars.loss = 'HingeNNFewerNegs'
+    pars.thr1 = 2
+    pars.thr2 = 1
+    pars.n_negs = 5
+    pars.epochs = 100
+    pars.clf_epochs = 200
+    print(pars)
