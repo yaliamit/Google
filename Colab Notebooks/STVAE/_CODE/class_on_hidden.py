@@ -103,7 +103,7 @@ def pre_train_new(model,args,device,fout, data=None):
 
     args.num_train = args.network_num_train
     datn = args.hid_dataset if args.hid_dataset is not None else args.dataset
-    print('getting:' + datn)
+    print('getting:' + datn,file=fout)
     DATA = get_data_pre(args, datn)
     if type(DATA[0]) is DL:
         args.num_class = DATA[0].num_class
@@ -114,7 +114,7 @@ def pre_train_new(model,args,device,fout, data=None):
     elif args.embedd:
 
         tr = model.get_embedding(DATA[0])
-        print('Clasification training shape:',tr[0].shape,DATA[0].shape)
+        print('Clasification training shape:',tr[0].shape,DATA[0].shape,file=fout)
         if args.AVG is not None:
             HW = (np.int32(tr[0].shape[2] / args.AVG), np.int32(tr[0].shape[3] / args.AVG))
             tra=torch.nn.functional.avg_pool2d(torch.from_numpy(tr[0]),HW, HW)

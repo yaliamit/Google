@@ -201,8 +201,8 @@ def get_embedd_loss_new(out0, out1, dv, nostd=True,future=0, thr=2.,delta=1.,WW=
     if future:
         loss=0
         for i in range(future):
-            fac = 1. if i==0 else 1./future
-            loss+=fac*(torch.sum(torch.relu(delta-torch.diagonal(OUT,i))))
+            #fac = 1. if i==0 else 1./future
+            loss+=(torch.sum(torch.relu(delta-torch.diagonal(OUT,i))))
     elif future==0:
         loss = (1-WW)*torch.sum(torch.relu(delta-torch.diag(OUT)))+WW*torch.sum(torch.relu(delta-OUT))
         #loss = torch.sum(torch.relu(delta - OUT))
