@@ -275,8 +275,8 @@ def train_model(train_loader, test_loader, fix, model, pars, ep_loss, ep_acc, ex
                     loss = criterion(scores, y)
                 running_loss += loss.item()
 
-                progress_bar.set_postfix(loss=loss.item())
-                progress_bar.update(x.size(0))
+                #progress_bar.set_postfix(loss=loss.item())
+                #progress_bar.update(x.size(0))
 
                 optimizer.zero_grad()
                 loss.backward()
