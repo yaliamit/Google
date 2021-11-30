@@ -6,6 +6,7 @@ from models import setup_net
 from get_data import *
 import time
 import json
+os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 def main(pars):
     if pars.loadnet == None:
@@ -154,6 +155,7 @@ if __name__ == '__main__':
     print(device)
     
     datapath = '/home/amit/ga/Google/LSDA_data/STL'
+    #datapath = '/Users/amit/Google Drive/LSDA_data/STL'
     savepath = './save'
     pars = PARS(device, datapath, savepath)
     pars.process = 'GLL'
