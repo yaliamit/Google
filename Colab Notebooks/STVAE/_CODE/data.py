@@ -154,6 +154,7 @@ def get_data_pre(args,dataset):
     PARS['mb_size']=args.mb_size
     PARS['crop']=args.crop
     PARS['h_factor']=args.h_factor
+    PARS['jit']=args.h_factor
     if args.cl is not None:
         PARS['one_class'] = args.cl
 
@@ -466,7 +467,7 @@ def get_data(PARS):
         if 'unlabeled' in PARS['data_set']:
             train,val,test=get_stl10_unlabeled(PARS['mb_size'],size=PARS['num_train'],crop=PARS['crop'])
         else:
-            train, val, test = get_stl10_labeled_old(PARS['mb_size'], size=PARS['num_train'],crop=PARS['crop'],  jit=0)
+            train, val, test = get_stl10_labeled_old(PARS['mb_size'], size=PARS['num_train'],crop=PARS['crop'],  jit=PARS['jit'])
             # train, val, test = get_stl10_labeled(PARS['data_set'], size=PARS['num_train'])
             # return train, val, test, train[0].shape[1]
         return train, val, test, train.shape[0]
