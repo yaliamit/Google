@@ -208,6 +208,7 @@ def train_new_new(args,model,DATA,fout,device,net=None):
         net = network.network(device, args, args.hid_layers_dict, args.hid_lnti, sh=trdl.shape).to(device)
         net.get_scheduler(args)
 
+
     freq = 10
     for epoch in range(args.hid_nepoch):
         t1 = time.time()
