@@ -170,7 +170,7 @@ def train_new(args,train,test,fout,device):
     return res
 
 def train_new_new(args,model,DATA,fout,device,net=None):
-    print("In from hidden number of training", train.num)
+
     print('In train new:')
     print(str(args))
     val = None
@@ -189,7 +189,6 @@ def train_new_new(args,model,DATA,fout,device,net=None):
     freq = 1
     for epoch in range(args.hid_nepoch):
         tr = model.get_embedding(DATA[0])
-        #print('Clasification training shape:', tr[0].shape, DATA[0].shape, file=fout)
         if args.AVG is not None:
             HW = (np.int32(tr[0].shape[2] / args.AVG), np.int32(tr[0].shape[3] / args.AVG))
             tra = torch.nn.functional.avg_pool2d(torch.from_numpy(tr[0]), HW, HW)
