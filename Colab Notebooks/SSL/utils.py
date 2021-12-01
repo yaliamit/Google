@@ -6,6 +6,7 @@ from torch import nn
 import torchvision.transforms as transforms
 from loss import *
 from tqdm import tqdm
+import time
 import os
 import torchvision.transforms.functional as tvf
 import random
@@ -236,6 +237,7 @@ def train_model(train_loader, test_loader, fix, model, pars, ep_loss, ep_acc, ex
         running_loss = 0
         bsz_multiplier = 49 if pars.gaze_shift else 2
         num_train = min(pars.num_train, len(train_loader.dataset))
+        t1=time.time()
         total_n = bsz_multiplier * num_train if pars.train_unsupervised else num_train
         with tqdm(total=total_n) as progress_bar:
             for batch_idx, (data, targ) in enumerate(train_loader):
@@ -280,7 +282,7 @@ def train_model(train_loader, test_loader, fix, model, pars, ep_loss, ep_acc, ex
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
-
+        print('Epoch time',time.time()-t1)
         running_loss /= len(train_loader)
         ep_loss.append(running_loss)
         if pars.train_unsupervised:
