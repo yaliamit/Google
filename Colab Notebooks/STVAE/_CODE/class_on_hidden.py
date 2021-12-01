@@ -204,7 +204,7 @@ def train_new_new(args,model,DATA,fout,device,net=None):
         args.update_layers = None
         args.hid_lnti, args.hid_layers_dict = prep.get_network(args.hid_layers)
         args.perturb = 0
-        # args.sched=[0,0]
+        args.sched=[0,0]
         net = network.network(device, args, args.hid_layers_dict, args.hid_lnti, sh=trdl.shape).to(device)
         net.get_scheduler(args)
 
