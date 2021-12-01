@@ -290,11 +290,11 @@ def train_model(train_loader, test_loader, fix, model, pars, ep_loss, ep_acc, ex
         if pars.train_unsupervised:
             print('Epoch %d, loss = %.4f' % (e, running_loss))            
         else:
-            acc_test = check_accuracy(test_loader, fix, model, pars)
-            acc_train = check_accuracy(train_loader, fix, model, pars)
-            print('Epoch %d, loss = %.4f, train.acc = %.4f, test.acc = %.4f' % (e, running_loss, acc_train, acc_test))
-            ep_acc.append(acc_test)
-        print('Test time',time.time()-t2)
+            if np.mod(e,10)==0:
+                acc_test = check_accuracy(test_loader, fix, model, pars)
+                acc_train = check_accuracy(train_loader, fix, model, pars)
+                print('Epoch %d, loss = %.4f, train.acc = %.4f, test.acc = %.4f' % (e, running_loss, acc_train, acc_test))
+                ep_acc.append(acc_test)
         if pars.train_unsupervised:
             if (e+1) % pars.log_every == 0:
                 torch.save({'epoch': e + 1,
