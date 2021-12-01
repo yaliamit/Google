@@ -35,6 +35,7 @@ def main_loc(par_file, device,net=None):
 
 
   #if net is None:
+  sh=[3,96,96]
   models=prep.get_models(device, fout, sh, STRINGS, ARGS, args)
   if args.deform:
       BB=next(iter(DATA[0]))
