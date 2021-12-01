@@ -155,7 +155,7 @@ def get_data_pre(args,dataset):
     PARS['crop']=args.crop
     PARS['h_factor']=args.h_factor
     PARS['jit']=args.h_factor
-    
+
     if args.cl is not None:
         PARS['one_class'] = args.cl
 
