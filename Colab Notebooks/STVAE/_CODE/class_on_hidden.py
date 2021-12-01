@@ -210,8 +210,10 @@ def train_new_new(args,model,DATA,fout,device,net=None):
 
 
     freq = 10
+    freq_test=100
+    t1 = time.time()
     for epoch in range(args.hid_nepoch):
-        t1 = time.time()
+
         net.run_epoch(trdl, epoch, d_type='train', fout=fout, freq=freq)
 
         if (val is not None and np.mod(epoch, freq) == 0):
@@ -221,9 +223,11 @@ def train_new_new(args,model,DATA,fout,device,net=None):
             fout.write('epoch: {0} in {1:5.3f} seconds, LR {2:0.5f}\n'.format(epoch, time.time() - t1,
                                                                               net.optimizer.param_groups[0]['lr']))
             fout.flush()
+            t1 = time.time()
             trdl, tedl = embedd(DATA, model, args)
 
-
+        if (freq_test-np.mod(epoch,freq_test)==1):
+            _, _, _, res = net.run_epoch(tedl, 0, d_type='test', fout=fout)
         # if hasattr(net,'scheduler') and net.scheduler is not None:
         #    net.scheduler.step()
 
