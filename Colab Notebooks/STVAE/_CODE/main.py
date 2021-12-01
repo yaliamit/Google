@@ -33,6 +33,7 @@ def main_loc(par_file, device,net=None):
   # Training an autoencoder.
 
 
+
   #if net is None:
   models=prep.get_models(device, fout, sh, STRINGS, ARGS, args)
   if args.deform:
