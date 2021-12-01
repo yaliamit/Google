@@ -238,7 +238,7 @@ def train_model(train_loader, test_loader, fix, model, pars, ep_loss, ep_acc, ex
         bsz_multiplier = 49 if pars.gaze_shift else 2
         num_train = min(pars.num_train, len(train_loader.dataset))
         t1=time.time()
-        
+
         total_n = bsz_multiplier * num_train if pars.train_unsupervised else num_train
         with tqdm(total=total_n) as progress_bar:
             for batch_idx, (data, targ) in enumerate(train_loader):
@@ -283,7 +283,8 @@ def train_model(train_loader, test_loader, fix, model, pars, ep_loss, ep_acc, ex
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
-        print('Epoch time',time.time()-t1)
+        t2=time.time()
+        print('Epoch time',t2-t1)
         running_loss /= len(train_loader)
         ep_loss.append(running_loss)
         if pars.train_unsupervised:
@@ -293,7 +294,7 @@ def train_model(train_loader, test_loader, fix, model, pars, ep_loss, ep_acc, ex
             acc_train = check_accuracy(train_loader, fix, model, pars)
             print('Epoch %d, loss = %.4f, train.acc = %.4f, test.acc = %.4f' % (e, running_loss, acc_train, acc_test))
             ep_acc.append(acc_test)
-
+        print('Test time',time.time()-t2)
         if pars.train_unsupervised:
             if (e+1) % pars.log_every == 0:
                 torch.save({'epoch': e + 1,
