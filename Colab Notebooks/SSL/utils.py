@@ -162,8 +162,8 @@ def train_model(train_loader, test_loader, fix, model, pars, ep_loss, ep_acc, ex
 
     fix = fix.to(device=device)
     model = model.to(device=device)  # move the model parameters to CPU/GPU
-    print(fix)
-    print(model)
+    # print(fix)
+    # print(model)
 
     if pars.train_unsupervised:
         lr = pars.LR
@@ -172,16 +172,15 @@ def train_model(train_loader, test_loader, fix, model, pars, ep_loss, ep_acc, ex
         if pars.loss == 'Hinge':
             criterion = ContrastiveHinge(pars.batch_size, pars.thr1, pars.thr2, device=pars.device)
         elif pars.loss == 'HingeNN':
-            criterion = ContrastiveHingeNN(pars.batch_size, pars.thr1, pars.thr2, device=pars.device)
+            criterion = ContrastiveHingeNN(pars.batch_size, pars.thr1, pars.thr2, pars.grad_block, device=pars.device)
         elif pars.loss == 'HingeNN2':
-            criterion = ContrastiveHingeNN2(pars.batch_size, pars.thr1, pars.thr2, device=pars.device)
+            criterion = ContrastiveHingeNN2(pars.batch_size, pars.thr1, pars.thr2, pars.grad_block, device=pars.device)
         elif pars.loss == 'HingeNNFewerNegs':
-            criterion = HingeNNFewerNegs(pars.batch_size, pars.thr1, pars.thr2, pars.n_negs, device=pars.device)
+            criterion = HingeNNFewerNegs(pars.batch_size, pars.thr1, pars.thr2, pars.n_negs, pars.grad_block, device=pars.device)
         elif pars.loss == 'GazeHingeNN':
             criterion = GazeHingeNN(pars)
         elif pars.loss =='CLAPP':
             n_features = model[0].weight.shape[0] if pars.process != 'E2E' else 1024
-            ## TODO: temporarily moved here, does not work with layerwise where model is a list of list
             criterion = CLAPPHinge(pars, n_features)
         else:
             criterion = SimCLRLoss(pars.batch_size, pars.device)

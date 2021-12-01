@@ -57,7 +57,10 @@ def main(pars):
                     lw_test_acc.append(test_acc)
             elif pars.process == 'GLL':
                 # start from where the previous check point was saved
-                start_layer = pars.loadnet.rsplit('.')[0].rsplit('_')[-1] if pars.loadnet else 0
+                if pars.loadnet.startswith('.'):
+                    start_layer = pars.loadnet.rsplit('.')[1].rsplit('_')[-1] if pars.loadnet else 0
+                else:
+                    start_layer = pars.loadnet.rsplit('.')[0].rsplit('_')[-1] if pars.loadnet else 0
                 for i in range(int(start_layer), pars.NUM_LAYER):
                     print('LAYER:%d'%i)
                     fix = net[:i]
@@ -78,6 +81,19 @@ def main(pars):
                         model.load_state_dict(checkpoint['state_dict'])
                         timestr = pars.loadnet.split('/')[-2].strip()
                         expdir = os.path.join(pars.savepath, timestr)
+                        for pre in range(i):
+                            print('Loading from fixed layer ', pre)
+                            fix_path = os.path.join(expdir, f'basenet_epoch_{pars.epochs}_layer_{pre}.pth')
+                            fix_checkpoint = torch.load(fix_path)
+                            loaded_fix_weights = fix_checkpoint['state_dict']
+                            new_fix_weights = fix[pre].state_dict()
+                            for k in new_fix_weights.keys():
+                                if pars.loss != 'CLAPP':
+                                    new_fix_weights[k] = loaded_fix_weights['0.'+k]
+                                else:
+                                    new_fix_weights[k] = loaded_fix_weights[k]
+                            fix[pre].load_state_dict(new_fix_weights)
+ 
                         if os.path.exists(expdir):
                             start_epoch = checkpoint['epoch']
                             print(f'Checkpoint loaded, resuming from {start_epoch}')
@@ -171,16 +187,6 @@ if __name__ == '__main__':
     pars.batch_size=200
     pars.loadnet="/ga/amit/Google/Colab Notebooks/SSL/save/20211129-215826/basenet_epoch_100_layer_0.pth"
     print(pars)
-
-    # pars = PARS(device, datapath, savepath)
-    # pars.process = 'E2E'
-    # pars.update = 'BP'
-    # pars.architecture = 'VGG6'
-    # pars.gaze_shift = False
-    # pars.loss = 'HingeNN2'
-    # pars.thr1 = 1
-    # pars.thr2 = 3
-    #print(pars)
     main(pars)
-    #with open(os.path.join(pars.expdir, 'configs.json'), 'w') as fp:
-    #    json.dump(pars.__dict__, fp)
+    with open(os.path.join(pars.expdir, 'configs.json'), 'w') as fp:
+       json.dump(pars.__dict__, fp)
