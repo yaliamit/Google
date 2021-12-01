@@ -237,8 +237,8 @@ def train_model(train_loader, test_loader, fix, model, pars, ep_loss, ep_acc, ex
         bsz_multiplier = 49 if pars.gaze_shift else 2
         num_train = min(pars.num_train, len(train_loader.dataset))
         total_n = bsz_multiplier * num_train if pars.train_unsupervised else num_train
-        #with tqdm(total=total_n) as progress_bar:
-        for batch_idx, (data, targ) in enumerate(train_loader):
+        with tqdm(total=total_n) as progress_bar:
+            for batch_idx, (data, targ) in enumerate(train_loader):
 
                 model.train()  # put model to training mode
                 # using new data deformation with random resized crop
@@ -274,8 +274,8 @@ def train_model(train_loader, test_loader, fix, model, pars, ep_loss, ep_acc, ex
                     loss = criterion(scores, y)
                 running_loss += loss.item()
 
-                #progress_bar.set_postfix(loss=loss.item())
-                #progress_bar.update(x.size(0))
+                progress_bar.set_postfix(loss=loss.item())
+                progress_bar.update(x.size(0))
 
                 optimizer.zero_grad()
                 loss.backward()
