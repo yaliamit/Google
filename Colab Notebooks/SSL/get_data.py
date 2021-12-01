@@ -100,6 +100,8 @@ def get_stl10_unlabeled_patches(datapath, batch_size, size):
     return train_loader, None
 
 
+
+
 def get_stl10_labeled(datapath, batch_size, pars):
     compose_train = []
     if pars.augment_stl_train:

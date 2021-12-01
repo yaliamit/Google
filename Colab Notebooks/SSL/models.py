@@ -17,7 +17,7 @@ def setup_net(pars):
         else:
             NUM_CLASS = 10
 
-                    
+
     if pars.architecture == 'CONV6':
         HW = 64
         NUM_CHANNEL = 32
