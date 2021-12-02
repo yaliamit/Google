@@ -120,6 +120,8 @@ def main(pars):
                         print('Rep: %d, Layer: %d, te.acc = %.4f' % (rep+1, i, test_acc))
                         lw_test_acc.append(test_acc)
                         print()
+                    else:
+                        break
                 
                 if pars.classify_whole_net:
                     print('Train Classifier for the whole model')
@@ -198,7 +200,8 @@ if __name__ == '__main__':
     pars.epochs = 100
     pars.clf_epochs = 20
     pars.batch_size=200
-    pars.loadnet="/ga/amit/Google/Colab Notebooks/SSL/save/20211129-215826/basenet_epoch_100_layer_0.pth"
+    pars.loadnet="/ga/amit/Google/Colab Notebooks/SSL/save/20211129-215826/basenet_epoch_100_layer_4.pth"
+    pars.classify_whole_net=True
     print(pars)
     main(pars)
     with open(os.path.join(pars.expdir, 'configs.json'), 'w') as fp:
