@@ -211,7 +211,7 @@ def train_new_new(args,model,DATA,fout,device,net=None):
         net.get_scheduler(args)
 
 
-    freq = 1
+    freq = 10
     freq_test=10
     t1 = time.time()
     for epoch in range(args.hid_nepoch):
@@ -229,7 +229,7 @@ def train_new_new(args,model,DATA,fout,device,net=None):
             trdl, tedl = embedd(DATA, model, args)
 
         if (freq_test-np.mod(epoch,freq_test)==1):
-            _, _, _, res = net.run_epoch(tedl, 0, d_type='test_inter', fout=fout)
+            _, _, _, res = net.run_epoch(tedl, 0, d_type='tes_inter', fout=fout)
         # if hasattr(net,'scheduler') and net.scheduler is not None:
         #    net.scheduler.step()
 
