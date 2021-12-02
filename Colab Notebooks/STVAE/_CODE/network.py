@@ -35,9 +35,9 @@ class network(nn.Module):
         self.first=first
         self.future=args.future
         self.penalize_activations=args.penalize_activations
-        self.patch_size=args.patch_size
-        if self.patch_size is not None:
-            sh=(sh[0],self.patch_size,self.patch_size)
+        self.crop=args.crop
+        if self.crop is not None:
+            sh=(sh[0],self.crop,self.crop)
         self.bsz=args.mb_size # Batch size - gets multiplied by number of shifts so needs to be quite small.
         #self.full_dim=args.full_dim
         self.dv=device
@@ -458,16 +458,14 @@ class network(nn.Module):
             if self.embedd:
 
                 with torch.no_grad():
-                    if self.patch_size is None:
+                    if self.crop==0:
                         if ljump is None:
                             ljump=jump
                         data_out=deform_data(data_in,self.perturb,self.trans,self.s_factor,self.h_factor,self.embedd)
                         data_in=deform_data(data_in,self.perturb,self.trans,self.s_factor,self.h_factor,self.embedd)
                         data=[data_in.to(self.dv),data_out.to(self.dv)]
                     else:
-                        data_p=get_embs(data_in, self.patch_size)
-                        if ljump is None:
-                            ljump = data_p[0].shape[0]
+                        data_p=data_in
                         data=[data_p[0].to(self.dv),data_p[1].to(self.dv)]
             else:
                 if ljump is None:
