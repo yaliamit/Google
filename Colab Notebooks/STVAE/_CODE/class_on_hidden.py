@@ -211,7 +211,7 @@ def train_new_new(args,model,DATA,fout,device,net=None):
         net.get_scheduler(args)
 
 
-    freq = 10
+    freq = 1
     freq_test=10
     t1 = time.time()
     for epoch in range(args.hid_nepoch):
