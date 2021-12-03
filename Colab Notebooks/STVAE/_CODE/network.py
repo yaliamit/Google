@@ -36,7 +36,7 @@ class network(nn.Module):
         self.future=args.future
         self.penalize_activations=args.penalize_activations
         self.crop=args.crop
-        if self.crop:
+        if self.crop and len(sh)==3:
             sh=(sh[0],self.crop,self.crop)
             print(sh)
         self.bsz=args.mb_size # Batch size - gets multiplied by number of shifts so needs to be quite small.
