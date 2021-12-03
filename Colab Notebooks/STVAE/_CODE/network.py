@@ -440,7 +440,6 @@ class network(nn.Module):
 
 
         TIME=0
-        ljump = None
         tra=iter(train)
         for j in np.arange(0, num_tr, jump,dtype=np.int32):
             lnum=0
@@ -459,8 +458,6 @@ class network(nn.Module):
 
                 with torch.no_grad():
                     if self.crop==0:
-                        if ljump is None:
-                            ljump=jump
                         data_out=deform_data(data_in,self.perturb,self.trans,self.s_factor,self.h_factor,self.embedd)
                         data_in=deform_data(data_in,self.perturb,self.trans,self.s_factor,self.h_factor,self.embedd)
                         data=[data_in.to(self.dv),data_out.to(self.dv)]
@@ -468,8 +465,6 @@ class network(nn.Module):
                         data_p=data_in
                         data=[data_p[0].to(self.dv),data_p[1].to(self.dv)]
             else:
-                if ljump is None:
-                    ljump=jump
                 if self.perturb>0.and d_type=='train':
                    with torch.no_grad():
                      data_in = deform_data(data_in, self.perturb, self.trans, self.s_factor, self.h_factor,self.embedd)
@@ -500,9 +495,9 @@ class network(nn.Module):
         if freq-np.mod(epoch,freq)==1:
            for l in range(ll):
                 fout.write('\n ====> Ep {}: {} Full loss: {:.4F}, Full acc: {:.6F} \n'.format(d_type,epoch,
-                    full_loss[l] /(count[l]*(ljump/jump)), full_acc[l]/(count[l]*ljump)))
+                    full_loss[l] /count[l], full_acc[l]/(count[l]*jump)))
 
-        return trainMU, trainLOGVAR, trPI, [full_acc/(count*ljump), full_loss/(count*(ljump/jump))]
+        return trainMU, trainLOGVAR, trPI, [full_acc/(count*jump), full_loss/(count)]
 
     def get_embedding(self, train):
 
