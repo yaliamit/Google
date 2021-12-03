@@ -36,8 +36,9 @@ class network(nn.Module):
         self.future=args.future
         self.penalize_activations=args.penalize_activations
         self.crop=args.crop
-        if self.crop is not None:
+        if self.crop:
             sh=(sh[0],self.crop,self.crop)
+            print(sh)
         self.bsz=args.mb_size # Batch size - gets multiplied by number of shifts so needs to be quite small.
         #self.full_dim=args.full_dim
         self.dv=device
