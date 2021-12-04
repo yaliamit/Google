@@ -66,7 +66,8 @@ def main_loc(par_file, device,net=None):
       models[0].opt_jump = args.opt_jump
       train_model(models[0], args, EX_FILES[0], DATA, fout)
       model_out = models[0]
-      pre_train_new(model_out,args,device,fout, data=None)
+      if args.hid_nepoch>0
+        pre_train_new(model_out,args,device,fout, data=None)
 
   elif args.run_existing:
       models[0].load_state_dict(SMS[0]['model.state.dict'])
