@@ -224,10 +224,10 @@ def deform_data(x_in,perturb,trans,s_factor,h_factor,embedd):
         h=x_in.shape[2]
         w=x_in.shape[3]
         nn=x_in.shape[0]
-        #v=((torch.rand(nn, 6) - .5) * perturb)
-        v=(torch.rand(nn, 6) * perturb)+perturb/4.
-        vs=2*(torch.rand(nn,6)>.5)-1
-        v=v*vs
+        v=((torch.rand(nn, 6) - .5) * perturb)
+        #v=(torch.rand(nn, 6) * perturb)+perturb/4.
+        #vs=2*(torch.rand(nn,6)>.5)-1
+        #v=v*vs
         rr = torch.zeros(nn, 6)
         if not embedd:
             ii = torch.randperm(nn)
