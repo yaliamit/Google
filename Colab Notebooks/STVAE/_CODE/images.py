@@ -25,9 +25,9 @@ def extract_sub_images(numtr,pr):
 
 
 
-def show_examples_of_deformed_images(DATA,args):
+def show_examples_of_deformed_images(BB,args):
 
-    BB=next(iter(DATA[2]))
+
     inp=BB[0]
     out=deform_data(inp, args.perturb, args.transformation, args.s_factor, args.h_factor, False)
 
@@ -224,7 +224,10 @@ def deform_data(x_in,perturb,trans,s_factor,h_factor,embedd):
         h=x_in.shape[2]
         w=x_in.shape[3]
         nn=x_in.shape[0]
-        v=((torch.rand(nn, 6) - .5) * perturb)
+        #v=((torch.rand(nn, 6) - .5) * perturb)
+        v=(torch.rand(nn, 6) * perturb)+perturb/4.
+        vs=2*(torch.rand(nn,6)>.5)-1
+        v=v*vs
         rr = torch.zeros(nn, 6)
         if not embedd:
             ii = torch.randperm(nn)
@@ -233,7 +236,8 @@ def deform_data(x_in,perturb,trans,s_factor,h_factor,embedd):
         else:
             u=v
         # Ammplify the shift part of the
-        u[:,[2,5]]*=2
+        u[:,[2,5]]*=2.
+
         rr[:, [0,4]] = 1
         if trans=='shift':
           u[:,[0,1,3,4]]=0

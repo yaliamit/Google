@@ -439,8 +439,8 @@ def get_cifar(PARS):
 
     data_set=PARS['data_set']
     pre=get_pre()+'LSDA_data/CIFAR/'
-
-    filename = pre+data_set+'_train.hdf5'
+    ftr=data_set.split('_')[0]
+    filename = pre+ftr+'_train.hdf5'
     print(filename)
     f = h5py.File(filename, 'r')
     key = list(f.keys())[0]
@@ -457,13 +457,20 @@ def get_cifar(PARS):
         val_data=np.float32(tr[ntr:])/255.
         val_labels=one_hot(np.int32(tr_lb[ntr:]),PARS)
         val=(val_data,val_labels)
-    filename = pre+data_set+'_test.hdf5'
-    f = h5py.File(filename, 'r')
-    key = list(f.keys())[0]
-    # Get the data
-    test_data = np.float32(f[key])/255.
-    key = list(f.keys())[1]
-    test_labels=one_hot(np.int32(f[key]),PARS)
+    if 'def' in data_set:
+        file_name=pre+data_set+'_data.npy'
+        test_data = np.load(file_name)
+        file_name = pre + data_set + '_labels.npy'
+        test_labels=np.load(file_name)
+        test_labels=one_hot(test_labels)
+    else:
+        filename = pre+data_set+'_test.hdf5'
+        f = h5py.File(filename, 'r')
+        key = list(f.keys())[0]
+        # Get the data
+        test_data = np.float32(f[key])/255.
+        key = list(f.keys())[1]
+        test_labels=one_hot(np.int32(f[key]),PARS)
     return (train_data, train_labels), val , (test_data, test_labels)
 
 def get_letters(PARS):
@@ -504,7 +511,7 @@ def get_data(PARS):
             # return train, val, test, train[0].shape[1]
         return train, val, test, train.shape[0]
     elif ('cifar' in PARS['data_set']):
-        train, val, test=get_cifar(PARS)
+            train, val, test=get_cifar(PARS)
     else:
         train, val, test = get_letters(PARS)
     num_train = np.minimum(PARS['num_train'], train[0].shape[0])

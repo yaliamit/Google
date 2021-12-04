@@ -2,8 +2,9 @@ from make import train_model, test_models
 from class_on_hidden import pre_train_new, cluster_hidden
 import prep
 from data import get_data_pre
-from images import make_images, show_examples_of_deformed_images, get_embs
+from images import make_images, show_examples_of_deformed_images, get_embs, deform_data
 import pylab as py
+import numpy as np
 import sys
 
 def main_loc(par_file, device,net=None):
@@ -38,9 +39,20 @@ def main_loc(par_file, device,net=None):
   #sh=[3,96,96]
   models=prep.get_models(device, fout, sh, STRINGS, ARGS, args)
   if args.deform:
-      BB=next(iter(DATA[0]))
-      get_embs(models[0],BB[0])
-      #show_examples_of_deformed_images(DATA,args)
+      OUT=[]
+      LL=[]
+      done=False
+      for bb in enumerate(DATA[2]):
+          if not done:
+            show_examples_of_deformed_images(bb[1],args)
+            done=True
+          out = deform_data(bb[1][0], args.perturb, args.transformation, args.s_factor, args.h_factor, False)
+          OUT+=[out.numpy()]
+          LL+=[bb[1][1].numpy()]
+      LLA=np.concatenate(LL)
+      OUTA = np.concatenate(OUT, axis=0).transpose(0,2,3,1)
+      np.save('cifar10_def_data',OUTA)
+      np.save('cifar10_def_labels',LLA)
       sys.exit()
   #   return models[0], embed_data, args
   # else:
@@ -88,7 +100,8 @@ def main_loc(par_file, device,net=None):
   else: # Totally new network
 
         train_model(models[0], args, EX_FILES[0], DATA, fout)
-        embed_data=pre_train_new(models[0], args, device, fout, data=DATA)
+        if args.hid_nepoch>0:
+            embed_data=pre_train_new(models[0], args, device, fout, data=DATA)
         model_out=models[0]
 
 
