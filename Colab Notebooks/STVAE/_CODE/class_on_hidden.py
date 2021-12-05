@@ -189,7 +189,7 @@ def embedd(DATA,model,args):
     te[0] = te[0].reshape(te[0].shape[0], -1)
     tedl = DL(list(zip(te[0], te[1])), batch_size=args.mb_size, num_class=args.num_class,
               num=te[0].shape[0], shape=te[0].shape[1:], shuffle=False)
-    print('Getting embedding',time.time()-tt)
+    #print('Getting embedding',time.time()-tt)
     return trdl, tedl
 
 def train_new_new(args,model,DATA,fout,device,net=None):
