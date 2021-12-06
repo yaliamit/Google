@@ -147,7 +147,7 @@ def copy_from_old_to_new(model, args, fout, SMS, strings,device, sh):
         return
     else:
         ### TEMPORARY
-        SMS['args'] = args
+        #SMS['args'] = args
         lnti, layers_dict = get_network(SMS['args'].layers, nf=sh[0])
         print('LOADING OLD MODEL')
 
