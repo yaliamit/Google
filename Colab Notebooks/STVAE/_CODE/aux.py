@@ -109,6 +109,7 @@ def process_args(parser):
     parser.add_argument('--deform', action='store_true', help='show deformations')
     parser.add_argument('--lower_decoder', action='store_true', help='start decoding from lowerlayer')
     parser.add_argument('--randomize', action='store_true', help='start decoding from lowerlayer')
+    parser.add_argument('--hid_model', action='store_true', help='classifier on top of embedding')
     parser.add_argument('--bn', default='none', help='type of batch normalizations')
     parser.add_argument('--edge_dtr', type=float, default=0., help='difference minimum for edge')
     parser.add_argument('--out_file', default='OUT.txt',help='output stuff')

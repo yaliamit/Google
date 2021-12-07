@@ -3,7 +3,7 @@ import numpy as np
 import time
 import network
 import prep
-from data import get_data_pre
+from data import get_data_pre, get_pre
 import torch
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC, LinearSVC
@@ -12,6 +12,7 @@ from sklearn.mixture import GaussianMixture
 from images import create_image
 import pickle
 import os
+from make import save_net_int
 from data import DL
 
 def prepare_recons(model, DATA, args,fout):
@@ -195,6 +196,7 @@ def embedd(DATA,model,args):
 def train_new_new(args,model,DATA,fout,device,net=None):
 
     print('In train new:')
+    predir = get_pre()
     print(str(args))
     val = None
     trdl, tedl = embedd(DATA,model,args)
@@ -209,6 +211,12 @@ def train_new_new(args,model,DATA,fout,device,net=None):
         args.sched=[0,0]
         net = network.network(device, args, args.hid_layers_dict, args.hid_lnti, sh=trdl.shape).to(device)
         net.get_scheduler(args)
+        if args.hid_model:
+
+            datadirs = predir + 'Colab Notebooks/STVAE/'
+            sm = torch.load(datadirs + '_output/' + args.model[0]+'_classify' + '.pt', map_location='cpu')
+            net.load_state_dict(sm['model.state.dict'])
+
 
 
     freq = 1
@@ -236,6 +244,8 @@ def train_new_new(args,model,DATA,fout,device,net=None):
     _, _, _, res = net.run_epoch(trdl, 0, d_type='test', fout=fout)
 
     _, _, _, res = net.run_epoch(tedl, 0, d_type='test', fout=fout)
+
+    save_net_int(net, args.model_out+'_classify', args, predir)
 
     fout.flush()
 
