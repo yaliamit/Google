@@ -150,10 +150,10 @@ class MNIST_Net(nn.Module):
             print('input dimension to fc1',pars.inp)
             if pars.mid_layer is not None:
                 self.layers.add_module('fc1',nn.Linear(pars.inp, pars.mid_layer))
-                self.layers.add_modeul('fc_final', nn.Linear(pars.mid_layer, 10))
+                self.layers.add_module('fc_final', nn.Linear(pars.mid_layer, 10))
             else:
                 self.layers.add_module('fc1', nn.Identity())
-                self.layers.add_modeul('fc_final', nn.Linear(pars.inp, 10))
+                self.layers.add_module('fc_final', nn.Linear(pars.inp, 10))
 
             # Print out all network parameter shapes and compute total:
             tot_pars=0
