@@ -277,7 +277,9 @@ pars.device = device
 pars.kernel_size=[5,5]
 train,val,test=get_data(data_set=pars.data_set)
 pars.inp_dim=train[0][0].shape
-net = MNIST_Net(pars).to(pars.device)
+net = MNIST_Net(pars)
+temp=torch.zeros(1,train[0].shape[1],train[0].shape[2],train[0].shape[3])
+net.forward(temp,pars)
 net.to(pars.device)
 pars.optimizer=get_optimizer(net,pars)
 
