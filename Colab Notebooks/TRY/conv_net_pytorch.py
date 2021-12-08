@@ -117,23 +117,28 @@ class MNIST_Net(nn.Module):
         # Two successive convolutional layers.
         # Two pooling layers that come after convolutional layers.
         # Two dropout layers.
-        self.conv1 = nn.Conv2d(1, 32, kernel_size=pars.kernel_size[0],padding=pars.kernel_size[0]//2)
-        self.pool1=nn.MaxPool2d(kernel_size=[pars.pool_size],stride=2)
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=pars.kernel_size[1],padding=pars.kernel_size[1]//2)
-        self.drop2 = nn.Dropout2d(pars.dropout)
-        self.pool2=nn.MaxPool2d(kernel_size=2,stride=2)
-        self.drop_final=nn.Dropout(pars.dropout)
+        self.layers=nn.ModuleList()
+        self.layers.add_module('conv1',nn.Conv2d(1, 32, kernel_size=pars.kernel_size[0],padding=pars.kernel_size[0]//2))
+        self.layers.add_module('pool1',nn.MaxPool2d(kernel_size=[pars.pool_size],stride=2))
+        self.layers.add_module('conv2',nn.Conv2d(32, 64, kernel_size=pars.kernel_size[1],padding=pars.kernel_size[1]//2))
+        self.layers.add_module('drop2',nn.Dropout2d(pars.dropout))
+        self.layers.add_module('pool2',nn.MaxPool2d(kernel_size=2,stride=2))
+        self.layers.add_module('drop_final',nn.Dropout(pars.dropout))
        
 
         
     def forward(self, x, pars):
         
         # Apply relu to a pooled conv1 layer.
-        x = F.relu(self.pool1(self.conv1(x)))
+        x=getattr(self.layers, 'conv1')(x)
+        x=getattr(self.layers,'pool1')(x)
         if pars.first:
             print('conv1',x.shape)
-        # Apply relu to a pooled conv2 layer with a drop layer inbetween.
-        x = self.drop2(F.relu(self.pool2(self.conv2(x))))
+        x=F.relu(x)
+        x=getattr(self.layers,'conv2')(x)
+        x = getattr(self.layers, 'pool2')(x)
+        x=F.relu(x)
+        x = getattr(self.layers, 'drop2')(x)
         if pars.first:
             print('conv2',x.shape)
         
@@ -144,11 +149,12 @@ class MNIST_Net(nn.Module):
             # pars.mid_layer output dim. Then setup final 10 node output layer.
             print('input dimension to fc1',pars.inp)
             if pars.mid_layer is not None:
-                self.fc1 = nn.Linear(pars.inp, pars.mid_layer)
-                self.fc_final = nn.Linear(pars.mid_layer, 10)
+                self.layers.add_module('fc1',nn.Linear(pars.inp, pars.mid_layer))
+                self.layers.add_modeul('fc_final', nn.Linear(pars.mid_layer, 10))
             else:
-                self.fc1=nn.Identity()
-                self.fc_final = nn.Linear(pars.inp, 10)
+                self.layers.add_module('fc1', nn.Identity())
+                self.layers.add_modeul('fc_final', nn.Linear(pars.inp, 10))
+
             # Print out all network parameter shapes and compute total:
             tot_pars=0
             for k,p in self.named_parameters():
@@ -156,9 +162,9 @@ class MNIST_Net(nn.Module):
                 print(k,p.shape)
             print('tot_pars',tot_pars)
         x = x.reshape(-1, pars.inp)
-        x = F.relu(self.fc1(x))
-        x = self.drop_final(x)
-        x = self.fc_final(x)
+        x = F.relu(getattr(self.layers,'fc1')(x))
+        x = getattr(self.layers,'drop_final')(x)
+        x = getattr(self.layers,'fc_final')(x)
         return x
     
     # Run the network on the data, compute the loss, compute the predictions and compute classification rate/
