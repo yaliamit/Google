@@ -208,7 +208,7 @@ def train_new_new(args,model,DATA,fout,device,net=None):
         args.update_layers = None
         args.hid_lnti, args.hid_layers_dict = prep.get_network(args.hid_layers)
         args.perturb = 0
-        args.sched=[0,0]
+        args.sched=args.hid_sched
         net = network.network(device, args, args.hid_layers_dict, args.hid_lnti, sh=trdl.shape).to(device)
         net.get_scheduler(args)
         if args.hid_model:
@@ -238,8 +238,8 @@ def train_new_new(args,model,DATA,fout,device,net=None):
 
         if (freq_test-np.mod(epoch,freq_test)==1):
             _, _, _, res = net.run_epoch(tedl, 0, d_type='tes_inter', fout=fout)
-        # if hasattr(net,'scheduler') and net.scheduler is not None:
-        #    net.scheduler.step()
+        if hasattr(net,'scheduler') and net.scheduler is not None:
+            net.scheduler.step()
 
     _, _, _, res = net.run_epoch(trdl, 0, d_type='test', fout=fout)
 
