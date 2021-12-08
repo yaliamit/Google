@@ -281,6 +281,8 @@ net = MNIST_Net(pars)
 temp=torch.zeros(1,train[0].shape[1],train[0].shape[2],train[0].shape[3])
 net.forward(temp,pars)
 net.to(pars.device)
+if 'ga' in predir:
+  net = torch.nn.DataParallel(net, device_ids=[0,1])
 pars.optimizer=get_optimizer(net,pars)
 
 train=(train[0][0:pars.numtrain],train[1][0:pars.numtrain])
