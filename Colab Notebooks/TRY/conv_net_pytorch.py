@@ -257,7 +257,7 @@ class par(object):
         self.batch_size=1000
         self.step_size=.001
         self.num_epochs=20
-        self.numtrain=5000
+        self.numtrain=55000
         self.minimizer="Adam"
         self.data_set="mnist"
         self.model_name="model"
