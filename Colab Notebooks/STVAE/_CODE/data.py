@@ -75,15 +75,13 @@ def get_stl10_unlabeled(batch_size, size=0, crop=0):
     #telen = int(size - trlen)
     #[train,test]=random_split(train,[trlen, telen])
 
-    # train_loader = DataLoader(train, batch_size=batch_size, shuffle=True)
-    # test_loader=DataLoader(test, batch_size=batch_size, shuffle=True)
     train_loader = DL(train, batch_size=batch_size, num_class=num_class, num=trlen, shape=shape, shuffle=True)
     if test is not None:
         test_loader=DL(test, batch_size=batch_size,  num_class=num_class, num=telen, shape=shape, shuffle=True)
     return train_loader, None, test_loader
 
 
-def get_stl10_labeled_old(batch_size,size=0,crop=0, jit=0):
+def get_stl10_labeled(batch_size,size=0,crop=0, jit=0):
 
     if crop > 0:
         train_transform = transforms.Compose([
@@ -119,20 +117,6 @@ def get_stl10_labeled_old(batch_size,size=0,crop=0, jit=0):
 
 
     return train_loader, None, test_loader
-
-def get_stl10_labeled(data_set,size=0):
-
-
-    pre = get_pre() + 'LSDA_data/STL/'
-    train_data = np.load(pre + data_set + '_train_data.npy')
-    print(train_data.shape)
-    train_labels = np.load(pre + data_set + '_train_labels.npy')
-    test_data = np.load(pre + data_set + '_test_data.npy')
-    print(test_data.shape)
-    test_labels = np.load(pre + data_set + '_test_labels.npy')
-
-    return (train_data, train_labels), None, (test_data, test_labels)
-
 
 def get_pre():
     aa=os.uname()
@@ -508,9 +492,7 @@ def get_data(PARS):
         if 'unlabeled' in PARS['data_set']:
             train,val,test=get_stl10_unlabeled(PARS['mb_size'],size=PARS['num_train'],crop=PARS['crop'])
         else:
-            train, val, test = get_stl10_labeled_old(PARS['mb_size'], size=PARS['num_train'],crop=PARS['crop'],  jit=PARS['jit'])
-            # train, val, test = get_stl10_labeled(PARS['data_set'], size=PARS['num_train'])
-            # return train, val, test, train[0].shape[1]
+            train, val, test = get_stl10_labeled(PARS['mb_size'], size=PARS['num_train'],crop=PARS['crop'],  jit=PARS['jit'])
         return train, val, test, train.shape[0]
     elif ('cifar' in PARS['data_set']):
             train, val, test=get_cifar(PARS)
