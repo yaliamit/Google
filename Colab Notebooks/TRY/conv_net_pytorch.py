@@ -1,5 +1,4 @@
 
-predir='/Users/amit/Google Drive/'
    
 import torch
 import numpy as np
@@ -7,9 +6,39 @@ import torch.nn as nn
 import torch.nn.functional as F
 from tqdm.notebook import trange, tqdm
 
-import os
+import os, sys
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
+def get_pre():
+    aa=os.uname()
+    if 'Linux' in aa:
+        if 'bernie' in aa[1]:
+            pre='/home/amit/ga/Google/'
+        elif 'midway' in aa[1]:
+            pre='/home/yaliamit/Google/'
+        else:
+            pre = 'ME/MyDrive/'
+    else:
+        pre = '/Users/amit/Google Drive/'
+
+    return pre
+
+
+predir=get_pre()
+datadirs=predir+'Colab Notebooks/STVAE/'
+sys.path.insert(1, datadirs)
+sys.path.insert(1, datadirs+'_CODE')
+
+print(sys.argv)
+if not torch.cuda.is_available():
+    device=torch.device("cpu")
+else:
+    if len(sys.argv)==1:
+        s="cuda:"+"0"
+    else:
+        s="cuda:"+sys.argv[1]
+    device=torch.device(s)
+print(device)
 
 datadir=predir+'LSDA_data/'
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
