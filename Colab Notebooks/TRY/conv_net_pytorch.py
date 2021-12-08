@@ -1,10 +1,8 @@
 
-   
 import torch
 import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
-from tqdm.notebook import trange, tqdm
 
 import os, sys
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
@@ -205,7 +203,7 @@ def run_epoch(net,epoch,train,pars,num=None,ttype="train"):
         y=train[1][ii]
         train_loss=0; train_correct=0
 
-        for j in trange(0,n,pars.batch_size):
+        for j in range(0,n,pars.batch_size):
                 
                 # Transfer the batch from cpu to gpu 
                 data=torch.torch.from_numpy(tr[j:j+pars.batch_size]).to(pars.device)
