@@ -3,8 +3,10 @@ import torch
 import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
-
 import os, sys
+import time
+
+
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 def get_pre():
@@ -39,7 +41,7 @@ else:
 print(device)
 
 datadir=predir+'LSDA_data/'
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 
 
 def get_mnist():
@@ -180,14 +182,6 @@ def run_grad(data,targ, model, pars):
         pars.optimizer.step()
         
         return loss, correct
-    
-        
-
-
-# # Run one epoch
-
-# In[ ]:
-
 
 def run_epoch(net,epoch,train,pars,num=None,ttype="train"):
     
@@ -220,7 +214,7 @@ def run_epoch(net,epoch,train,pars,num=None,ttype="train"):
         print('\nTraining set epoch {}: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.2f}%)\n'.format(epoch,
             train_loss, train_correct, len(y),
             100. * train_correct / len(y)))
-
+        print('time',time.time()-t1)
 
 def net_test(net,val,pars,ttype='val'):
     net.eval()
@@ -251,7 +245,7 @@ def net_test(net,val,pars,ttype='val'):
 # In[ ]:
 
 
-import time
+
 class par(object):
     def __init__(self):
         self.batch_size=1000
