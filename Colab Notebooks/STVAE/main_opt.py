@@ -77,20 +77,6 @@ else:
 
 
 os.system('rm junk')
-#np.random.seed(123456)
-
-# ims, ims_def, _=test_aug()
-# kk=np.random.randint(0,500,10)
-#
-# fig=py.figure(figsize=(2,10))
-# for i,k in enumerate(kk):
-#     py.subplot(10,2,2*i+1)
-#     py.imshow(ims[k])
-#     py.axis('off')
-#     py.subplot(10,2,2*i+2)
-#     py.imshow(ims_def[k])
-#     py.axis('off')
-# py.show()
 
 print("hello")
 
