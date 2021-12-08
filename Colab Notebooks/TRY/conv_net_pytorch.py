@@ -292,5 +292,5 @@ for i in range(pars.num_epochs):
 
 net_test(net,test,pars,ttype="test")
 
-torch.save(net.state_dict(), datadir+"tmp/"+pars.model_name)
+torch.save(net.state_dict(), "./"+pars.model_name)
 
