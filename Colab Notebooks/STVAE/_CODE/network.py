@@ -130,7 +130,6 @@ class network(nn.Module):
                                 loc_in_dims+=[in_dims[self.lnti[p]]]
                 if ('input' in ll['name']):
                     OUTS[ll['name']]=input
-                    enc_hw=input.shape[2:4]
                 if ('shift' in ll['name']):
                      if self.first:
                          self.layers.add_module(ll['name'],shifts(ll['shifts']))
