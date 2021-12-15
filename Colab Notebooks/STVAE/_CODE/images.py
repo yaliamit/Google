@@ -222,7 +222,7 @@ def erode(do_er,data,extra=None):
 
 
 def deform_data(x_in,perturb,trans,s_factor,h_factor,embedd):
-        t1=time.time()
+        #t1=time.time()
         h=x_in.shape[2]
         w=x_in.shape[3]
         nn=x_in.shape[0]
@@ -275,7 +275,7 @@ def deform_data(x_in,perturb,trans,s_factor,h_factor,embedd):
         for i in ii:
               x_out[i]=x_out[i].flip(3)
 
-        print('Def time',time.time()-t1)
+        #print('Def time',time.time()-t1)
         return x_out
 
 def rgb_to_hsv(input):
