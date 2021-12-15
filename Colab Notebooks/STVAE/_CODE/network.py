@@ -379,7 +379,7 @@ class network(nn.Module):
                 if args.update_layers is not None:
                     args.update_layers.append('clapp')
             if clapp:
-                out=self.clapp(OUTS[inp_ind])
+                out=self.clapp(OUTS[old_name])
 
         out1=[]
 
