@@ -124,7 +124,10 @@ def loss_and_acc(model, args, input, target, dtype="train", lnum=0):
 
             out1, ot1 = model.forward(input[1],args)
             with torch.no_grad():
-                out0,ot0=model.forward(input[0],args)
+                cl=False
+                if args.embedd_type=='clapp':
+                    cl=True
+                out0,ot0=model.forward(input[0],args,clapp=cl)
             if args.embedd_type=='orig':
                 loss, acc = get_embedd_loss(out0,out1,args.temp.dv,args.thr)
             elif args.embedd_type=='binary':
@@ -132,7 +135,6 @@ def loss_and_acc(model, args, input, target, dtype="train", lnum=0):
             elif args.embedd_type=='L1dist_hinge':
                 loss, acc = get_embedd_loss_new(out0,out1,args.temp.dv,args.no_standardize, future=args.future, thr=args.thr, delta=args.delta)
             elif args.embedd_type=='clapp':
-                out0=model.clapp(out0)
                 out0 = out0.reshape(out0.shape[0], -1)
                 out1 = out1.reshape(out1.shape[0], -1)
                 loss, acc = get_embedd_loss_clapp(out0,out1,args.temp.dv,args.thr)
@@ -165,7 +167,7 @@ class network(nn.Module):
 
 
 
-    def forward(self,input,args,lay=None):
+    def forward(self,input,args,clapp=False, lay=None):
 
         out = input
         in_dims=[]
@@ -369,11 +371,15 @@ class network(nn.Module):
                 if lay is not None and lay in ll['name']:
                     DONE=True
 
-        if args.embedd_type == 'clapp' and args.clapp_dim is None:
-            args.clapp_dim = prev_shape
-            self.add_module('clapp', nn.Conv2d(args.clapp_dim[1], args.clapp_dim[1], 1))
-            if args.update_layers is not None:
-                args.update_layers.append('clapp')
+        if args.embedd_type == 'clapp':
+
+            if args.temp.first:
+                args.clapp_dim = prev_shape
+                self.add_module('clapp', nn.Conv2d(args.clapp_dim[1], args.clapp_dim[1], 1))
+                if args.update_layers is not None:
+                    args.update_layers.append('clapp')
+            if clapp:
+                out=self.clapp(OUTS[inp_ind])
 
         out1=[]
 
