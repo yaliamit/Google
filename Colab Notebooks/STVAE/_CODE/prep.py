@@ -72,12 +72,16 @@ def get_models(device, fout, sh,STRINGS,ARGS, args):
         arg = ARGS[0]
         if args.cont_training:  # Parse the new network
             arg = args
+        arg.fout=fout
         # Layers defining the new network.
         if arg.layers is not None:
             lnti, layers_dict = get_network(arg.layers, nf=sh[0])
-            # Initialize the network
-            models = [network.network(device, arg, layers_dict, lnti, fout=fout, sh=sh).to(device)]
 
+            # Initialize the network
+            models = [network.network()]
+            for m in models:
+                network.initialize_model(m,arg,sh,lnti,layers_dict,device)
+        args.temp=arg.temp
     return models
 
 
@@ -151,8 +155,10 @@ def copy_from_old_to_new(model, args, fout, SMS, strings,device, sh):
         lnti, layers_dict = get_network(SMS['args'].layers, nf=sh[0])
         print('LOADING OLD MODEL')
 
+        model_old = network.network()
+        SMS['args'].fout=fout
+        network.initialize_model(model_old, SMS['args'], sh, lnti, layers_dict, device)
 
-        model_old = network.network(device, SMS['args'], layers_dict, lnti, fout=fout, sh=sh, first=2).to(device)
     model_old.load_state_dict(SMS['model.state.dict'])
     model_old.bn=args.bn
     params_old = model_old.named_parameters()

@@ -151,15 +151,15 @@ def get_embs(xin, patch_size):
 def show_reconstructed_images(test,model,ex_file, args, cl=None, extra=None):
 
     np.random.shuffle(test[0])
-    inp=torch.from_numpy(erode(args.erode,test[0][0:100],extra=extra))
+    inp=torch.from_numpy(erode(args.erode,test[0:100],extra=extra))
 
     num_iter=args.nti
     if (cl is not None):
-        X,_,_,_=model.recon(inp,num_iter,cl,lower=args.lower_decoder)
+        X,_,_,_=model.recon(args, inp,num_iter,cl,lower=args.lower_decoder)
         if args.lower_decoder:
-            X,_,_,_ = model.recon(inp, num_iter, cl, lower=False, back_ground=X)
+            X,_,_,_ = model.recon(args, inp, num_iter, cl, lower=False, back_ground=X)
     else:
-        X,_,_,_ = model.recon(inp, num_iter,lower=args.lower_decoder)
+        X,_,_,_ = model.recon(args, inp, num_iter,lower=args.lower_decoder)
         if args.lower_decoder:
             X,_,_,_ = model.recon(inp, num_iter, lower=False, back_ground=X)
     X = X.cpu().detach().numpy().reshape(inp.shape)

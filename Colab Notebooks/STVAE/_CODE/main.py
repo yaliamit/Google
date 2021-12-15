@@ -90,8 +90,6 @@ def main_loc(par_file, device,net=None):
           make_images(DATA[2],models[0],EX_FILES[0],args,datadirs=args.datadirs)
           models[0].opt=oldopt
       elif args.network and (args.embedd or 'ae' in args.type):
-          if args.embedd:
-              models[0].embedd_layer = args.embedd_layer
           pre_train_new(models[0], args, device, fout, data=DATA)
       elif args.cluster_hidden:
           cluster_hidden(models[0], args, device, DATA, args.datadirs, EX_FILES[0])

@@ -14,13 +14,15 @@ class ENC_DEC(nn.Module):
 
 
         lnti,layers_dict = get_network(args.enc_layers)
-        self.model=network.network(device, args, layers_dict, lnti, sys.stdout, sh, first=2).to(device)
+        self.model=network.network()
+        network.initialize_model(self.model, args, sh, lnti, layers_dict,  device)
         print('done')
 
 
-    def forw(self,input):
+    def forw(self,input, args):
 
-        out,out1=self.model.forward(input,everything=True)
+        args.temp.everything=True
+        out,out1=self.model.forward(input, args)
 
         return(out,out1)
 

@@ -117,7 +117,7 @@ def pre_train_new(model,args,device,fout, data=None):
             train_new_new(args, model, DATA, fout, device)
             return
         else:
-            tr = model.get_embedding(DATA[0])
+            tr =  network.get_embedding(model,args,DATA[0])
             print('Clasification training shape:',tr[0].shape,DATA[0].shape,file=fout)
             if args.AVG is not None:
                 HW = (np.int32(tr[0].shape[2] / args.AVG), np.int32(tr[0].shape[3] / args.AVG))
@@ -125,8 +125,8 @@ def pre_train_new(model,args,device,fout, data=None):
                 tr=[tra,tr[1]]
             tr[0] = tr[0].reshape(tr[0].shape[0], -1)
             trdl = DL(list(zip(tr[0], tr[1])), batch_size=args.mb_size, num_class=args.num_class,
-                      num=tr[0].shape[0], shape=tr[0].shape[1:], shuffle=False)
-            te = model.get_embedding(DATA[2])
+                      num=tr[0].shape[0], shape=tr[0].shape[1:], shuffle=True)
+            te = network.get_embedding(model,args,DATA[2])
             if args.AVG is not None:
                 HW = (np.int32(te[0].shape[2] / args.AVG), np.int32(te[0].shape[3] / args.AVG))
                 tea = torch.nn.functional.avg_pool2d(torch.from_numpy(te[0]), HW, HW)
@@ -153,7 +153,7 @@ def pre_train_new(model,args,device,fout, data=None):
 
 def train_new(args,train,test,fout,device):
    
-    if args.optimizer=='LG' or args.hid_lr<0:
+    if args.optimizer_type=='LG' or args.hid_lr<0:
         print('Using Logistic regression')
         t1=time.time()
         lg=LogisticRegression(fit_intercept=True, solver='sag',multi_class='multinomial',max_iter=400,verbose=1, intercept_scaling=1., C=10.,penalty='l2')
@@ -241,9 +241,9 @@ def train_new_new(args,model,DATA,fout,device,net=None):
         if hasattr(net,'scheduler') and net.scheduler is not None:
             net.scheduler.step()
 
-    _, _, _, res = net.run_epoch(trdl, 0, d_type='test', fout=fout)
+    res = net.run_epoch(trdl, 0, d_type='test', fout=fout)
 
-    _, _, _, res = net.run_epoch(tedl, 0, d_type='test', fout=fout)
+    res = net.run_epoch(tedl, 0, d_type='test', fout=fout)
 
     save_net_int(net, args.model_out+'_classify', args, predir)
 
@@ -257,33 +257,42 @@ def train_new_old(args,train,test,fout,device,net=None):
     print("In from hidden number of training",train.num)
     print('In train new:')
     print(str(args))
+    predir = get_pre()
     val = None
     if net is None:
         args.lr = args.hid_lr
         args.embedd_type=None
         args.patch_size=None
-        args.hid_lnti, args.hid_layers_dict = prep.get_network(args.hid_layers)
+        hid_lnti, hid_layers_dict = prep.get_network(args.hid_layers)
         args.perturb=0
         #args.sched=[0,0]
-        net=network.network(device,args,args.hid_layers_dict, args.hid_lnti, sh=train.shape).to(device)
-        net.get_scheduler(args)
+        net = network.network()
+        network.initialize_model(net, args, train.shape, hid_lnti, hid_layers_dict, device)
+        network.get_scheduler(args)
+        if args.hid_model:
+
+            datadirs = predir + 'Colab Notebooks/STVAE/'
+            sm = torch.load(datadirs + '_output/' + args.model[0]+'_classify' + '.pt', map_location='cpu')
+            net.load_state_dict(sm['model.state.dict'])
 
     freq=10
     for epoch in range(args.hid_nepoch):
         if np.mod(epoch,freq)==0:
             t1=time.time()
-        net.run_epoch(train,epoch, d_type='train',fout=fout, freq=freq)
+        network.run_epoch(net,args,train,epoch, d_type='train',fout=fout, freq=freq)
         if (val is not None and np.mod(epoch,freq)==0):
-                net.run_epoch(val,epoch, type='val',fout=fout, freq=freq)
+                network.run_epoch(net,args,val,epoch, type='val',fout=fout, freq=freq)
         if (freq-np.mod(epoch,freq)==1):
-            fout.write('epoch: {0} in {1:5.3f} seconds, LR {2:0.5f}\n'.format(epoch,time.time()-t1,net.optimizer.param_groups[0]['lr']))
+            fout.write('epoch: {0} in {1:5.3f} seconds, LR {2:0.5f}\n'.format(epoch,time.time()-t1,args.temp.optimizer.param_groups[0]['lr']))
             fout.flush()
         #if hasattr(net,'scheduler') and net.scheduler is not None:
         #    net.scheduler.step()
 
-    _,_,_,res=net.run_epoch(train, 0, d_type='test', fout=fout)
+    network.run_epoch(net,args,train, 0, d_type='test', fout=fout)
 
-    _,_,_,res=net.run_epoch(test, 0, d_type='test', fout=fout)
+    res=network.run_epoch(net,args,test, 0, d_type='test', fout=fout)
+
+    save_net_int(net, args.model_out + '_classify', args, predir)
 
     fout.flush()
 

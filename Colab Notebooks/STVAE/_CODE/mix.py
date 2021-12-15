@@ -63,11 +63,11 @@ class STVAE_mix(nn.Module):
         self.lamda=args.lamda
         self.diag=args.Diag
         self.nti=args.nti
-        self.optim=args.optimizer
+        self.optim=args.optimizer_type
         self.wd=args.wd
         self.n_class=args.n_class
 
-        self.optimizer_type = args.optimizer
+        self.optimizer_type = args.optimizer_type
         self.decoder_nonlinearity = args.decoder_nonlinearity
         self.penalty=args.penalize_activations
         self.tps_num=args.tps_num
@@ -80,7 +80,7 @@ class STVAE_mix(nn.Module):
         setup_trans_stuff(self,args)
         if hasattr(args,'enc_layers') and args.enc_layers is not None:
             self.enc_conv=ENC_DEC(sh,self.dv,args)
-            self.final_shape=np.array(self.enc_conv.model.output_shape)[1:]
+            self.final_shape=np.array(args.temp.output_shape)[1:]
             self.x_dim=np.prod(self.final_shape)
         else:
             self.x_dim=np.prod(sh)
@@ -97,7 +97,7 @@ class STVAE_mix(nn.Module):
         self.scheduler=None
         self.optimizer=None
         if (not args.nosep):
-            if (args.optimizer=='Adam'):
+            if (args.optimizer_type=='Adam'):
                 self.optimizer = optim.Adam(self.parameters())
             else:
                 self.optimizer = optim.SGD(self.parameters(),lr=args.lr)
@@ -106,9 +106,9 @@ class STVAE_mix(nn.Module):
         #elif (args.optimizer=='Adadelta'):
         #   self.optimizer = optim.Adadelta(self.parameters())
 
-    def encoder_mix(self,input):
+    def encoder_mix(self,input,args):
 
-        return self.encoder_m(input, self.enc_conv)
+        return self.encoder_m(input, args, self.enc_conv)
 
     def decoder_mix(self, input, rng=None, lower=False):
 
@@ -117,6 +117,8 @@ class STVAE_mix(nn.Module):
        else:
             x=self.decoder_m.h_to_x(input, self.enc_conv, rng=rng)
             return x,None
+
+
     def initialize_mus(self,len, s_dim,OPT=None):
         trMU=None
         trLOGVAR=None
@@ -176,7 +178,7 @@ class STVAE_mix(nn.Module):
 
         n_mix=s.shape[0]
 
-        x, u = self.decoder_mix(s,rng=rng, lower=self.lower)
+        x, u = self.decoder_mix(s, rng=rng, lower=self.lower)
         # Transform
         if (self.u_dim>0):
             xt = []
@@ -258,7 +260,7 @@ class STVAE_mix(nn.Module):
         return recloss
 
 
-    def get_loss(self,data_to_match,targ,mu,logvar,pi,rng=None, back_ground=None):
+    def get_loss(self,args, data_to_match,targ,mu,logvar,pi,rng=None, back_ground=None):
 
         #m = torch.rand(data.shape[0])<torch.tensor([1./self.n_class])
 
@@ -301,7 +303,7 @@ class STVAE_mix(nn.Module):
             recloss = self.mixed_loss(x, data_to_match, pi)
         return recloss, tot
 
-    def encoder_and_loss(self, data,data_to_match, targ, rng,back_ground=None):
+    def encoder_and_loss(self,args, data,data_to_match, targ, rng,back_ground=None):
 
         with torch.no_grad() if not self.flag else dummy_context_mgr():
             if (self.opt):
@@ -309,16 +311,16 @@ class STVAE_mix(nn.Module):
                 logvar=self.logvar
                 mu=self.mu
             else:
-                mu, logvar, pi, _ = self.encoder_mix(data)
+                mu, logvar, pi, _ = self.encoder_mix(data, args)
 
-        return self.get_loss(data_to_match,targ, mu,logvar,pi,rng,back_ground=back_ground)
+        return self.get_loss(args, data_to_match,targ, mu,logvar,pi,rng,back_ground=back_ground)
 
 
-    def compute_loss_and_grad(self,data,data_to_match,targ,d_type,optim, opt='par', rng=None,back_ground=None):
+    def compute_loss_and_grad(self,args, data,data_to_match,targ,d_type,optim, opt='par', rng=None,back_ground=None):
 
         optim.zero_grad()
 
-        recloss, tot = self.encoder_and_loss(data,data_to_match,targ,rng,back_ground=back_ground)
+        recloss, tot = self.encoder_and_loss(args, data,data_to_match,targ,rng,back_ground=back_ground)
         loss = recloss + tot
 
         if (d_type == 'train' or opt=='mu'):
@@ -334,7 +336,7 @@ class STVAE_mix(nn.Module):
     def get_logdets(self):
             return
 
-    def run_epoch(self, train, epoch,num_mu_iter, MU, LOGVAR,PI, d_type='test',fout=None):
+    def run_epoch(self, args, train, epoch,num_mu_iter, MU, LOGVAR,PI, d_type='test',fout=None):
 
 
         if (d_type=='train'):
@@ -371,11 +373,11 @@ class STVAE_mix(nn.Module):
                 self.update_s(mu[j:j + self.bsz, :], logvar[j:j + self.bsz, :], pi[j:j + self.bsz], self.mu_lr[0],both=self.nosep)
                 if np.mod(epoch, self.opt_jump) == 0:
                   for it in range(num_mu_iter):
-                    recon_loss,loss = self.compute_loss_and_grad(data_in, data_d, target, d_type, self.optimizer_s, opt='mu')
+                    recon_loss,loss = self.compute_loss_and_grad(args, data_in, data_d, target, d_type, self.optimizer_s, opt='mu')
 
             if not self.opt or not self.nosep:
               with torch.no_grad() if (d_type != 'train') else dummy_context_mgr():
-                    recon_loss, loss=self.compute_loss_and_grad(data_in, data, target,d_type,self.optimizer)
+                    recon_loss, loss=self.compute_loss_and_grad(args, data_in, data, target,d_type,self.optimizer)
 
             if self.opt:
                 mu[j:j + self.bsz] = self.mu.data
@@ -394,7 +396,7 @@ class STVAE_mix(nn.Module):
 
         return mu, logvar, pi, [tr_full_loss/train.num, tr_recon_loss / train.num]
 
-    def recon(self,input,num_mu_iter=None, lower=False,back_ground=None):
+    def recon(self,args, input,num_mu_iter=None, lower=False,back_ground=None):
 
         enc_out=None
         self.eval()
@@ -407,7 +409,7 @@ class STVAE_mix(nn.Module):
             sdim=self.decoder_m.z2h._modules['0'].lin.out_features
 
         if self.opt:
-            mu, logvar, ppi = self.initialize_mus(input.num, sdim, True)
+            mu, logvar, ppi = self.initialize_mus(input.shape[0], sdim, True)
 
         num_inp=input.shape[0]
         #self.setup_id(num_inp)
@@ -418,13 +420,13 @@ class STVAE_mix(nn.Module):
             self.get_logdets()
             #torch.autograd.set_detect_anomaly(True)
             for it in range(num_mu_iter):
-                rls, ls = self.compute_loss_and_grad(inp_d,inp, None, 'test', self.optimizer_s, opt='mu', back_ground=back_ground)
+                rls, ls = self.compute_loss_and_grad(args, inp_d,inp, None, 'test', self.optimizer_s, opt='mu', back_ground=back_ground)
                 #print(rls,ls)
             s_mu = self.mu
             s_var = self.logvar
             pi = torch.softmax(self.pi, dim=1)
         else:
-            s_mu, s_var, pi, enc_out = self.encoder_mix(inp)
+            s_mu, s_var, pi, enc_out = self.encoder_mix(inp,args)
 
         #s = self.sample(s_mu, s_var, self.s_dim * self.n_mix)
             # for it in range(num_mu_iter):
@@ -531,7 +533,7 @@ class STVAE_mix(nn.Module):
                 pi = torch.softmax(self.pi, dim=1)
             else:
                 with torch.no_grad():
-                    s_mu, s_var, pi, _ = self.encoder_mix(input)
+                    s_mu, s_var, pi, _ = self.encoder_mix(input,args)
 
             EE=EEE[:,j:j+bsz,:,:].to(self.dv)
             s_var=s_var.reshape(1,bsz,self.n_mix,self.s_dim)

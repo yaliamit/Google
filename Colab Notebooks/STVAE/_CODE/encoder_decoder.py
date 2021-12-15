@@ -23,11 +23,11 @@ class encoder_mix(nn.Module):
         self.h2pi = nn.Linear(model.x_dim, model.n_mix, bias=False)
         self.h2pi.weight.data*=args.h2pi_scale
 
-    def forward(self,inputs,enc_conv):
+    def forward(self,inputs,args, enc_conv):
         pi=None
 
         # Run the predesigned network could be just the input
-        h,h1=enc_conv.forw(inputs)
+        h,h1=enc_conv.forw(inputs,args)
 
         hpi=h
         s_mu = self.h2smu(h.reshape(-1,self.x_dim))

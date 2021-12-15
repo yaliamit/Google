@@ -4,27 +4,32 @@ import time
 from images import erode,make_images, make_sample
 import torch
 from data import get_pre, DL
-
+from network import get_scheduler, run_epoch
+import copy
 
 def save_net_int(model,model_out,args,predir):
 
   print(model_out, file=args.fout)
   fout=args.fout
   args.fout=None
+  args_temp=copy.deepcopy(args)
 
+
+  delattr(args_temp,'temp')
   if model_out is not None:
       ss=model_out+'.pt'
   else:
       ss='network.pt'
 
   if 'Users/amit' in predir:
-      torch.save({'args': args,
+      torch.save({'args': args_temp,
           'model.state.dict': model.state_dict()}, predir + 'Colab Notebooks/STVAE/_output/' + ss)
   else:
-    torch.save({'args': args,
+    torch.save({'args': args_temp,
         'model.state.dict': model.state_dict()}, predir+'Colab Notebooks/STVAE/_output/'+ss,_use_new_zipfile_serialization=False)
 
   args.fout=fout
+
 
 def test_models(ARGS, SMS, test, models, fout):
 
@@ -71,8 +76,8 @@ def train_model(model, args, ex_file, DATA, fout):
     train=DATA[0]; val=DATA[1]; test=DATA[2]
     trainMU=None; trainLOGVAR=None; trPI=None
     valMU=None; valLOGVAR=None; valPI=None
-    model.optimizer.param_groups[0]['lr']=args.lr
-    model.get_scheduler(args)
+    args.temp.optimizer.param_groups[0]['lr']=args.lr
+    get_scheduler(args)
     num_train= train.num if type(train) is DL else train[0].shape[0]
     num_test=0
     if test is not None:
@@ -96,26 +101,30 @@ def train_model(model, args, ex_file, DATA, fout):
 
     if args.OPT and args.cont_training:
         print("Updating training optimal parameters before continuing")
-        trainMU, trainLOGVAR, trPI, tr_acc = model.run_epoch(train, 0, args.nti, trainMU, trainLOGVAR, trPI,
+        trainMU, trainLOGVAR, trPI, tr_acc = run_epoch(model,args,train, 0, args.nti, trainMU, trainLOGVAR, trPI,
                                                              d_type='test', fout=fout)
-    print('make', model.optimizer.param_groups[0]['weight_decay'])
-    # if 'ga' in get_pre():
-    #     print('loading on both gpus')
-    #     model=torch.nn.DataParallel(model, device_ids=[0, 1])
+    print('make', args.temp.optimizer.param_groups[0]['weight_decay'])
+    if 'ga' in get_pre() and args.use_multiple_gpus is not None:
+         print('loading on both gpus')
+         model=torch.nn.DataParallel(model, device_ids=list(range(args.use_multiple_gpus)))
     for epoch in range(args.nepoch):
-        #print('time step',model.optimizer.param_groups[0]['lr'])
-        #if (model.scheduler is not None):
-        #    model.scheduler.step()
-        t1 = time.time()
-        trainMU, trainLOGVAR, trPI, tr_acc = model.run_epoch(train, epoch, args.num_mu_iter, trainMU, trainLOGVAR, trPI,d_type='train', fout=fout)
-        if (val is not None):
-             _,_,_,val_acc=model.run_epoch(val, epoch, args.nvi, trainMU, trainLOGVAR, trPI, d_type='val', fout=fout)
 
-             VAL_ACC+=[val_acc[0],tr_acc[1]]
+        t1 = time.time()
+        if 'ae' not in args.type:
+            tr_acc = run_epoch(model,args,train, epoch, d_type='train', fout=fout)
+        else:
+            trainMU, trainLOGVAR, trPI, tr_acc = model.run_epoch(args,train, epoch, args.num_mu_iter, trainMU, trainLOGVAR, trPI,d_type='train', fout=fout)
+
+        if (val is not None):
+            if 'ae' not in args.type:
+                val_acc=run_epoch(model,args,val, epoch, d_type='val', fout=fout)
+            else:
+                _,_,_,val_acc=model.run_epoch(args, val, epoch, args.nvi, trainMU, trainLOGVAR, trPI, d_type='val', fout=fout)
+                VAL_ACC+=[val_acc[0],tr_acc[1]]
         else:
             VAL_ACC+=[tr_acc[0],tr_acc[1]]
         time2=time.time()
-        fout.write('Time {0:5.3f}s, LR {1:f}'.format(time2 - t1,model.optimizer.param_groups[0]['lr']))
+        fout.write('Time {0:5.3f}s, LR {1:f}'.format(time2 - t1,args.temp.optimizer.param_groups[0]['lr']))
 
         fout.flush()
         time2=time.time()
@@ -139,9 +148,9 @@ def train_model(model, args, ex_file, DATA, fout):
             if args.hid_layers is None:
                 testMU, testLOGVAR, testPI = model.initialize_mus(num_train, model.s_dim, args.OPT)
                 print('args.nti',args.nti,args.mu_lr,file=fout)
-                model.run_epoch(train, 0, args.nti, testMU, testLOGVAR, testPI, d_type='train_test', fout=fout)
+                model.run_epoch(args, train,  0, args.nti, testMU, testLOGVAR, testPI, d_type='train_test', fout=fout)
                 testMU, testLOGVAR, testPI = model.initialize_mus(num_test, model.s_dim, args.OPT)
-                model.run_epoch(test, 0, args.nti, testMU, testLOGVAR, testPI, d_type='test_test', fout=fout)
+                model.run_epoch(args, test,  0, args.nti, testMU, testLOGVAR, testPI, d_type='test_test', fout=fout)
 
         fout.write('writing to ' + ex_file + '\n')
         make_images(test, model, ex_file, args, datadirs=datadirs)
@@ -150,7 +159,7 @@ def train_model(model, args, ex_file, DATA, fout):
 
     else:
         if test is not None:
-            _,_,_,test_acc=model.run_epoch(test, 0, args.nti, None, None, None, d_type='test', fout=fout)
+            test_acc=run_epoch(model,args,test, 0, d_type='test', fout=fout)
 
     model.results=[np.array(VAL_ACC).transpose().reshape(-1,2)]+[test_acc[0]]
     save_net_int(model, args.model_out, args, predir)

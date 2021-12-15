@@ -3,6 +3,7 @@ import numpy as np
 
 def process_args(parser):
     parser.add_argument('--fa', type=int, default=0, help='Type of weight feedback - 0 - bp, 1-fixed, 2-urfb')
+    parser.add_argument('--use_multiple_gpus', type=int, default=None, help='Number of gpus to use')
     parser.add_argument('--image_levels', type=int, default=0, help='Image quantization levels')
     parser.add_argument('--new_dim', type=int, default=0, help='new image dimension')
     parser.add_argument('--future', type=int, default=0, help='how many other images to take into account in embedding loss')
@@ -45,7 +46,7 @@ def process_args(parser):
     parser.add_argument('--par_file', default='t_par', help='default parameter file')
     parser.add_argument('--model', default=None, nargs="*", help='model (default: base)')
     parser.add_argument('--model_out', default=None, help='model (default: base)')
-    parser.add_argument('--optimizer', default='Adam', help='Type of optimiser')
+    parser.add_argument('--optimizer_type', default='Adam', help='Type of optimiser')
     parser.add_argument('--lr', type=float, default=.001, help='Learning rate (default: .001)')
     parser.add_argument('--grad_clip', type=float, default=.0, help='clip gradient')
     parser.add_argument('--perturb', type=float, default=0, help='Learning rate (default: .001)')
@@ -85,7 +86,7 @@ def process_args(parser):
     parser.add_argument('--CONS', action='store_true', help='Output to consol')
     parser.add_argument('--decoder_gaus', default=None, help='extra decoder layer to get correlated gaussians')
     parser.add_argument('--layerwise', action='store_true', help='Do layerwise processing')
-    parser.add_argument('--layerwise_randomize', nargs="*",default=None, help='layers to choose randomly')
+    parser.add_argument('--randomize_layers', nargs="*",default=None, help='layers to choose randomly')
     parser.add_argument('--hinge', action='store_true', help='Output to consol')
     parser.add_argument('--sample', action='store_true', help='sample from distribution')
     parser.add_argument('--cluster_hidden', action='store_true', help='cluster latent variables')
