@@ -188,11 +188,12 @@ def get_embedd_loss_new(out0, out1, dv, nostd=True,future=0, thr=2.,delta=1.,WW=
     out0 = standardize(out0,nostd)
     # out1=torch.tanh(out1)
     out1 = standardize(out1,nostd)
-    out0b = out0.repeat([bsz, 1])
-    out1b = out1.repeat_interleave(bsz, dim=0)
-    outd = out0b - out1b
-    outd = torch.sum(torch.relu(outd) + torch.relu(-outd), dim=1)
-    OUT = -outd.reshape(bsz, bsz).transpose(0, 1)
+    OUT=-torch.cdist(out0,out1,p=1)
+    #out0b = out0.repeat([bsz, 1])
+    #out1b = out1.repeat_interleave(bsz, dim=0)
+    #outd = out0b - out1b
+    #outd = torch.sum(torch.relu(outd) + torch.relu(-outd), dim=1)
+    #OUT = -outd.reshape(bsz, bsz).transpose(0, 1)
 
     # Multiply by y=-1/1
     OUT = (OUT + thr) * (2. * torch.eye(bsz).to(dv) - 1.)
