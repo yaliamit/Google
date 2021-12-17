@@ -233,7 +233,7 @@ def deform_data(x_in,perturb,trans,s_factor,h_factor,embedd,dv):
         rr = torch.zeros(nn, 6).to(dv)
         if not embedd:
              ii = torch.randperm(nn).to(dv)
-             u = torch.zeros(nn, 6)
+             u = torch.zeros(nn, 6).to(dv)
              u[ii[0:nn//2]]=v[ii[0:nn//2]]
         else:
            u=v
