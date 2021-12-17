@@ -431,9 +431,9 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
 
                 with torch.no_grad():
                     if args.crop==0:
-                        data_out=deform_data(data_in,args.perturb,args.transformation,args.s_factor,args.h_factor, args.embedd)
-                        data_in=deform_data(data_in,args.perturb,args.transformation,args.s_factor,args.h_factor,args.embedd)
-                        data=[data_in.to(args.temp.dv),data_out.to(args.temp.dv)]
+                        data_out=deform_data(data_in,args.perturb,args.transformation,args.s_factor,args.h_factor, args.embedd,args.temp.dv)
+                        data_in=deform_data(data_in,args.perturb,args.transformation,args.s_factor,args.h_factor,args.embedd,args.temp.dv)
+                        data=[data_in,data_out]
                     else:
                         data_p=data_in
                         data=[data_p[0].to(args.temp.dv),data_p[1].to(args.temp.dv)]
