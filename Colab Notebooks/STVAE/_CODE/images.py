@@ -298,7 +298,7 @@ def rgb_to_hsv(input,dv):
         h[logi, 0] = \
             torch.remainder((60 * (input[logi, id[0]] - input[logi, id[1]]) / df[logi] + s), 360)
 
-    s = torch.zeros(input.shape[0], 1) #
+    s = torch.zeros(input.shape[0], 1).to(dv) #
     # if False: #'xla' not in device.type:
     #     s.to(device)
     s[mx != 0, 0] = (df[mx != 0] / mx[mx != 0]) * 100
