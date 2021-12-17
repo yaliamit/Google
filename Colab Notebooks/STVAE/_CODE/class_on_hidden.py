@@ -106,55 +106,28 @@ def pre_train_new(model,args,device,fout, data=None):
     datn = args.hid_dataset if args.hid_dataset is not None else args.dataset
     print('getting:' + datn,file=fout)
     DATA = get_data_pre(args, datn)
-    if type(DATA[0]) is DL:
-        args.num_class = DATA[0].num_class
-    else:
-        args.num_class = np.int(np.max(DATA[0][1]) + 1)
+    args.num_class = DATA[0].num_class
+
     if 'ae' in args.type:
         _,[tr,tv,te]=prepare_recons(model,DATA,args,fout)
     elif args.embedd:
-        if args.randomize:
-            train_new_new(args, model, DATA, fout, device)
-            return
+        if args.optimizer_type=='LG' or args.hid_lr<0:
+            res=train_LG(args,model,DATA)
         else:
-            tr =  network.get_embedding(model,args,DATA[0])
-            print('Clasification training shape:',tr[0].shape,DATA[0].shape,file=fout)
-            if args.AVG is not None:
-                HW = (np.int32(tr[0].shape[2] / args.AVG), np.int32(tr[0].shape[3] / args.AVG))
-                tra=torch.nn.functional.avg_pool2d(torch.from_numpy(tr[0]),HW, HW)
-                tr=[tra,tr[1]]
-            tr[0] = tr[0].reshape(tr[0].shape[0], -1)
-            trdl = DL(list(zip(tr[0], tr[1])), batch_size=args.mb_size, num_class=args.num_class,
-                      num=tr[0].shape[0], shape=tr[0].shape[1:], shuffle=True)
-            te = network.get_embedding(model,args,DATA[2])
-            if args.AVG is not None:
-                HW = (np.int32(te[0].shape[2] / args.AVG), np.int32(te[0].shape[3] / args.AVG))
-                tea = torch.nn.functional.avg_pool2d(torch.from_numpy(te[0]), HW, HW)
-                te=[tea,te[1]]
-            te[0] = te[0].reshape(te[0].shape[0], -1)
-            tedl = DL(list(zip(te[0], te[1])), batch_size=args.mb_size, num_class=args.num_class,
-                      num=te[0].shape[0], shape=te[0].shape[1:], shuffle=False)
+            res=train_new_new(args, model, DATA, fout, device)
     else:
         return
-
-    args.embedd = False
-    args.update_layers=None
-    args.lr=args.hid_lr
-    if 'xla' in device.type:
-        return [tr, te]
-    else:
-        res=train_new(args,trdl,tedl,fout,device)
-        if hasattr(model, 'results'):
+    if hasattr(model, 'results'):
             model.results[1]=res[0]
-        else:
+    else:
             model.results=[None,res]
-        return res
+    return res
 
 
-def train_new(args,train,test,fout,device):
-   
-    if args.optimizer_type=='LG' or args.hid_lr<0:
+def train_LG(args,model,DATA):
+
         print('Using Logistic regression')
+        train, test = embedd(DATA, model, args,to_dl=False)
         t1=time.time()
         lg=LogisticRegression(fit_intercept=True, solver='sag',multi_class='multinomial',max_iter=400,verbose=1, intercept_scaling=1., C=10.,penalty='l2')
         lg.fit(train[0], train[1])
@@ -165,31 +138,29 @@ def train_new(args,train,test,fout,device):
         res=np.mean(yh==test[1])
         print("test classification", res)
 
+        return res
 
-    else:
-        res=train_new_old(args, train, test, fout, device)
-
-    return res
-
-def embedd(DATA,model,args):
+def embedd(DATA,model,args, to_dl=True):
 
 
-    tr = model.get_embedding(DATA[0])
+    trdl = network.get_embedding(model,args,DATA[0])
     if args.AVG is not None:
-        HW = (np.int32(tr[0].shape[2] / args.AVG), np.int32(tr[0].shape[3] / args.AVG))
-        tra = torch.nn.functional.avg_pool2d(torch.from_numpy(tr[0]), HW, HW)
-        tr = [tra, tr[1]]
-    tr[0] = tr[0].reshape(tr[0].shape[0], -1)
-    trdl = DL(list(zip(tr[0], tr[1])), batch_size=args.mb_size, num_class=args.num_class,
-              num=tr[0].shape[0], shape=tr[0].shape[1:], shuffle=False)
-    te = model.get_embedding(DATA[2])
+        HW = (np.int32(trdl[0].shape[2] / args.AVG), np.int32(trdl[0].shape[3] / args.AVG))
+        tra = torch.nn.functional.avg_pool2d(torch.from_numpy(trdl[0]), HW, HW)
+        trdl = [tra, trdl[1]]
+    trdl[0] = trdl[0].reshape(trdl[0].shape[0], -1)
+    if to_dl:
+        trdl = DL(list(zip(trdl[0], trdl[1])), batch_size=args.mb_size, num_class=args.num_class,
+              num=trdl[0].shape[0], shape=trdl[0].shape[1:], shuffle=False)
+    tedl = network.get_embedding(model,args,DATA[2])
     if args.AVG is not None:
-        HW = (np.int32(te[0].shape[2] / args.AVG), np.int32(te[0].shape[3] / args.AVG))
-        tea = torch.nn.functional.avg_pool2d(torch.from_numpy(te[0]), HW, HW)
-        te = [tea, te[1]]
-    te[0] = te[0].reshape(te[0].shape[0], -1)
-    tedl = DL(list(zip(te[0], te[1])), batch_size=args.mb_size, num_class=args.num_class,
-              num=te[0].shape[0], shape=te[0].shape[1:], shuffle=False)
+        HW = (np.int32(tedl[0].shape[2] / args.AVG), np.int32(tedl[0].shape[3] / args.AVG))
+        tea = torch.nn.functional.avg_pool2d(torch.from_numpy(tedl[0]), HW, HW)
+        tedl = [tea, tedl[1]]
+    tedl[0] = tedl[0].reshape(tedl[0].shape[0], -1)
+    if to_dl:
+        tedl = DL(list(zip(tedl[0], tedl[1])), batch_size=args.mb_size, num_class=args.num_class,
+              num=tedl[0].shape[0], shape=tedl[0].shape[1:], shuffle=False)
 
     return trdl, tedl
 
@@ -206,11 +177,12 @@ def train_new_new(args,model,DATA,fout,device,net=None):
         args.embedd_type = None
         args.patch_size = None
         args.update_layers = None
-        args.hid_lnti, args.hid_layers_dict = prep.get_network(args.hid_layers)
+        hid_lnti, hid_layers_dict = prep.get_network(args.hid_layers)
         args.perturb = 0
         args.sched=args.hid_sched
-        net = network.network(device, args, args.hid_layers_dict, args.hid_lnti, sh=trdl.shape).to(device)
-        net.get_scheduler(args)
+        net = network.network()
+        network.initialize_model(net, args, trdl.shape, hid_lnti, hid_layers_dict, device)
+        network.get_scheduler(args)
         if args.hid_model:
 
             datadirs = predir + 'Colab Notebooks/STVAE/'
@@ -222,28 +194,32 @@ def train_new_new(args,model,DATA,fout,device,net=None):
     freq = 1
     freq_test=10
     t1 = time.time()
+    if 'ga' in get_pre() and args.use_multiple_gpus is not None:
+         print('loading on both gpus')
+         net=torch.nn.DataParallel(net, device_ids=list(range(args.use_multiple_gpus)))
     for epoch in range(args.hid_nepoch):
 
-        net.run_epoch(trdl, epoch, d_type='train', fout=fout, freq=freq)
+        network.run_epoch(net, args, trdl, epoch, d_type='train',fout=fout,freq=freq)
 
         if (val is not None and np.mod(epoch, freq) == 0):
-            net.run_epoch(val, epoch, type='val', fout=fout, freq=freq)
+            network.run_epoch(net, args, val, epoch, d_type='val',fout=fout, freq=freq)
 
         if (freq - np.mod(epoch, freq) == 1):
             fout.write('epoch: {0} in {1:5.3f} seconds, LR {2:0.5f}\n'.format(epoch, time.time() - t1,
-                                                                              net.optimizer.param_groups[0]['lr']))
+                                                                              args.temp.optimizer.param_groups[0]['lr']))
             fout.flush()
             t1 = time.time()
-            trdl, tedl = embedd(DATA, model, args)
+            if args.randomize:
+                trdl, tedl = embedd(DATA, model, args)
 
         if (freq_test-np.mod(epoch,freq_test)==1):
-            _, _, _, res = net.run_epoch(tedl, 0, d_type='tes_inter', fout=fout)
+            _, _, _, res = network.run_epoch(net, args, tedl, epoch, d_type='test',fout=fout, freq=freq)
         if hasattr(net,'scheduler') and net.scheduler is not None:
             net.scheduler.step()
 
-    res = net.run_epoch(trdl, 0, d_type='test', fout=fout)
+    network.run_epoch(net, args, trdl, 0, d_type='test_tr',fout=fout, freq=freq)
 
-    res = net.run_epoch(tedl, 0, d_type='test', fout=fout)
+    res = network.run_epoch(net, args, tedl, epoch, d_type='test',fout=fout, freq=freq)
 
     save_net_int(net, args.model_out+'_classify', args, predir)
 
