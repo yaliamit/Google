@@ -213,7 +213,7 @@ def train_new_new(args,model,DATA,fout,device,net=None):
                 trdl, tedl = embedd(DATA, model, args)
 
         if (freq_test-np.mod(epoch,freq_test)==1):
-            _, _, _, res = network.run_epoch(net, args, tedl, epoch, d_type='test',fout=fout, freq=freq)
+            res = network.run_epoch(net, args, tedl, epoch, d_type='test',fout=fout, freq=freq)
         if hasattr(net,'scheduler') and net.scheduler is not None:
             net.scheduler.step()
 
