@@ -263,13 +263,13 @@ def deform_data(x_in,perturb,trans,s_factor,h_factor,embedd,dv):
         x_out=F.grid_sample(x_in,grid,padding_mode='border',align_corners=True)
 
         if x_in.shape[1]==3 and s_factor>0:
-            v=torch.rand(nn,2)
+            v=torch.rand(nn,2).to(dv)
             vv=torch.pow(2,(v[:,0]*s_factor-s_factor/2)).reshape(nn,1,1)
             uu=((v[:,1]-.5)*h_factor).reshape(nn,1,1)
-            x_out_hsv=rgb_to_hsv(x_out)
+            x_out_hsv=rgb_to_hsv(x_out,dv)
             x_out_hsv[:,1,:,:]=torch.clamp(x_out_hsv[:,1,:,:]*vv,0.,1.)
             x_out_hsv[:,0,:,:]=torch.remainder(x_out_hsv[:,0,:,:]+uu,1.)
-            x_out=hsv_to_rgb(x_out_hsv)
+            x_out=hsv_to_rgb(x_out_hsv,dv)
 
         ii=torch.where(torch.bernoulli(torch.ones(nn)*.5)==1)
         for i in ii:
@@ -278,7 +278,7 @@ def deform_data(x_in,perturb,trans,s_factor,h_factor,embedd,dv):
         #print('Def time',time.time()-t1)
         return x_out
 
-def rgb_to_hsv(input):
+def rgb_to_hsv(input,dv):
     input = input.transpose(1, 3)
     sh = input.shape
     input = input.reshape(-1, 3)
@@ -286,7 +286,7 @@ def rgb_to_hsv(input):
     mx, inmx = torch.max(input, dim=1)
     mn, inmc = torch.min(input, dim=1)
     df = mx - mn
-    h = torch.zeros(input.shape[0], 1)
+    h = torch.zeros(input.shape[0], 1).to(dv)
     # if False: #'xla' not in device.type:
     #     h.to(device)
     ii = [0, 1, 2]
@@ -310,7 +310,7 @@ def rgb_to_hsv(input):
     output = output.reshape(sh).transpose(1, 3)
     return output
 
-def hsv_to_rgb(input):
+def hsv_to_rgb(input,dv):
     input = input.transpose(1, 3)
     sh = input.shape
     input = input.reshape(-1, 3)
@@ -325,7 +325,7 @@ def hsv_to_rgb(input):
     q = v * (1.0 - (s * ff))
     t = v * (1.0 - (s * (1.0 - ff)));
 
-    output = torch.zeros_like(input) #.to(device)
+    output = torch.zeros_like(input).to(dv) #.to(device)
     # if False: #'xla' not in device.type:
     #     output.to(device)
     output[ihh == 0, :] = torch.cat((v[ihh == 0], t[ihh == 0], p[ihh == 0]), dim=1)
