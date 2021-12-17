@@ -226,17 +226,17 @@ def deform_data(x_in,perturb,trans,s_factor,h_factor,embedd,dv):
         h=x_in.shape[2]
         w=x_in.shape[3]
         nn=x_in.shape[0]
-        v=((torch.rand(nn, 6) - .5) * perturb).to(dv)
+        u=((torch.rand(nn, 6) - .5) * perturb).to(dv)
         #v=(torch.rand(nn, 6) * perturb)+perturb/4.
         #vs=2*(torch.rand(nn,6)>.5)-1
         #v=v*vs
         rr = torch.zeros(nn, 6).to(dv)
-        if not embedd:
-            ii = torch.randperm(nn)
-            u = torch.zeros(nn, 6)
-            u[ii[0:nn//2]]=v[ii[0:nn//2]]
-        else:
-            u=v
+        # if not embedd:
+        #     ii = torch.randperm(nn)
+        #     u = torch.zeros(nn, 6)
+        #     u[ii[0:nn//2]]=v[ii[0:nn//2]]
+        # else:
+        #u=v
         # Ammplify the shift part of the
         u[:,[2,5]]*=2.
 
