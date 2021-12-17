@@ -441,7 +441,7 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
                 if args.perturb>0.and d_type=='train':
                    with torch.no_grad():
                      data_in=data_in.to(args.temp.dv)
-                     data_in = deform_data(data_in, args.perturb, args.transformation, args.s_factor, args.h_factor,args.embedd)
+                     data_in = deform_data(data_in, args.perturb, args.transformation, args.s_factor, args.h_factor,args.embedd, args.dv)
                 data = data_in.to(args.temp.dv,dtype=torch.float32)
 
 
