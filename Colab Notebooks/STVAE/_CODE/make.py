@@ -6,6 +6,7 @@ import torch
 from data import get_pre, DL
 from network import get_scheduler, run_epoch
 import copy
+from mix import initialize_mus
 
 def save_net_int(model,model_out,args,predir):
 
@@ -46,7 +47,7 @@ def test_models(ARGS, SMS, test, models, fout):
         for sm, model, args, cf in zip(SMS, models, ARGS, CF):
             model.load_state_dict(sm['model.state.dict'])
             if 'vae' in args.type:
-                testMU, testLOGVAR, testPI = model.initialize_mus(test, model.s_dim, args.OPT)
+                testMU, testLOGVAR, testPI = model.initialize_mus(test, model.s_dim, models.n_mix)
             print(cf)
             iid, RY, cl_rate, acc = model.run_epoch_classify(test, 'test', fout=fout, num_mu_iter=args.nti, conf_thresh=cf)
             CL_RATE += [cl_rate]
@@ -91,9 +92,9 @@ def train_model(model, args, ex_file, DATA, fout):
     fout.write("Num train:{0}, Num test:{1}\n".format(num_train,num_test))
 
     if 'ae' in args.type:
-        trainMU, trainLOGVAR, trPI = model.initialize_mus(num_train, model.s_dim, args.OPT)
+        trainMU, trainLOGVAR, trPI = initialize_mus(num_train, model.s_dim, model.n_mix)
         if val is not None:
-            valMU, valLOGVAR, valPI = model.initialize_mus(num_val,model.s_dim, args.OPT)
+            valMU, valLOGVAR, valPI = initialize_mus(num_val,model.s_dim, model.n_mix)
 
     time1=time.time()
     VAL_ACC=[]
@@ -119,7 +120,7 @@ def train_model(model, args, ex_file, DATA, fout):
             if 'ae' not in args.type:
                 val_acc=run_epoch(model,args,val, epoch, d_type='val', fout=fout)
             else:
-                _,_,_,val_acc=model.run_epoch(args, val, epoch, args.nvi, trainMU, trainLOGVAR, trPI, d_type='val', fout=fout)
+                _,_,_,val_acc=model.run_epoch(args, val, epoch, args.nvi, valMU, valLOGVAR, valPI, d_type='val', fout=fout)
                 VAL_ACC+=[val_acc[0],tr_acc[1]]
         else:
             VAL_ACC+=[tr_acc[0],tr_acc[1]]
@@ -146,10 +147,10 @@ def train_model(model, args, ex_file, DATA, fout):
             rho=model.rho.detach().cpu().numpy()
             print('rho',np.exp(rho)/np.sum(np.exp(rho)),file=fout)
             if args.hid_layers is None:
-                testMU, testLOGVAR, testPI = model.initialize_mus(num_train, model.s_dim, args.OPT)
+                testMU, testLOGVAR, testPI = initialize_mus(num_train, model.s_dim, model.n_mix)
                 print('args.nti',args.nti,args.mu_lr,file=fout)
                 model.run_epoch(args, train,  0, args.nti, testMU, testLOGVAR, testPI, d_type='train_test', fout=fout)
-                testMU, testLOGVAR, testPI = model.initialize_mus(num_test, model.s_dim, args.OPT)
+                testMU, testLOGVAR, testPI = initialize_mus(num_test, model.s_dim, model.n_mix)
                 model.run_epoch(args, test,  0, args.nti, testMU, testLOGVAR, testPI, d_type='test_test', fout=fout)
 
         fout.write('writing to ' + ex_file + '\n')

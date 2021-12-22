@@ -12,6 +12,23 @@ from torchvision import transforms, datasets
 from torch.utils.data import DataLoader, Subset, random_split
 import torch
 import random
+from torch.utils.data.dataloader import _SingleProcessDataLoaderIter
+from torch.utils.data import _utils
+
+
+class _SingleProcessDataLoaderIterWithIndices(_SingleProcessDataLoaderIter):
+    def __init__(self, loader):
+        super(_SingleProcessDataLoaderIterWithIndices, self).__init__(loader)
+        assert self._timeout == 0
+        assert self._num_workers == 0
+
+
+    def _next_data(self):
+        index = self._next_index()  # may raise StopIteration
+        data = self._dataset_fetcher.fetch(index)  # may raise StopIteration
+        if self._pin_memory:
+            data = _utils.pin_memory.pin_memory(data)
+        return data, index
 
 class DL(DataLoader):
     def __init__(self, input, batch_size, num_class, num, shape, shuffle=False):
@@ -19,6 +36,14 @@ class DL(DataLoader):
         self.num=num
         self.num_class=num_class
         self.shape=shape
+
+
+    def _get_iterator(self) -> '_BaseDataLoaderIter':
+        if self.num_workers == 0:
+            return _SingleProcessDataLoaderIterWithIndices(self)
+        #else:
+        #    self.check_worker_number_rationality()
+        #    return _MultiProcessingDataLoaderIterWithIndicies(self)
 
 
 class ContrastiveLearningViewGenerator(object):
@@ -76,8 +101,8 @@ def get_stl10_unlabeled(batch_size, size=0, crop=0):
     #[train,test]=random_split(train,[trlen, telen])
 
     train_loader = DL(train, batch_size=batch_size, num_class=num_class, num=trlen, shape=shape, shuffle=True)
-    if test is not None:
-        test_loader=DL(test, batch_size=batch_size,  num_class=num_class, num=telen, shape=shape, shuffle=True)
+    #if test is not None:
+    #    test_loader=DL(test, batch_size=batch_size,  num_class=num_class, num=telen, shape=shape, shuffle=True)
     return train_loader, None, test_loader
 
 
@@ -231,9 +256,10 @@ def get_data_pre(args,dataset):
     print('Num test:',test[0].shape[0])
     num_class=np.max(train[1])+1
     train=DL(list(zip(train[0],train[1])),batch_size=args.mb_size, num_class=num_class,
-             num=train[0].shape[0], shape=train[0].shape[1:],shuffle=False)
+             num=train[0].shape[0], shape=train[0].shape[1:],shuffle=True)
     if val is not None:
-        val=DataLoader(list(zip(val[0],val[1])),batch_size=args.mb_size)
+        val=DL(list(zip(val[0],val[1])),batch_size=args.mb_size, num_class=num_class,
+             num=val[0].shape[0], shape=val[0].shape[1:],shuffle=True)
     test = DL(list(zip(test[0], test[1])), batch_size=args.mb_size, num_class=num_class,
                num=test[0].shape[0], shape=test[0].shape[1:],shuffle=False)
     #test=DataLoader(list(zip(test[0],test[1])),batch_size=args.mb_size)

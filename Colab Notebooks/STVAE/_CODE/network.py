@@ -74,37 +74,40 @@ def initialize_model(model,args, sh,lnti,layers_dict,device):
                 #tot_pars += np.prod(np.array(vals.shape))
 
             # TEMPORARY
-            pp=[]
-            args.temp.KEYS=KEYS
-            for k,p in zip(KEYS,model.parameters()):
-                if (args.update_layers is None):
-                    if args.temp.first==1:
-                        args.fout.write('TO optimizer '+k+ str(np.array(p.shape))+'\n')
-                    tot_pars += np.prod(np.array(p.shape))
-                    pp+=[p]
-                else:
-                    found = False
-                    for u in args.update_layers:
-                        if u == k.split('.')[1] or u==k.split('.')[0]:
-                            found=True
-                            if args.temp.first==1:
-                                args.fout.write('TO optimizer '+k+ str(np.array(p.shape))+'\n')
-                            tot_pars += np.prod(np.array(p.shape))
-                            pp+=[p]
-                    if not found:
-                        p.requires_grad=False
-            if args.temp.first==1:
-                args.fout.write('tot_pars,' + str(tot_pars)+'\n')
-            if (args.optimizer_type == 'Adam'):
+            if 'ae' not in args.type:
+                pp=[]
+                args.temp.KEYS=KEYS
+                for k,p in zip(KEYS,model.parameters()):
+                    if (args.update_layers is None):
+                        if args.temp.first==1:
+                            args.fout.write('TO optimizer '+k+ str(np.array(p.shape))+'\n')
+                        tot_pars += np.prod(np.array(p.shape))
+                        pp+=[p]
+                    else:
+                        found = False
+                        for u in args.update_layers:
+                            if u == k.split('.')[1] or u==k.split('.')[0]:
+                                found=True
+                                if args.temp.first==1:
+                                    args.fout.write('TO optimizer '+k+ str(np.array(p.shape))+'\n')
+                                tot_pars += np.prod(np.array(p.shape))
+                                pp+=[p]
+                        if not found:
+                            p.requires_grad=False
                 if args.temp.first==1:
-                    args.fout.write('Optimizer Adam '+str(args.lr)+'\n')
-                args.temp.optimizer = optim.Adam(pp, lr=args.lr,weight_decay=args.wd)
-            else:
-                if args.first==1:
-                    args.fout.write('Optimizer SGD '+str(args.lr))
-                args.temp.optimizer = optim.SGD(pp, lr=args.lr,weight_decay=args.wd)
+                    args.fout.write('tot_pars,' + str(tot_pars)+'\n')
+
+                if (args.optimizer_type == 'Adam'):
+                        if args.temp.first==1:
+                            args.fout.write('Optimizer Adam '+str(args.lr)+'\n')
+                        args.temp.optimizer = optim.Adam(pp, lr=args.lr,weight_decay=args.wd)
+                else:
+                        if args.first==1:
+                            args.fout.write('Optimizer SGD '+str(args.lr))
+                        args.temp.optimizer = optim.SGD(pp, lr=args.lr,weight_decay=args.wd)
 
             args.temp.first=0
+
         model.to(args.temp.dv)
 
 def get_acc_and_loss(args, out, targ):
@@ -419,7 +422,7 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
         for j in np.arange(0, num_tr, jump,dtype=np.int32):
             lnum=0
             #if type(train) is DL:
-            BB=next(tra)
+            BB, indlist=next(tra)
             data_in=BB[0].to(args.temp.dv)
             target=BB[1].to(args.temp.dv, dtype=torch.long)
 

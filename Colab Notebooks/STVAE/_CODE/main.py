@@ -20,23 +20,12 @@ def main_loc(par_file, device,net=None):
 
   # Get data
   DATA=get_data_pre(args,args.dataset)
-
-  #if type(DATA[0]) is DL:
   sh=DATA[0].shape
   args.num_class=DATA[0].num_class
-  #else:
-  #    sh=DATA[0][0].shape[1:]
-  #    args.num_class=np.int(np.max(DATA[0][1])+1)
   ARGS[0].num_class=args.num_class
   ARGS[0].patch_size=args.patch_size
   print('NUMCLASS',args.num_class)
 
-  # Training an autoencoder.
-
-
-
-  #if net is None:
-  #sh=[3,96,96]
   models=prep.get_models(device, fout, sh, STRINGS, ARGS, args)
   if args.deform:
       OUT=[]
@@ -54,9 +43,7 @@ def main_loc(par_file, device,net=None):
       np.save('cifar10_def_data',OUTA)
       np.save('cifar10_def_labels',LLA)
       sys.exit()
-  #   return models[0], embed_data, args
-  # else:
-  #   models=[net]
+
   fout.flush()
   model_out=models[0]
 

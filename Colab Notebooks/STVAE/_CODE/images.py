@@ -71,7 +71,7 @@ def make_images(test,model,ex_file,args, datadirs=""):
         num_mu_iter=None
         torch.manual_seed(args.seed)
         np.random.seed(args.seed)
-        CC=next(iter(test))
+        CC,_=next(iter(test))
         BB=[CC[0].numpy(),CC[1].numpy()]
         if (args.n_class):
             for c in range(model.n_class):

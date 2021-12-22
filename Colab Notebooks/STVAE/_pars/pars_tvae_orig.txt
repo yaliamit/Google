@@ -1,6 +1,6 @@
 --type=vae
 --num_train=5000
---nepoch=1
+--nepoch=20
 --new_dim=0
 --binary_thresh=0
 --sdim=20

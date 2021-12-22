@@ -64,7 +64,8 @@ def get_models(device, fout, sh,STRINGS,ARGS, args):
 
     models = []
     if 'ae' in args.type:
-        for strings, args in zip(STRINGS, ARGS):
+        #for strings, args in zip(STRINGS, ARGS):
+            args.fout=fout
             model=make_model(args, sh, device, fout)
             models += [model]
     elif args.network:
