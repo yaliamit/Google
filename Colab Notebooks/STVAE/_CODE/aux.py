@@ -27,6 +27,7 @@ def process_args(parser):
     parser.add_argument('--hid_dataset', default=None, help='which data set')
     parser.add_argument('--hid_nepoch', type=int, default=100, help='which data set')
     parser.add_argument('--enc_layers',  nargs="*", default=None, help='encoder layer')
+    parser.add_argument('--dec_layers',  nargs="*", default=None, help='encoder layer')
     parser.add_argument('--layers',  nargs="*", default=None, help='main networ layers')
     parser.add_argument('--update_layers',nargs="*",default=None, help='layers to update')
     parser.add_argument('--hid_layers',  nargs="*", default=None, help='layer for network on embedding')

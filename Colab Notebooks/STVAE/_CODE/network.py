@@ -28,7 +28,7 @@ def get_criterion(args):
     args.CLR = SimCLRLoss(args.mb_size, args.temp.dv)
 
 
-class temp_args:
+class temp_args(nn.Module):
     back=None
     first=0
     everything=False
@@ -74,7 +74,7 @@ def initialize_model(model,args, sh,lnti,layers_dict,device):
                 #tot_pars += np.prod(np.array(vals.shape))
 
             # TEMPORARY
-            if 'ae' not in args.type:
+            if True:
                 pp=[]
                 args.temp.KEYS=KEYS
                 for k,p in zip(KEYS,model.parameters()):
@@ -107,7 +107,7 @@ def initialize_model(model,args, sh,lnti,layers_dict,device):
                         args.temp.optimizer = optim.SGD(pp, lr=args.lr,weight_decay=args.wd)
 
             args.temp.first=0
-
+        model.temp=args.temp
         model.to(args.temp.dv)
 
 def get_acc_and_loss(args, out, targ):
@@ -172,6 +172,8 @@ class network(nn.Module):
 
     def forward(self,input,args,clapp=False, lay=None):
 
+        if not args.temp.first:
+            args.temp=self.temp
         out = input
         in_dims=[]
         if (args.temp.first):
@@ -193,7 +195,7 @@ class network(nn.Module):
                         inp_ind=pp[0]
                         if args.temp.first:
                             inp_feats=OUTS[pp[0]].shape[1]
-                            in_dim=in_dims[args.lnti[pp[0]]]
+                            in_dim=in_dims[args.temp.lnti[pp[0]]]
                     else:
                         inp_feats=[]
                         loc_in_dims=[]
@@ -210,6 +212,18 @@ class network(nn.Module):
                          self.layers.add_module(ll['name'],shifts(ll['shifts']))
                      out=getattr(self.layers,ll['name'])(OUTS[inp_ind])
                      OUTS[ll['name']]=out
+                if ('tonv' in ll['name']):
+                    if args.temp.first:
+                        bis = True
+                        if ('nb' in ll):
+                            bis = False
+                        stride = 1;
+                        if 'stride' in ll:
+                            stride = ll['stride']
+                        padding=stride//2
+                        self.layers.add_modile(ll['name'],nn.ConvTranspose2d(inp_feats,ll['num_filters'], stride=stride,bias=bis, padding=padding,output_padding=1))
+                    out = getattr(self.layers, ll['name'])(OUTS[inp_ind])
+                    OUTS[ll['name']] = out
                 if ('conv' in ll['name']):
                     if args.temp.first:
                         bis = True
@@ -296,6 +310,12 @@ class network(nn.Module):
                     out = out.reshape(out.shape[0], -1)
                     out=getattr(self.layers, ll['name'])(out)
                     OUTS[ll['name']]=out
+                if 'inject' in ll['name']:
+                    if args.first:
+                        stride=ll['stride']
+                        self.layers.add_module(ll['name']),Inject(stride)
+                    out = getattr(self.layers, ll['name'])(OUTS[inp_ind])
+                    OUTS[ll['name']] = out
                 if 'subsample' in ll['name']:
                     if args.temp.first:
                         stride = None

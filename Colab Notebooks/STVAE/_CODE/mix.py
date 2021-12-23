@@ -26,25 +26,64 @@ def initialize_mus(len, s_dim, n_mix):
             trPI = torch.zeros(len, n_mix)
         return trMU, trLOGVAR, trPI
 
+class apply_trans(object):
 
-def setup_trans_stuff(self,args):
+    def __init__(self,args,sh,dv):
+        self.h=sh[1]
+        self.w=sh[2]
+        self.input_channels=args.input_channels
+        self.tf=args.transformation
+        self.type=args.type
+
+
+        if self.tf=='aff':
+            self.u_dim=6
+            self.idty = torch.cat((torch.eye(2), torch.zeros(2).unsqueeze(1)), dim=1).to(dv)
+        else:
+            self.u_dim = args.tps_num * args.tps_num * 2  # 2 * 3 ** 2
+            self.gridGen = TPSGridGen(out_h=self.h, out_w=self.w, grid_size=args.tps_num, device=dv)
+            px = self.gridGen.PX.squeeze(0).squeeze(0).squeeze(0).squeeze(0)
+            py = self.gridGen.PY.squeeze(0).squeeze(0).squeeze(0).squeeze(0)
+            self.idty = torch.cat((px, py)).to(self.dv)
+
+
+    def __call__(self,x,u):
+
+        if 'tvae' in self.type:
+            #id = self.idty.expand((x.shape[0],) + self.idty.size()).to(self.dv)
+            # Apply linear only to dedicated transformation part of sampled vector.
+            if self.tf == 'aff':
+                theta = u.view(-1, 2, 3) + self.idty.unsqueeze(0)
+                grid = F.affine_grid(theta, x.view(-1,self.input_channels,self.h,self.w).size(),align_corners=True)
+            elif self.tf=='tps':
+                theta = u + self.idty.unsqueeze(0)
+                grid = self.gridGen(theta)
+            #elif self.tf == 'shifts':
+
+            x = F.grid_sample(x.view(-1,self.input_channels,self.h,self.w), grid, padding_mode='border',align_corners=True)
+
+
+        return x
+
+def setup_trans_stuff(self,args,sh,dv):
         self.tf = args.transformation
         self.type=args.type
         if 'tvae' in self.type:
-            if self.tf == 'aff':
-                self.u_dim = 6
-                self.idty = torch.cat((torch.eye(2),torch.zeros(2).unsqueeze(1)),dim=1).to(self.dv)
-            elif self.tf == 'tps':
-                self.u_dim = self.tps_num*self.tps_num*2 # 2 * 3 ** 2
-                self.gridGen = TPSGridGen(out_h=self.h,out_w=self.w,grid_size=self.tps_num,device=self.dv)
-                px = self.gridGen.PX.squeeze(0).squeeze(0).squeeze(0).squeeze(0)
-                py = self.gridGen.PY.squeeze(0).squeeze(0).squeeze(0).squeeze(0)
-                self.idty = torch.cat((px,py)).to(self.dv)
+            self.apply_trans=apply_trans(args,sh,dv)
+            # if self.tf == 'aff':
+            #     self.u_dim = 6
+            #     self.idty = torch.cat((torch.eye(2),torch.zeros(2).unsqueeze(1)),dim=1).to(self.dv)
+            # elif self.tf == 'tps':
+            #     self.u_dim = self.tps_num*self.tps_num*2 # 2 * 3 ** 2
+            #     self.gridGen = TPSGridGen(out_h=self.h,out_w=self.w,grid_size=self.tps_num,device=self.dv)
+            #     px = self.gridGen.PX.squeeze(0).squeeze(0).squeeze(0).squeeze(0)
+            #     py = self.gridGen.PY.squeeze(0).squeeze(0).squeeze(0).squeeze(0)
+            #     self.idty = torch.cat((px,py)).to(self.dv)
         else:
             self.u_dim=0
 
-
-        self.z_dim = self.s_dim-self.u_dim
+        self.u_dim=self.apply_trans.u_dim
+        self.z_dim = args.sdim-self.apply_trans.u_dim
 
         return self
 
@@ -91,13 +130,17 @@ class STVAE_mix(nn.Module):
             self.output_cont=0.
         self.final_shape=None
         self.enc_conv=None
-        setup_trans_stuff(self,args)
+        setup_trans_stuff(self,args,sh, device)
         if hasattr(args,'enc_layers') and args.enc_layers is not None:
             self.enc_conv=ENC_DEC(sh,self.dv,args)
-            self.final_shape=np.array(args.temp.output_shape)[1:]
-            self.x_dim=np.prod(self.final_shape)
+            args.temp.final_shape=np.array(args.temp.output_shape)[1:]
+            args.temp.x_dim=np.prod(args.temp.final_shape)
+            self.dec_conv=ENC_DEC(args.temp.final_shape,self.dv,args)
+            #self.final_shape=np.array(args.temp.output_shape)[1:]
+            #self.x_dim=np.prod(self.final_shape)
         else:
-            self.x_dim=np.prod(sh)
+            args.temp.x_dim=np.prod(sh)
+            #self.x_dim=np.prod(sh)
 
 
         if (not args.OPT):
@@ -120,12 +163,12 @@ class STVAE_mix(nn.Module):
 
         return self.encoder_m(input, args, self.enc_conv)
 
-    def decoder_mix(self, input, rng=None, lower=False):
+    def decoder_mix(self, input, args, rng=None, lower=False):
 
        if not lower:
-            return self.decoder_m(input, self.enc_conv, rng=rng)
+            return self.decoder_m(input, args,  self.enc_conv, rng=rng)
        else:
-            x=self.decoder_m.h_to_x(input, self.enc_conv, rng=rng)
+            x=self.decoder_m.h_to_x(input, args, self.enc_conv, rng=rng)
             return x,None
 
 
@@ -153,29 +196,29 @@ class STVAE_mix(nn.Module):
 
         return var
 
-    def apply_trans(self,x,u):
-        # Apply transformation
-        if 'tvae' in self.type:
-            #id = self.idty.expand((x.shape[0],) + self.idty.size()).to(self.dv)
-            # Apply linear only to dedicated transformation part of sampled vector.
-            if self.tf == 'aff':
-                self.theta = u.view(-1, 2, 3) + self.idty.unsqueeze(0)
-                grid = F.affine_grid(self.theta, x.view(-1,self.input_channels,self.h,self.w).size(),align_corners=True)
-            elif self.tf=='tps':
-                self.theta = u + self.idty.unsqueeze(0)
-                grid = self.gridGen(self.theta)
-            #elif self.tf == 'shifts':
+    # def apply_trans(self,x,u):
+    #     # Apply transformation
+    #     if 'tvae' in self.type:
+    #         #id = self.idty.expand((x.shape[0],) + self.idty.size()).to(self.dv)
+    #         # Apply linear only to dedicated transformation part of sampled vector.
+    #         if self.tf == 'aff':
+    #             self.theta = u.view(-1, 2, 3) + self.idty.unsqueeze(0)
+    #             grid = F.affine_grid(self.theta, x.view(-1,self.input_channels,self.h,self.w).size(),align_corners=True)
+    #         elif self.tf=='tps':
+    #             self.theta = u + self.idty.unsqueeze(0)
+    #             grid = self.gridGen(self.theta)
+    #         #elif self.tf == 'shifts':
+    #
+    #         x = F.grid_sample(x.view(-1,self.input_channels,self.h,self.w), grid, padding_mode='border',align_corners=True)
+    #
+    #
+    #     return x
 
-            x = F.grid_sample(x.view(-1,self.input_channels,self.h,self.w), grid, padding_mode='border',align_corners=True)
-
-
-        return x
-
-    def decoder_and_trans(self,s, rng=None, train=True):
+    def decoder_and_trans(self,s, args, rng=None, train=True):
 
         n_mix=s.shape[0]
 
-        x, u = self.decoder_mix(s, rng=rng, lower=self.lower)
+        x, u = self.decoder_mix(s, args, rng=rng, lower=self.lower)
         # Transform
         if (self.u_dim>0):
             xt = []
@@ -189,7 +232,8 @@ class STVAE_mix(nn.Module):
 
     def sample(self, mu, logvar, dim):
         #print(mu.shape,dim)
-        eps = torch.randn(mu.shape[0],dim).to(self.dv)
+        eps=torch.randn(mu.shape).to(self.dv)
+        #eps = torch.randn(mu.shape[0],dim).to(self.dv)
         if (self.s_dim>1):
             z = mu + torch.exp(logvar/2) * eps
         else:
@@ -198,8 +242,8 @@ class STVAE_mix(nn.Module):
 
     def dens_apply(self,s_mu,s_logvar,lpi,pi):
         n_mix=pi.shape[1]
-        s_mu = s_mu.reshape(-1, n_mix, s_mu.shape[1])
-        s_logvar = s_logvar.reshape(-1, n_mix, s_logvar.shape[1])
+        s_mu = s_mu.reshape(s_mu.shape[:-1], n_mix, s_mu.shape[1]//n_mix)
+        s_logvar = s_logvar.reshape(s_logvar.shape[:-1], n_mix, s_logvar.shape[1]//n_mix)
         sd=torch.exp(s_logvar/2)
         var=sd*sd
 
@@ -257,7 +301,7 @@ class STVAE_mix(nn.Module):
         return recloss
 
 
-    def get_loss(self,data_to_match,targ,mu,logvar,pi,rng=None, back_ground=None):
+    def get_loss(self,data_to_match,targ,mu,logvar,pi, args, rng=None, back_ground=None):
 
 
         if (targ is not None):
@@ -269,12 +313,12 @@ class STVAE_mix(nn.Module):
         if (targ is None and self.n_class > 0):
             n_mix = self.n_mix_perclass
         if (self.type != 'ae'):
-            s = self.sample(mu, logvar, mu.shape[1]*n_mix)
+            s = self.sample(mu, logvar, mu.shape[1])
         else:
             s=mu
-        s=s.reshape(data_to_match.shape[0],n_mix,-1).transpose(0,1)
+        s=s.reshape([s.shape[0],n_mix,s.shape[1]//n_mix]+list(s.shape[2:])).transpose(0,1)
         # Apply linear map to entire sampled vector.
-        x=self.decoder_and_trans(s,rng)
+        x=self.decoder_and_trans(s,args, rng)
         if back_ground is not None:
             x=x*(x>=.5)+back_ground*(x<.5)
         if (targ is not None):
@@ -309,7 +353,7 @@ class STVAE_mix(nn.Module):
             else:
                 mu, logvar, pi, _ = self.encoder_mix(data,args)
 
-        return self.get_loss(data_to_match,targ, mu,logvar,pi,rng, back_ground=back_ground)
+        return self.get_loss(data_to_match,targ, mu,logvar,pi,args, rng,  back_ground=back_ground)
 
 
     def compute_loss_and_grad(self, var, args, data,data_to_match,targ,d_type,optim, opt='par', rng=None,back_ground=None):
@@ -394,7 +438,7 @@ class STVAE_mix(nn.Module):
             sdim=self.decoder_m.z2h._modules['0'].lin.out_features
 
         if self.opt:
-            mu, logvar, ppi = initialize_mus(input.shape[0], sdim, True)
+            mu, logvar, ppi = initialize_mus(input.shape[0], sdim, self.n_mix)
 
         num_inp=input.shape[0]
         #self.setup_id(num_inp)
@@ -403,7 +447,7 @@ class STVAE_mix(nn.Module):
 
 
         if self.opt:
-            var=self.update_s(mu, logvar, ppi, self.mu_lr[0.],both=self.nosep)
+            var=self.update_s(mu, logvar, ppi, self.mu_lr[0],both=self.nosep)
 
             #torch.autograd.set_detect_anomaly(True)
             for it in range(num_mu_iter):
@@ -426,7 +470,7 @@ class STVAE_mix(nn.Module):
         kk = ii+jj*self.n_mix
         lpi = torch.log(var['pi'])
         with torch.no_grad():
-            recon_batch = self.decoder_and_trans(ss_mu)
+            recon_batch = self.decoder_and_trans(ss_mu, args)
             #if back_ground is not None:
             #    recon_batch = recon_batch * (recon_batch >= .2) + back_ground * (recon_batch < .2)
             recloss = self.mixed_loss(recon_batch, inp, var['pi'])
@@ -440,7 +484,7 @@ class STVAE_mix(nn.Module):
 
 
 
-    def sample_from_z_prior(self,theta=None, clust=None, lower=False):
+    def sample_from_z_prior(self,args, theta=None, clust=None, lower=False):
 
 
         self.eval()
@@ -466,7 +510,7 @@ class STVAE_mix(nn.Module):
                 s[:,i,0:self.u_dim]=theta
         s = s.transpose(0,1)
         with torch.no_grad():
-            x=self.decoder_and_trans(s,train=False)
+            x=self.decoder_and_trans(s, args, train=False)
         if hasattr(self,'enc_conv'):
         #if (self.feats and not self.feats_back):
             rec_b = []
@@ -484,7 +528,7 @@ class STVAE_mix(nn.Module):
 
 
 
-    def compute_likelihood(self,Input,num_samples):
+    def compute_likelihood(self,Input,num_samples,args):
 
        self.eval()
        Input = torch.from_numpy(Input)
@@ -497,7 +541,7 @@ class STVAE_mix(nn.Module):
        EEE = torch.randn(num_samples, num_inp, self.n_mix, self.s_dim).to(self.dv)
        lsfrho=torch.log_softmax(self.rho, 0)
        lns=np.log(num_samples)
-       tra=iter(train)
+       tra=iter(Input)
        for j in np.arange(0, Input.num, Input.batch_size):
 
             input = next(tra)[0]
@@ -529,7 +573,7 @@ class STVAE_mix(nn.Module):
 
             with torch.no_grad():
 
-                recon_batch=self.decoder_and_trans(S.reshape(-1, self.n_mix, self.s_dim).transpose(0, 1))
+                recon_batch=self.decoder_and_trans(S.reshape(-1, self.n_mix, self.s_dim).transpose(0, 1),args)
                 inp=input.repeat(num_samples,1,1,1)
                 recon_loss = -self.mixed_loss_pre(recon_batch, inp).reshape(num_samples,bsz,self.n_mix)
 

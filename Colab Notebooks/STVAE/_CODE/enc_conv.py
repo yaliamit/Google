@@ -27,8 +27,6 @@ class ENC_DEC(nn.Module):
         return(out,out1)
 
     def bkwd(self,input):
-
-
         out=self.model.backwards(input)
         return(out)
 

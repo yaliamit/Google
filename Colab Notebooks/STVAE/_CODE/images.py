@@ -50,7 +50,7 @@ def make_sample(model,args,ex_file, datadirs=""):
 
     X=[]
     for i in np.int32(np.arange(0,args.num_sample,model.bsz)):
-        x = model.sample_from_z_prior(lower=args.lower_decoder)
+        x = model.sample_from_z_prior(args, lower=args.lower_decoder)
         X += [x.detach().cpu().numpy()]
 
     X=np.uint8(np.concatenate(X,axis=0)*255)
@@ -82,9 +82,9 @@ def make_images(test,model,ex_file,args, datadirs=""):
 
         if model.n_mix>1:
             for clust in range(args.n_mix):
-                show_sampled_images(model,ex_f,clust,lower=args.lower_decoder)
+                show_sampled_images(model,ex_f,args, clust=clust, lower=args.lower_decoder)
         else:
-            show_sampled_images(model, ex_f, lower=args.lower_decoder)
+            show_sampled_images(model, ex_f, args, lower=args.lower_decoder)
 
 
 
@@ -120,9 +120,9 @@ def create_image(XX, model, ex_file):
 
     #print("Saved the sampled images")
 
-def show_sampled_images(model,ex_file,clust=None, lower=False):
+def show_sampled_images(model,ex_file, args, clust=None, lower=False):
     theta = torch.zeros(model.bsz, model.u_dim)
-    X=model.sample_from_z_prior(theta,clust,lower=lower)
+    X=model.sample_from_z_prior(args, theta,clust,lower=lower)
     XX=X.detach().cpu().numpy()
     if clust is not None:
         ex_file=ex_file+'_'+str(clust)

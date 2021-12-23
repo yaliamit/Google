@@ -77,7 +77,9 @@ def train_model(model, args, ex_file, DATA, fout):
     train=DATA[0]; val=DATA[1]; test=DATA[2]
     trainMU=None; trainLOGVAR=None; trPI=None
     valMU=None; valLOGVAR=None; valPI=None
+
     args.temp.optimizer.param_groups[0]['lr']=args.lr
+
     get_scheduler(args)
     num_train= train.num if type(train) is DL else train[0].shape[0]
     num_test=0
@@ -104,7 +106,6 @@ def train_model(model, args, ex_file, DATA, fout):
         print("Updating training optimal parameters before continuing")
         trainMU, trainLOGVAR, trPI, tr_acc = run_epoch(model,args,train, 0, args.nti, trainMU, trainLOGVAR, trPI,
                                                              d_type='test', fout=fout)
-    print('make', args.temp.optimizer.param_groups[0]['weight_decay'])
     if 'ga' in get_pre() and args.use_multiple_gpus is not None:
          print('loading on both gpus')
          model=torch.nn.DataParallel(model, device_ids=list(range(args.use_multiple_gpus)))
@@ -137,6 +138,9 @@ def train_model(model, args, ex_file, DATA, fout):
     test_acc=np.zeros(2)
 
     if 'ae' in args.type:
+        make_images(test, model, ex_file, args, datadirs=datadirs)
+        make_sample(model,args, ex_file, datadirs=datadirs)
+
         if (args.n_class):
             model.run_epoch_classify(train, 'train', fout=fout, num_mu_iter=args.nti)
             model.run_epoch_classify(test, 'test', fout=fout, num_mu_iter=args.nti)
@@ -154,9 +158,7 @@ def train_model(model, args, ex_file, DATA, fout):
                 model.run_epoch(args, test,  0, args.nti, testMU, testLOGVAR, testPI, d_type='test_test', fout=fout)
 
         fout.write('writing to ' + ex_file + '\n')
-        make_images(test, model, ex_file, args, datadirs=datadirs)
 
-        make_sample(model,args, ex_file, datadirs=datadirs)
 
     else:
         if test is not None:
