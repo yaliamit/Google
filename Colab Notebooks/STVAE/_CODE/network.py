@@ -430,34 +430,36 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
 
         # Loop over batches.
 
-
+        if isinstance(model, torch.nn.DataParallel):
+            dvv=model.module.temp.dv
+            optimizer=model.module.temp.optimizer
+        else:
+            dvv=model.temp.dv
+            optimizer=model.temp.optimizer
         TIME=0
         tra=iter(train)
         for j in np.arange(0, num_tr, jump,dtype=np.int32):
             lnum=0
             #if type(train) is DL:
             BB, indlist=next(tra)
-            data_in=BB[0].to(model.module.temp.dv)
-            target=BB[1].to(model.temp.dv, dtype=torch.long)
+            data_in=BB[0].to(dvv)
+            target=BB[1].to(dvv, dtype=torch.long)
 
-
-            if (d_type == 'train'):
-                model.temp.optimizer.zero_grad()
 
             if args.embedd:
 
                 with torch.no_grad():
                     if args.crop==0:
-                        data_out=deform_data(data_in,args.perturb,args.transformation,args.s_factor,args.h_factor, args.embedd,model.temp.dv)
-                        data_in=deform_data(data_in,args.perturb,args.transformation,args.s_factor,args.h_factor,args.embedd,model.temp.dv)
+                        data_out=deform_data(data_in,args.perturb,args.transformation,args.s_factor,args.h_factor, args.embedd,dvv)
+                        data_in=deform_data(data_in,args.perturb,args.transformation,args.s_factor,args.h_factor,args.embedd,dvv)
                         data=[data_in,data_out]
                     else:
                         data_p=data_in
-                        data=[data_p[0].to(model.temp.dv),data_p[1].to(model.temp.dv)]
+                        data=[data_p[0].to(dvv),data_p[1].to(dvv)]
             else:
                 if args.perturb>0.and d_type=='train':
                    with torch.no_grad():
-                     data_in = deform_data(data_in, args.perturb, args.transformation, args.s_factor, args.h_factor,args.embedd, model.temp.dv)
+                     data_in = deform_data(data_in, args.perturb, args.transformation, args.s_factor, args.h_factor,args.embedd, dvv)
                 data = data_in#.to(model.temp.dv,dtype=torch.float32)
 
 
@@ -465,13 +467,13 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
             with torch.no_grad() if (d_type!='train') else dummy_context_mgr():
                 loss, acc = loss_and_acc(model, args, data, target,dtype=d_type, lnum=lnum)
             if (d_type == 'train'):
-                model.temp.optimizer.zero_grad()
+                optimizer.zero_grad()
                 loss.backward()
                 if args.grad_clip>0.:
                     nn.utils.clip_grad_value_(model.parameters(),args.grad_clip)
 
 
-                model.temp.optimizer.step()
+                optimizer.step()
 
             full_loss[lnum] += loss.item()
             full_acc[lnum] += acc.item()
