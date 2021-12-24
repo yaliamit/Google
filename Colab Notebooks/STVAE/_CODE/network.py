@@ -109,7 +109,10 @@ def initialize_model(model,args, sh,lnti,layers_dict,device):
 
             args.temp.first=0
         model.add_module('temp',args.temp)
-        args.temp.loss=L1_loss(args.temp.dv, args.mb_size)
+        bsz=args.mb_size
+        if args.use_mutiple_gpus is None:
+            bsz/=args.use_mutiple_gpus
+        args.temp.loss=L1_loss(args.temp.dv, bsz)
         #model.to(args.temp.dv)
 
 
