@@ -127,7 +127,12 @@ def get_acc_and_loss(args, out, targ):
 
 def loss_and_acc(model, args, input, target, dtype="train", lnum=0):
 
-
+        if isinstance(model, torch.nn.DataParallel):
+            dvv = model.module.temp.dv
+            optimizer = model.module.temp.optimizer
+        else:
+            dvv = model.temp.dv
+        optimizer = model.temp.optimizer
         # Embedding training with image and its deformed counterpart
         if type(input) is list:
 
@@ -146,7 +151,7 @@ def loss_and_acc(model, args, input, target, dtype="train", lnum=0):
                 pass
                 #loss, acc = get_embedd_loss_binary(out0,out1,dvv,args.no_standardize)
             elif args.embedd_type=='L1dist_hinge':
-                loss, acc = args.temp.loss(out0,out1,args.no_standardize, future=args.future, thr=args.thr, delta=args.delta)
+                loss, acc = args.temp.loss(out0,out1,dvv,args.no_standardize, future=args.future, thr=args.thr, delta=args.delta)
             elif args.embedd_type=='clapp':
                 pass
                 #out0 = out0.reshape(out0.shape[0], -1)
@@ -155,12 +160,7 @@ def loss_and_acc(model, args, input, target, dtype="train", lnum=0):
         # Classification training
 
         else:
-            if isinstance(model, torch.nn.DataParallel):
-                dvv = model.module.temp.dv
-                optimizer = model.module.temp.optimizer
-            else:
-                dvv = model.temp.dv
-                optimizer = model.temp.optimizer
+
 
             if args.randomize_layers is not None and dtype=="train":
                 for i, k in enumerate(args.KEYS):

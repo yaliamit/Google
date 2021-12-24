@@ -189,11 +189,12 @@ class L1_loss(nn.Module):
         self.ymat=2*torch.eye(bsz)-1
         self.bsz=bsz
 
-    def __call__(self,out0,out1,nostd=True, future=0, thr=2., delta=1., WW=1):
+    def __call__(self,out0,out1,dv, nostd=True, future=0, thr=2., delta=1., WW=1):
         out0 = standardize(out0, nostd)
         # out1=torch.tanh(out1)
         out1 = standardize(out1, nostd)
-        OUT = (thr-torch.cdist(out0, out1, p=1) ) *self.ymat
+        ymat = 2 * torch.eye(self.bsz).to(dv) - 1
+        OUT = (thr-torch.cdist(out0, out1, p=1) ) * ymat
         if future:
             loss = 0
             for i in range(future):
