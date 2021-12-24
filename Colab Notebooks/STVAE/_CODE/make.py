@@ -115,6 +115,8 @@ def train_model(model, args, ex_file, DATA, fout):
 
     else:
         optimizer=model.temp.optimizer
+
+    model=model.to(args.temp.dv)
     scheduler=get_scheduler(args,optimizer)
     optimizer.param_groups[0]['lr']=args.lr
 

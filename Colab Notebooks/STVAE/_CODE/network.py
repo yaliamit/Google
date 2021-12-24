@@ -110,7 +110,7 @@ def initialize_model(model,args, sh,lnti,layers_dict,device):
             args.temp.first=0
         model.add_module('temp',args.temp)
         args.temp.loss=L1_loss(args.temp.dv, args.mb_size)
-        model.to(args.temp.dv)
+        #model.to(args.temp.dv)
 
 
 def get_acc_and_loss(args, out, targ):
@@ -143,9 +143,10 @@ def loss_and_acc(model, args, input, target, dtype="train", lnum=0):
             elif args.embedd_type=='L1dist_hinge':
                 loss, acc = args.temp.loss(out0,out1,args.no_standardize, future=args.future, thr=args.thr, delta=args.delta)
             elif args.embedd_type=='clapp':
-                out0 = out0.reshape(out0.shape[0], -1)
-                out1 = out1.reshape(out1.shape[0], -1)
-                loss, acc = get_embedd_loss_clapp(out0,out1,dvv,args.thr)
+                pass
+                #out0 = out0.reshape(out0.shape[0], -1)
+                #out1 = out1.reshape(out1.shape[0], -1)
+                #loss, acc = get_embedd_loss_clapp(out0,out1,dvv,args.thr)
         # Classification training
 
         else:
@@ -188,6 +189,7 @@ class network(nn.Module):
 
         if args.temp.first==0:
             args.temp=self.temp
+            print('INP_dim',input.shape[0])
         out = input
         in_dims=[]
         if (args.temp.first):
