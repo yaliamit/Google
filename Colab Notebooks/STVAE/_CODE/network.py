@@ -482,11 +482,13 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
             with torch.no_grad() if (d_type!='train') else dummy_context_mgr():
                 loss, acc = loss_and_acc(model, args, data, target,dtype=d_type, lnum=lnum)
             if (d_type == 'train'):
-                if loss.ndim>0:
-                    loss=torch.sum(loss)
-                    acc=torch.sum(acc)
+
                 optimizer.zero_grad()
-                loss.backward()
+                if loss.ndim > 0:
+                    loss[0].backward()
+                    loss[1].backward()
+                else:
+                    loss.backward()
                 if args.grad_clip>0.:
                     nn.utils.clip_grad_value_(model.parameters(),args.grad_clip)
 
