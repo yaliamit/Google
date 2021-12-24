@@ -136,7 +136,7 @@ class network(nn.Module):
 
     def forward(self,input,args,clapp=False, lay=None):
 
-        print('IN',input.shape)
+        print('IN',input.shape, input.get_device())
         if args.temp.first==0:
             args.temp=self.temp
             #print('INP_dim',input.shape[0])
