@@ -186,7 +186,7 @@ def get_embedd_loss_future(out0, out1,nostd,future):
 class L1_loss(nn.Module):
     def  __init__(self,dv,bsz):
         super(L1_loss,self).__init__()
-        self.ymat=2*torch.eye(bsz).to(dv)-1
+        self.ymat=2*torch.eye(bsz)-1
         self.bsz=bsz
 
     def __call__(self,out0,out1,nostd=True, future=0, thr=2., delta=1., WW=1):
