@@ -186,18 +186,16 @@ def get_embedd_loss_future(out0, out1,nostd,future):
 class L1_loss(nn.Module):
     def  __init__(self,dv,bsz):
         super(L1_loss,self).__init__()
-        self.ymat=2*torch.eye(bsz)-1
-        self.bsz=bsz
 
     def __call__(self,out0,out1,dv, nostd=True, future=0, thr=2., delta=1., WW=1):
         out0 = standardize(out0, nostd)
         # out1=torch.tanh(out1)
         out1 = standardize(out1, nostd)
         #ymat = 2 * torch.eye(self.bsz).to(dv) - 1
-
+        bsz=out0.shape[0]
         OUT = (thr-torch.cdist(out0, out1, p=1))-1
         diag=torch.diag(OUT)+2
-        OUT[range(self.bsz),range(self.bsz)]=diag
+        OUT[range(bsz),range(bsz)]=diag
 
         if future:
             loss = 0
