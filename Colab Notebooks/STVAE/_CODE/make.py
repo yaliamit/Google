@@ -79,9 +79,9 @@ def train_model(model, args, ex_file, DATA, fout):
     valMU=None; valLOGVAR=None; valPI=None
 
 
-    model.temp.optimizer.param_groups[0]['lr']=args.lr
+    model.layers.temp.optimizer.param_groups[0]['lr']=args.lr
 
-    get_scheduler(args,model)
+    get_scheduler(args,model.layers)
     num_train= train.num if type(train) is DL else train[0].shape[0]
     num_test=0
     if test is not None:

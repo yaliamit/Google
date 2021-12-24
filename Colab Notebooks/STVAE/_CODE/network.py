@@ -108,7 +108,7 @@ def initialize_model(model,args, sh,lnti,layers_dict,device):
                             args.temp.optimizer = optim.SGD(pp, lr=args.lr,weight_decay=args.wd)
 
             args.temp.first=0
-        model.add_module('temp',args.temp)
+        model.layers.add_module('temp',args.temp)
 
         model.to(args.temp.dv)
         args.temp = None
@@ -437,7 +437,7 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
             lnum=0
             #if type(train) is DL:
             BB, indlist=next(tra)
-            data_in=BB[0].to(model.temp.dv)
+            data_in=BB[0].to(model.layers.temp.dv)
             target=BB[1].to(model.temp.dv, dtype=torch.long)
 
 
