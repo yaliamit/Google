@@ -111,7 +111,7 @@ def initialize_model(model,args, sh,lnti,layers_dict,device):
         model.add_module('temp',args.temp)
 
         model.to(args.temp.dv)
-        args.temp = None
+
 
 def get_acc_and_loss(args, out, targ):
             v, mx = torch.max(out, 1)
