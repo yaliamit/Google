@@ -27,17 +27,18 @@ def get_criterion(args):
         args.temp.criterion = nn.CrossEntropyLoss()
     args.CLR = SimCLRLoss(args.mb_size, args.temp.dv)
 
-
 class temp_args(nn.Module):
-    back=None
-    first=0
-    everything=False
-    lnti = None
-    layer_text = None
-    dv = None
-    optimizer=None
-    embedd_layer=None
-    KEYS=None
+    def  __init__(self):
+        super(temp_args,self).__init__()
+        self.back=None
+        self.first=0
+        self.everything=False
+        self.lnti = None
+        self.layer_text = None
+        self.dv = None
+        self.optimizer=None
+        self.embedd_layer=None
+        KEYS=None
     
 
 def initialize_model(model,args, sh,lnti,layers_dict,device):
