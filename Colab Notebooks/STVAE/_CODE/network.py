@@ -457,7 +457,7 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
             lnum=0
             #if type(train) is DL:
             BB, indlist=next(tra)
-            data_in=BB[0].to(dvv)
+            data_in=BB[0].to(dvv,non_blocking=True)
             target=BB[1].to(dvv, dtype=torch.long)
 
 
