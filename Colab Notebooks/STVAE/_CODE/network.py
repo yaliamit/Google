@@ -149,7 +149,7 @@ def loss_and_acc(model, args, input, target, dtype="train", lnum=0):
         # Classification training
 
         else:
-            if isinstance(model, torch.nn.parallel.DataParallel):
+            if isinstance(model, torch.nn.DataParallel):
                 dvv = model.module.temp.dv
                 optimizer = model.module.temp.optimizer
             else:
@@ -438,7 +438,7 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
 
         # Loop over batches.
 
-        if isinstance(model, torch.nn.parallel.DistributedDataParallel):
+        if isinstance(model, torch.nn.DataParallel):
             dvv=model.module.temp.dv
             optimizer=model.module.temp.optimizer
         else:
