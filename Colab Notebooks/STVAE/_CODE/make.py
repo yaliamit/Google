@@ -110,7 +110,7 @@ def train_model(model, args, ex_file, DATA, fout):
 
     if 'ga' in get_pre() and args.use_multiple_gpus is not None:
          print('loading on both gpus')
-         model=torch.nn.DataParallel(model, device_ids=list(range(args.use_multiple_gpus)))
+         model=torch.nn.DistributedDataParallel(model, device_ids=list(range(args.use_multiple_gpus)))
          optimizer=model.module.temp.optimizer
 
     else:

@@ -124,12 +124,6 @@ def get_acc_and_loss(args, out, targ):
 
 def loss_and_acc(model, args, input, target, dtype="train", lnum=0):
 
-        if isinstance(model, torch.nn.DataParallel):
-            dvv=model.module.temp.dv
-            optimizer=model.module.temp.optimizer
-        else:
-            dvv=model.temp.dv
-            optimizer=model.temp.optimizer
 
         # Embedding training with image and its deformed counterpart
         if type(input) is list:
@@ -141,9 +135,11 @@ def loss_and_acc(model, args, input, target, dtype="train", lnum=0):
                     cl=True
                 out0,ot0=model.forward(input[0],args,clapp=cl)
             if args.embedd_type=='orig':
-                loss, acc = get_embedd_loss(out0,out1,dvv,args.thr)
+                pass
+                #loss, acc = get_embedd_loss(out0,out1,dvv,args.thr)
             elif args.embedd_type=='binary':
-                loss, acc = get_embedd_loss_binary(out0,out1,dvv,args.no_standardize)
+                pass
+                #loss, acc = get_embedd_loss_binary(out0,out1,dvv,args.no_standardize)
             elif args.embedd_type=='L1dist_hinge':
                 loss, acc = args.temp.loss(out0,out1,args.no_standardize, future=args.future, thr=args.thr, delta=args.delta)
             elif args.embedd_type=='clapp':
@@ -151,7 +147,15 @@ def loss_and_acc(model, args, input, target, dtype="train", lnum=0):
                 out1 = out1.reshape(out1.shape[0], -1)
                 loss, acc = get_embedd_loss_clapp(out0,out1,dvv,args.thr)
         # Classification training
+
         else:
+            if isinstance(model, torch.nn.DataParallel):
+                dvv = model.module.temp.dv
+                optimizer = model.module.temp.optimizer
+            else:
+                dvv = model.temp.dv
+                optimizer = model.temp.optimizer
+
             if args.randomize_layers is not None and dtype=="train":
                 for i, k in enumerate(args.KEYS):
                     if args.randomize_layers[lnum*2] not in k and args.randomize_layers[lnum*2+1] not in k:
@@ -434,7 +438,7 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
 
         # Loop over batches.
 
-        if isinstance(model, torch.nn.DataParallel):
+        if isinstance(model, torch.nn.DistributedDataParallel):
             dvv=model.module.temp.dv
             optimizer=model.module.temp.optimizer
         else:
