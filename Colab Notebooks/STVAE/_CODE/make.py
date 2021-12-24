@@ -79,9 +79,9 @@ def train_model(model, args, ex_file, DATA, fout):
     valMU=None; valLOGVAR=None; valPI=None
 
 
-    model.temp.optimizer.param_groups[0]['lr']=args.lr
 
-    get_scheduler(args,model)
+
+
     num_train= train.num if type(train) is DL else train[0].shape[0]
     num_test=0
     if test is not None:
@@ -107,9 +107,17 @@ def train_model(model, args, ex_file, DATA, fout):
         print("Updating training optimal parameters before continuing")
         trainMU, trainLOGVAR, trPI, tr_acc = run_epoch(model,args,train, 0, args.nti, trainMU, trainLOGVAR, trPI,
                                                              d_type='test', fout=fout)
+
     if 'ga' in get_pre() and args.use_multiple_gpus is not None:
          print('loading on both gpus')
          model=torch.nn.DataParallel(model, device_ids=list(range(args.use_multiple_gpus)))
+         optimizer=model.module.temp.optimizer
+
+    else:
+        optimizer=model.temp.optimizer
+    scheduler=get_scheduler(args,optimizer)
+    optimizer.param_groups[0]['lr']=args.lr
+
     for epoch in range(args.nepoch):
 
         t1 = time.time()
@@ -127,15 +135,15 @@ def train_model(model, args, ex_file, DATA, fout):
         else:
             VAL_ACC+=[tr_acc[0],tr_acc[1]]
         time2=time.time()
-        fout.write('Time {0:5.3f}s, LR {1:f}'.format(time2 - t1,model.temp.optimizer.param_groups[0]['lr']))
+        fout.write('Time {0:5.3f}s, LR {1:f}'.format(time2 - t1,optimizer.param_groups[0]['lr']))
 
         fout.flush()
         time2=time.time()
         if time2-time1>1800:
             save_net_int(model, args.model_out+'_'+str((epoch % 3)), args, predir)
             time1=time2
-        if hasattr(model.temp,'scheduler') and model.temp.scheduler is not None:
-            model.temp.scheduler.step()
+        if scheduler is not None:
+            scheduler.step()
     test_acc=np.zeros(2)
 
     if 'ae' in args.type:

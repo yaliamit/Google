@@ -516,16 +516,15 @@ def get_embedding(model, args, train):
 
         return [OUTA,labels]
 
-def get_scheduler(args,model):
-        model.temp.scheduler = None
+def get_scheduler(args,optimizer):
+        scheduler = None
         if args.sched[0] > 0:
             lambda1 = lambda epoch: args.sched[1]**(epoch // np.int32(args.sched[0]))
-            model.temp.scheduler = torch.optim.lr_scheduler.LambdaLR(model.temp.optimizer, lambda1)
+            scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda1)
             #self.scheduler=torch.optim.lr_scheduler.MultiStepLR(self.optimizer,[50,100,150,200,250,300,350],args.sched)
             #l2 = lambda epoch: pow((1. - 1. * epoch / args.nepoch), args.sched)
             #scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lr_lambda=l2)
 
-
-
+        return scheduler
 
 
