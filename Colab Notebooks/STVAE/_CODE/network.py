@@ -189,7 +189,7 @@ class network(nn.Module):
 
         if args.temp.first==0:
             args.temp=self.temp
-            print('INP_dim',input.shape[0])
+            #print('INP_dim',input.shape[0])
         out = input
         in_dims=[]
         if (args.temp.first):
