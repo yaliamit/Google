@@ -108,7 +108,7 @@ def initialize_model(model,args, sh,lnti,layers_dict,device):
                             args.temp.optimizer = optim.SGD(pp, lr=args.lr,weight_decay=args.wd)
 
             args.temp.first=0
-        model.temp=args.temp
+        model.add_module('temp',args.temp)
 
         model.to(args.temp.dv)
         args.temp = None
