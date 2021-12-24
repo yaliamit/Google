@@ -485,6 +485,7 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
 
                 optimizer.zero_grad()
                 if loss.ndim > 0:
+                    print(loss)
                     loss[0].backward()
                     loss[1].backward()
                 else:
