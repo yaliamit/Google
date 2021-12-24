@@ -124,6 +124,12 @@ def get_acc_and_loss(args, out, targ):
 
 def loss_and_acc(model, args, input, target, dtype="train", lnum=0):
 
+        if isinstance(model, torch.nn.DataParallel):
+            dvv=model.module.temp.dv
+            optimizer=model.module.temp.optimizer
+        else:
+            dvv=model.temp.dv
+            optimizer=model.temp.optimizer
 
         # Embedding training with image and its deformed counterpart
         if type(input) is list:
@@ -135,23 +141,23 @@ def loss_and_acc(model, args, input, target, dtype="train", lnum=0):
                     cl=True
                 out0,ot0=model.forward(input[0],args,clapp=cl)
             if args.embedd_type=='orig':
-                loss, acc = get_embedd_loss(out0,out1,model.temp.dv,args.thr)
+                loss, acc = get_embedd_loss(out0,out1,dvv,args.thr)
             elif args.embedd_type=='binary':
-                loss, acc = get_embedd_loss_binary(out0,out1,model.temp.dv,args.no_standardize)
+                loss, acc = get_embedd_loss_binary(out0,out1,dvv,args.no_standardize)
             elif args.embedd_type=='L1dist_hinge':
-                loss, acc = get_embedd_loss_new(out0,out1,model.temp.dv,args.no_standardize, future=args.future, thr=args.thr, delta=args.delta)
+                loss, acc = get_embedd_loss_new(out0,out1,dvv,args.no_standardize, future=args.future, thr=args.thr, delta=args.delta)
             elif args.embedd_type=='clapp':
                 out0 = out0.reshape(out0.shape[0], -1)
                 out1 = out1.reshape(out1.shape[0], -1)
-                loss, acc = get_embedd_loss_clapp(out0,out1,model.temp.dv,args.thr)
+                loss, acc = get_embedd_loss_clapp(out0,out1,dvv,args.thr)
         # Classification training
         else:
             if args.randomize_layers is not None and dtype=="train":
                 for i, k in enumerate(args.KEYS):
                     if args.randomize_layers[lnum*2] not in k and args.randomize_layers[lnum*2+1] not in k:
-                        model.temp.optimizer.param_groups[0]['params'][i].requires_grad=False
+                        optimizer.param_groups[0]['params'][i].requires_grad=False
                     else:
-                        model.temp.optimizer.param_groups[0]['params'][i].requires_grad = True
+                        optimizer.param_groups[0]['params'][i].requires_grad = True
 
             out,OUT=model.forward(input,args)
             if args.randomize_layers is not None:
@@ -175,11 +181,9 @@ class network(nn.Module):
 
     def forward(self,input,args,clapp=False, lay=None):
 
-        flag=False
-        if args.temp is None:
-            flag=True
+
+        if args.temp.first==0:
             args.temp=self.temp
-            print('FIRST',args.temp.first)
         out = input
         in_dims=[]
         if (args.temp.first):
@@ -402,8 +406,7 @@ class network(nn.Module):
 
         if(args.temp.everything or args.randomize is not None or args.penalize_activations is not None):
             out1=OUTS
-        if flag:
-            args.temp=None
+
         return(out,out1)
 
     def backwards(self,x):
