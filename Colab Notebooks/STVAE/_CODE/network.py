@@ -483,6 +483,9 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
                 loss, acc = loss_and_acc(model, args, data, target,dtype=d_type, lnum=lnum)
             if (d_type == 'train'):
                 print('LOSS',loss)
+                if type(loss) is list:
+                    loss=torch.array(loss).sum()
+                    acc=torch.array(acc).sum()
                 optimizer.zero_grad()
                 loss.backward()
                 if args.grad_clip>0.:
