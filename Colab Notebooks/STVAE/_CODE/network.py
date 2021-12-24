@@ -132,11 +132,13 @@ def loss_and_acc(model, args, input, target, dtype="train", lnum=0):
         if type(input) is list:
 
             out1, ot1 = model.forward(input[1],args)
+            print('out1',out1.device.index)
             with torch.no_grad():
                 cl=False
                 if args.embedd_type=='clapp':
                     cl=True
                 out0,ot0=model.forward(input[0],args,clapp=cl)
+                print('out0', out0.device.index)
             if args.embedd_type=='orig':
                 pass
                 #loss, acc = get_embedd_loss(out0,out1,dvv,args.thr)
