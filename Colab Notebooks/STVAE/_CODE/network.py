@@ -137,13 +137,13 @@ def loss_and_acc(model, args, input, target, dtype="train", lnum=0):
         if type(input) is list:
 
             out1, ot1 = model.forward(input[1],args)
-            print('out1',out1.device.index)
+            #print('out1',out1.device.index)
             with torch.no_grad():
                 cl=False
                 if args.embedd_type=='clapp':
                     cl=True
                 out0,ot0=model.forward(input[0],args,clapp=cl)
-                print('out0', out0.device.index)
+                #print('out0', out0.device.index)
             if args.embedd_type=='orig':
                 pass
                 #loss, acc = get_embedd_loss(out0,out1,dvv,args.thr)
@@ -482,7 +482,6 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
             with torch.no_grad() if (d_type!='train') else dummy_context_mgr():
                 loss, acc = loss_and_acc(model, args, data, target,dtype=d_type, lnum=lnum)
             if (d_type == 'train'):
-                print('LOSS',loss)
                 if loss.ndim>0:
                     loss=torch.sum(loss)
                     acc=torch.sum(acc)
