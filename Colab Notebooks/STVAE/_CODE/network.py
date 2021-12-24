@@ -132,7 +132,7 @@ def loss_and_acc(model, args, input, target, dtype="train", lnum=0):
             optimizer = model.module.temp.optimizer
         else:
             dvv = model.temp.dv
-        optimizer = model.temp.optimizer
+            optimizer = model.temp.optimizer
         # Embedding training with image and its deformed counterpart
         if type(input) is list:
 
