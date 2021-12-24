@@ -182,6 +182,32 @@ def get_embedd_loss_future(out0, out1,nostd,future):
 
     return loss
 
+
+class L1_loss(nn.Module):
+    def  __init__(self,dv,bsz):
+        super(L1_loss,self).__init__()
+        self.ymat=2*torch.eye(bsz).to(dv)-1
+        self.bsz=bsz
+
+    def __call__(self,out0,out1,nostd=True, future=0, thr=2., delta=1., WW=1):
+        out0 = standardize(out0, nostd)
+        # out1=torch.tanh(out1)
+        out1 = standardize(out1, nostd)
+        OUT = (thr-torch.cdist(out0, out1, p=1) ) *self.ymat
+        if future:
+            loss = 0
+            for i in range(future):
+                # fac = 1. if i==0 else 1./future
+                loss += (torch.sum(torch.relu(delta - torch.diagonal(OUT, i))))
+        elif future == 0:
+            loss = (1 - WW) * torch.sum(torch.relu(delta - torch.diag(OUT))) + WW * torch.sum(torch.relu(delta - OUT))
+            # loss = torch.sum(torch.relu(delta - OUT))
+
+        acc = torch.sum(OUT > 0).type(torch.float) / self.bsz
+
+        return loss, acc
+
+
 def get_embedd_loss_new(out0, out1, dv, nostd=True,future=0, thr=2.,delta=1.,WW=1):
     bsz = out0.shape[0]
     # out0=torch.tanh(out0)
@@ -189,7 +215,7 @@ def get_embedd_loss_new(out0, out1, dv, nostd=True,future=0, thr=2.,delta=1.,WW=
     # out1=torch.tanh(out1)
     out1 = standardize(out1,nostd)
     OUT=-torch.cdist(out0,out1,p=1)
-    #out0b = out0.repeat([bsz, 1])
+    #out0b = out0.repeat
     #out1b = out1.repeat_interleave(bsz, dim=0)
     #outd = out0b - out1b
     #outd = torch.sum(torch.relu(outd) + torch.relu(-outd), dim=1)

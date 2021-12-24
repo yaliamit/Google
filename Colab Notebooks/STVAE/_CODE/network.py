@@ -109,7 +109,7 @@ def initialize_model(model,args, sh,lnti,layers_dict,device):
 
             args.temp.first=0
         model.add_module('temp',args.temp)
-
+        args.temp.loss=L1_loss(args.temp.dv, args.mb_size)
         model.to(args.temp.dv)
 
 
@@ -145,7 +145,7 @@ def loss_and_acc(model, args, input, target, dtype="train", lnum=0):
             elif args.embedd_type=='binary':
                 loss, acc = get_embedd_loss_binary(out0,out1,dvv,args.no_standardize)
             elif args.embedd_type=='L1dist_hinge':
-                loss, acc = get_embedd_loss_new(out0,out1,dvv,args.no_standardize, future=args.future, thr=args.thr, delta=args.delta)
+                loss, acc = args.temp.loss(out0,out1,args.no_standardize, future=args.future, thr=args.thr, delta=args.delta)
             elif args.embedd_type=='clapp':
                 out0 = out0.reshape(out0.shape[0], -1)
                 out1 = out1.reshape(out1.shape[0], -1)
@@ -459,7 +459,7 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
                         data=[data_in,data_out]
                     else:
                         data_p=data_in
-                        data=[data_p[0].to(dvv),data_p[1].to(dvv)]
+                        data=[data_p[0],data_p[1]]
             else:
                 if args.perturb>0.and d_type=='train':
                    with torch.no_grad():
