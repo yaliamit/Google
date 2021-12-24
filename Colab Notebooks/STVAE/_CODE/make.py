@@ -111,12 +111,13 @@ def train_model(model, args, ex_file, DATA, fout):
     if 'ga' in get_pre() and args.use_multiple_gpus is not None:
          print('loading on both gpus')
          model=torch.nn.DataParallel(model, device_ids=list(range(args.use_multiple_gpus)))
-         args.temp.loss=torch.nn.DataParallel(args.temp.loss, device_ids=list(range(args.use_multiple_gpus)))
+         #args.temp.loss=torch.nn.DataParallel(args.temp.loss, device_ids=list(range(args.use_multiple_gpus)))
          optimizer=model.module.temp.optimizer
 
     else:
         optimizer=model.temp.optimizer
     model=model.to(args.temp.dv)
+    args.temp.loss=args.temp.loss.to(args.temp.dv)
     scheduler=get_scheduler(args,optimizer)
     optimizer.param_groups[0]['lr']=args.lr
 

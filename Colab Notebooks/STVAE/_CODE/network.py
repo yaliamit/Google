@@ -484,12 +484,7 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
             if (d_type == 'train'):
 
                 optimizer.zero_grad()
-                if loss.ndim > 0:
-                    print(loss)
-                    loss[0].backward()
-                    loss[1].backward()
-                else:
-                    loss.backward()
+                loss.backward()
                 if args.grad_clip>0.:
                     nn.utils.clip_grad_value_(model.parameters(),args.grad_clip)
 
