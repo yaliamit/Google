@@ -179,6 +179,7 @@ class network(nn.Module):
         if args.temp is None:
             flag=True
             args.temp=self.temp
+            print('FIRST',args.temp.first)
         out = input
         in_dims=[]
         if (args.temp.first):
