@@ -206,7 +206,7 @@ class L1_loss(nn.Module):
             loss = (1 - WW) * torch.sum(torch.relu(delta - torch.diag(OUT))) + WW * torch.sum(torch.relu(delta - OUT))
             # loss = torch.sum(torch.relu(delta - OUT))
 
-        acc = torch.sum(OUT > 0).type(torch.float) / self.bsz
+        acc = torch.sum(OUT > 0).type(torch.float) / bsz
 
         return loss, acc
 
