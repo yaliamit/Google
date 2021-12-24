@@ -19,7 +19,7 @@
 --enc_layers
 name:input;num_filters:1
 name:conv1;num_filters:32;filter_size:5
-#name:non_linearity1;type:smx;lims:(0,10)
+#name:non_linearity1;type:relu
 name:non_linearity1;type:relu
 name:subsample1;stride:4
 name:dense1;num_units:256

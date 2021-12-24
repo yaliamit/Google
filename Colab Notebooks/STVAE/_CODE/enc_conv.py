@@ -9,11 +9,11 @@ import sys
 
 
 class ENC_DEC(nn.Module):
-    def __init__(self, sh, device, args):
+    def __init__(self, sh, device, args, layers):
         super(ENC_DEC, self).__init__()
 
 
-        lnti,layers_dict = get_network(args.enc_layers)
+        lnti,layers_dict = get_network(layers)
         self.model=network.network()
         network.initialize_model(self.model, args, sh, lnti, layers_dict,  device)
         print('done')
@@ -21,7 +21,7 @@ class ENC_DEC(nn.Module):
 
     def forw(self,input, args):
 
-        args.temp.everything=True
+        self.model.temp.everything=True
         out,out1=self.model.forward(input, args)
 
         return(out,out1)

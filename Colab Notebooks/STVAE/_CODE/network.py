@@ -96,19 +96,21 @@ def initialize_model(model,args, sh,lnti,layers_dict,device):
                             p.requires_grad=False
                 if args.temp.first==1:
                     args.fout.write('tot_pars,' + str(tot_pars)+'\n')
-
-                if (args.optimizer_type == 'Adam'):
-                        if args.temp.first==1:
-                            args.fout.write('Optimizer Adam '+str(args.lr)+'\n')
-                        args.temp.optimizer = optim.Adam(pp, lr=args.lr,weight_decay=args.wd)
-                else:
-                        if args.first==1:
-                            args.fout.write('Optimizer SGD '+str(args.lr))
-                        args.temp.optimizer = optim.SGD(pp, lr=args.lr,weight_decay=args.wd)
+                if 'ae' not in args.type:
+                    if (args.optimizer_type == 'Adam'):
+                            if args.temp.first==1:
+                                args.fout.write('Optimizer Adam '+str(args.lr)+'\n')
+                            args.temp.optimizer = optim.Adam(pp, lr=args.lr,weight_decay=args.wd)
+                    else:
+                            if args.first==1:
+                                args.fout.write('Optimizer SGD '+str(args.lr))
+                            args.temp.optimizer = optim.SGD(pp, lr=args.lr,weight_decay=args.wd)
 
             args.temp.first=0
         model.temp=args.temp
+
         model.to(args.temp.dv)
+        args.temp = None
 
 def get_acc_and_loss(args, out, targ):
             v, mx = torch.max(out, 1)
@@ -132,23 +134,23 @@ def loss_and_acc(model, args, input, target, dtype="train", lnum=0):
                     cl=True
                 out0,ot0=model.forward(input[0],args,clapp=cl)
             if args.embedd_type=='orig':
-                loss, acc = get_embedd_loss(out0,out1,args.temp.dv,args.thr)
+                loss, acc = get_embedd_loss(out0,out1,model.temp.dv,args.thr)
             elif args.embedd_type=='binary':
-                loss, acc = get_embedd_loss_binary(out0,out1,args.temp.dv,args.no_standardize)
+                loss, acc = get_embedd_loss_binary(out0,out1,model.temp.dv,args.no_standardize)
             elif args.embedd_type=='L1dist_hinge':
-                loss, acc = get_embedd_loss_new(out0,out1,args.temp.dv,args.no_standardize, future=args.future, thr=args.thr, delta=args.delta)
+                loss, acc = get_embedd_loss_new(out0,out1,model.temp.dv,args.no_standardize, future=args.future, thr=args.thr, delta=args.delta)
             elif args.embedd_type=='clapp':
                 out0 = out0.reshape(out0.shape[0], -1)
                 out1 = out1.reshape(out1.shape[0], -1)
-                loss, acc = get_embedd_loss_clapp(out0,out1,args.temp.dv,args.thr)
+                loss, acc = get_embedd_loss_clapp(out0,out1,model.temp.dv,args.thr)
         # Classification training
         else:
             if args.randomize_layers is not None and dtype=="train":
                 for i, k in enumerate(args.KEYS):
                     if args.randomize_layers[lnum*2] not in k and args.randomize_layers[lnum*2+1] not in k:
-                        args.temp.optimizer.param_groups[0]['params'][i].requires_grad=False
+                        model.temp.optimizer.param_groups[0]['params'][i].requires_grad=False
                     else:
-                        args.temp.optimizer.param_groups[0]['params'][i].requires_grad = True
+                        model.temp.optimizer.param_groups[0]['params'][i].requires_grad = True
 
             out,OUT=model.forward(input,args)
             if args.randomize_layers is not None:
@@ -172,7 +174,9 @@ class network(nn.Module):
 
     def forward(self,input,args,clapp=False, lay=None):
 
-        if not args.temp.first:
+        flag=False
+        if args.temp is None:
+            flag=True
             args.temp=self.temp
         out = input
         in_dims=[]
@@ -212,18 +216,6 @@ class network(nn.Module):
                          self.layers.add_module(ll['name'],shifts(ll['shifts']))
                      out=getattr(self.layers,ll['name'])(OUTS[inp_ind])
                      OUTS[ll['name']]=out
-                if ('tonv' in ll['name']):
-                    if args.temp.first:
-                        bis = True
-                        if ('nb' in ll):
-                            bis = False
-                        stride = 1;
-                        if 'stride' in ll:
-                            stride = ll['stride']
-                        padding=stride//2
-                        self.layers.add_modile(ll['name'],nn.ConvTranspose2d(inp_feats,ll['num_filters'], stride=stride,bias=bis, padding=padding,output_padding=1))
-                    out = getattr(self.layers, ll['name'])(OUTS[inp_ind])
-                    OUTS[ll['name']] = out
                 if ('conv' in ll['name']):
                     if args.temp.first:
                         bis = True
@@ -311,9 +303,9 @@ class network(nn.Module):
                     out=getattr(self.layers, ll['name'])(out)
                     OUTS[ll['name']]=out
                 if 'inject' in ll['name']:
-                    if args.first:
+                    if args.temp.first:
                         stride=ll['stride']
-                        self.layers.add_module(ll['name']),Inject(stride)
+                        self.layers.add_module(ll['name'],Inject(stride))
                     out = getattr(self.layers, ll['name'])(OUTS[inp_ind])
                     OUTS[ll['name']] = out
                 if 'subsample' in ll['name']:
@@ -408,7 +400,8 @@ class network(nn.Module):
 
         if(args.temp.everything or args.randomize is not None or args.penalize_activations is not None):
             out1=OUTS
-
+        if flag:
+            args.temp=None
         return(out,out1)
 
     def backwards(self,x):
@@ -443,41 +436,41 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
             lnum=0
             #if type(train) is DL:
             BB, indlist=next(tra)
-            data_in=BB[0].to(args.temp.dv)
-            target=BB[1].to(args.temp.dv, dtype=torch.long)
+            data_in=BB[0].to(model.temp.dv)
+            target=BB[1].to(model.temp.dv, dtype=torch.long)
 
 
             if (d_type == 'train'):
-                args.temp.optimizer.zero_grad()
+                model.temp.optimizer.zero_grad()
 
             if args.embedd:
 
                 with torch.no_grad():
                     if args.crop==0:
-                        data_out=deform_data(data_in,args.perturb,args.transformation,args.s_factor,args.h_factor, args.embedd,args.temp.dv)
-                        data_in=deform_data(data_in,args.perturb,args.transformation,args.s_factor,args.h_factor,args.embedd,args.temp.dv)
+                        data_out=deform_data(data_in,args.perturb,args.transformation,args.s_factor,args.h_factor, args.embedd,model.temp.dv)
+                        data_in=deform_data(data_in,args.perturb,args.transformation,args.s_factor,args.h_factor,args.embedd,model.temp.dv)
                         data=[data_in,data_out]
                     else:
                         data_p=data_in
-                        data=[data_p[0].to(args.temp.dv),data_p[1].to(args.temp.dv)]
+                        data=[data_p[0].to(model.temp.dv),data_p[1].to(model.temp.dv)]
             else:
                 if args.perturb>0.and d_type=='train':
                    with torch.no_grad():
-                     data_in = deform_data(data_in, args.perturb, args.transformation, args.s_factor, args.h_factor,args.embedd, args.temp.dv)
-                data = data_in#.to(args.temp.dv,dtype=torch.float32)
+                     data_in = deform_data(data_in, args.perturb, args.transformation, args.s_factor, args.h_factor,args.embedd, model.temp.dv)
+                data = data_in#.to(model.temp.dv,dtype=torch.float32)
 
 
 
             with torch.no_grad() if (d_type!='train') else dummy_context_mgr():
                 loss, acc = loss_and_acc(model, args, data, target,dtype=d_type, lnum=lnum)
             if (d_type == 'train'):
-                args.temp.optimizer.zero_grad()
+                model.temp.optimizer.zero_grad()
                 loss.backward()
                 if args.grad_clip>0.:
                     nn.utils.clip_grad_value_(model.parameters(),args.grad_clip)
 
 
-                args.temp.optimizer.step()
+                model.temp.optimizer.step()
 
             full_loss[lnum] += loss.item()
             full_acc[lnum] += acc.item()
@@ -506,7 +499,7 @@ def get_embedding(model, args, train):
             BB = next(tra)
             data = BB[0]
             labels+=[BB[1].numpy()]
-            data=data.to(args.temp.dv)
+            data=data.to(model.temp.dv)
             with torch.no_grad():
                 out=model.forward(data, args, lay=args.embedd_layer)[1][args.embedd_layer].detach().cpu().numpy()
                 OUT+=[out]
@@ -516,11 +509,11 @@ def get_embedding(model, args, train):
 
         return [OUTA,labels]
 
-def get_scheduler(args):
-        args.scheduler = None
+def get_scheduler(args,model):
+        model.temp.scheduler = None
         if args.sched[0] > 0:
             lambda1 = lambda epoch: args.sched[1]**(epoch // np.int32(args.sched[0]))
-            args.scheduler = torch.optim.lr_scheduler.LambdaLR(args.temp.optimizer, lambda1)
+            model.temp.scheduler = torch.optim.lr_scheduler.LambdaLR(model.temp.optimizer, lambda1)
             #self.scheduler=torch.optim.lr_scheduler.MultiStepLR(self.optimizer,[50,100,150,200,250,300,350],args.sched)
             #l2 = lambda epoch: pow((1. - 1. * epoch / args.nepoch), args.sched)
             #scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lr_lambda=l2)

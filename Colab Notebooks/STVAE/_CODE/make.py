@@ -78,9 +78,10 @@ def train_model(model, args, ex_file, DATA, fout):
     trainMU=None; trainLOGVAR=None; trPI=None
     valMU=None; valLOGVAR=None; valPI=None
 
-    args.temp.optimizer.param_groups[0]['lr']=args.lr
 
-    get_scheduler(args)
+    model.temp.optimizer.param_groups[0]['lr']=args.lr
+
+    get_scheduler(args,model)
     num_train= train.num if type(train) is DL else train[0].shape[0]
     num_test=0
     if test is not None:
@@ -126,15 +127,15 @@ def train_model(model, args, ex_file, DATA, fout):
         else:
             VAL_ACC+=[tr_acc[0],tr_acc[1]]
         time2=time.time()
-        fout.write('Time {0:5.3f}s, LR {1:f}'.format(time2 - t1,args.temp.optimizer.param_groups[0]['lr']))
+        fout.write('Time {0:5.3f}s, LR {1:f}'.format(time2 - t1,model.temp.optimizer.param_groups[0]['lr']))
 
         fout.flush()
         time2=time.time()
         if time2-time1>1800:
             save_net_int(model, args.model_out+'_'+str((epoch % 3)), args, predir)
             time1=time2
-        if hasattr(model,'scheduler') and model.scheduler is not None:
-            model.scheduler.step()
+        if hasattr(model.temp,'scheduler') and model.temp.scheduler is not None:
+            model.temp.scheduler.step()
     test_acc=np.zeros(2)
 
     if 'ae' in args.type:

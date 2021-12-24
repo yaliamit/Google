@@ -11,7 +11,7 @@ from layers import Linear, ident, NONLIN
 
 
 class encoder_mix(nn.Module):
-    def __init__(self,model,args):
+    def __init__(self):
         super(encoder_mix,self).__init__()
         #self.n_mix=model.n_mix
         #self.x_dim=model.x_dim
@@ -42,11 +42,25 @@ class encoder_mix(nn.Module):
         return s_mu, s_logvar, pi,[h,h1]
 
 
+class decoder_mix(nn.Module):
+    def __init__(self):
+        super(decoder_mix,self).__init__()
 
+    def forward(self,inputs,args,dec_conv_top,dec_conv_bot, rng=None):
+
+        xx=[]
+        for i,inp in enumerate(inputs):
+            x=dec_conv_top[i].forw(inp,args)[0]
+            x=dec_conv_bot.forw(x,args)[0]
+            xx+=[x]
+
+        xx = torch.stack(xx, dim=0)
+        xx = torch.sigmoid(xx)
+        return xx, None
 
 
 # Each set of s_dim normals gets multiplied by its own matrix to correlate
-class decoder_mix(nn.Module):
+class decoder_mix_old(nn.Module):
     def __init__(self,model,args):
         super(decoder_mix,self).__init__()
 
