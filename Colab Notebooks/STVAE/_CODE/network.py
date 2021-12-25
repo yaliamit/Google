@@ -410,27 +410,11 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
             data_in=BB[0].to(dvv,non_blocking=True)
             target=BB[1].to(dvv, dtype=torch.long)
 
-
-            if args.embedd:
-
-                with torch.no_grad():
-                    if args.crop==0:
-                        data_out=deform_data(data_in,args.perturb,args.transformation,args.s_factor,args.h_factor, args.embedd,dvv)
-                        data_in=deform_data(data_in,args.perturb,args.transformation,args.s_factor,args.h_factor,args.embedd,dvv)
-                        data=[data_in,data_out]
-                    else:
-                        data_p=data_in
-                        data=[data_p[0],data_p[1]]
-            else:
-                if args.perturb>0.and d_type=='train':
-                   with torch.no_grad():
-                     data_in = deform_data(data_in, args.perturb, args.transformation, args.s_factor, args.h_factor,args.embedd, dvv)
-                data = data_in#.to(model.temp.dv,dtype=torch.float32)
-
-
+            data=get_data(data_in,args,dvv)
 
             with torch.no_grad() if (d_type!='train') else dummy_context_mgr():
-                loss, acc = loss_and_acc(model, args, data, target,dtype=d_type, lnum=lnum)
+                out=forw(model,args,data)
+                loss, acc = loss(model, args, data, target)
             if (d_type == 'train'):
                 loss.backward()
                 if args.grad_clip>0.:
@@ -449,6 +433,81 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
 
         return [full_acc/(count*jump), full_loss/(count)]
 
+
+def get_data(data_in, args, dvv):
+    if args.embedd:
+        with torch.no_grad():
+            if args.crop == 0:
+                data_out = deform_data(data_in, args.perturb, args.transformation, args.s_factor, args.h_factor,
+                                       args.embedd, dvv)
+                data_in = deform_data(data_in, args.perturb, args.transformation, args.s_factor, args.h_factor,
+                                      args.embedd, dvv)
+                data = [data_in, data_out]
+            else:
+                data_p = data_in
+                data = [data_p[0], data_p[1]]
+    else:
+        if args.perturb > 0. and d_type == 'train':
+            with torch.no_grad():
+                data_in = deform_data(data_in, args.perturb, args.transformation, args.s_factor, args.h_factor,
+                                      args.embedd, dvv)
+        data = data_in
+    return data
+
+def forw(model, args, input, lnum=0):
+
+
+    if type(input) is list:
+
+        out1, ot1 = model.forward(input[1], args)
+        # print('out1',out1.device.index)
+        with torch.no_grad():
+            cl = False
+            if args.embedd_type == 'clapp':
+                cl = True
+            out0, ot0 = model.forward(input[0], args, clapp=cl)
+        out=[out0,out1]
+    else:
+        out, OUT = model.forward(input, args)
+        if args.randomize_layers is not None:
+            out = OUT[args.randomize_layers[lnum * 2 + 1]]
+
+    return out
+
+def loss(model, args, out, target):
+
+        if isinstance(model, torch.nn.DataParallel):
+            dvv = model.module.temp.dv
+            optimizer = model.module.temp.optimizer
+        else:
+            dvv = model.temp.dv
+            optimizer = model.temp.optimizer
+        # Embedding training with image and its deformed counterpart
+        if type(input) is list:
+                loss, acc = args.temp.loss(out[0], out[1], dvv, args.no_standardize, future=args.future, thr=args.thr,
+                                           delta=args.delta)
+        else:
+
+            # if args.randomize_layers is not None and dtype == "train":
+            #     for i, k in enumerate(args.KEYS):
+            #         if args.randomize_layers[lnum * 2] not in k and args.randomize_layers[lnum * 2 + 1] not in k:
+            #             optimizer.param_groups[0]['params'][i].requires_grad = False
+            #         else:
+            #             optimizer.param_groups[0]['params'][i].requires_grad = True
+            #if args.randomize_layers is not None:
+            #    out = OUT[args.randomize_layers[lnum * 2 + 1]]
+            pen = 0
+            #if args.penalize_activations is not None:
+            #    for l in args.layer_text:
+            #        if 'penalty' in l:
+            #            pen += args.penalize_activations * torch.sum(
+            #                torch.mean((OUT[l['name']] * OUT[l['name']]).reshape(args.mb_size, -1), dim=1))
+            # Compute loss and accuracy
+            loss, acc = get_acc_and_loss(args, out, target)
+            #loss += pen
+            # if dtype=='train':
+            #   loss.backward()
+        return loss, acc
 
 def loss_and_acc(model, args, input, target, dtype="train", lnum=0):
 

@@ -46,17 +46,25 @@ class decoder_mix(nn.Module):
     def __init__(self):
         super(decoder_mix,self).__init__()
 
-    def forward(self,inputs,args,dec_conv_top,dec_conv_bot, rng=None):
+    def forward(self,inputs,args,dec_conv_top,dec_conv_bot, dec_trans_top, rng=None):
 
         xx=[]
+        u=None
         for i,inp in enumerate(inputs):
-            x=dec_conv_top[i].forw(inp,args)[0]
+            if self.u_dim>0:
+                u = inp.narrow(len(inp.shape) - 1, 0, args.temp.u_dim)
+                z = inp.narrow(len(inp.shape) - 1, args.temp.u_dim, args.temp.z_dim)
+            else:
+                z=inp
+            x=dec_conv_top[i].forw(z,args)[0]
+            if self.u_dim>0:
+                u=dec_trans_top(u)
             x=dec_conv_bot.forw(x,args)[0]
             xx+=[x]
 
         xx = torch.stack(xx, dim=0)
         xx = torch.sigmoid(xx)
-        return xx, None
+        return xx, u
 
 
 # Each set of s_dim normals gets multiplied by its own matrix to correlate
@@ -106,6 +114,7 @@ class decoder_mix_old(nn.Module):
         u = s.narrow(len(s.shape) - 1, 0, args.temp.u_dim)
         z = s.narrow(len(s.shape) - 1, args.temp.u_dim, args.temp.z_dim)
         h=[]; v=[]; hz=[]
+
         if not hasattr(self,'cluster_hidden') or not self.cluster_hidden:
             for i,zz,vv in zip(rng,z,u):
                 if self.z2z is not None:

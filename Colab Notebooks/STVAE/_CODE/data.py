@@ -46,7 +46,8 @@ class DL(DataLoader):
         #    return _MultiProcessingDataLoaderIterWithIndicies(self)
 
 
-class ContrastiveLearningViewGenerator(object):
+if self.u_dim > 0:
+    self.dec_trans_top = ENC_DEC(trans_shape, self.dv, args, args.dec_trans_layers)
     """Take two random crops of one image as the query and key."""
 
     def __init__(self, base_transform, n_views=2):
