@@ -108,7 +108,7 @@ def initialize_model(model,args, sh,lnti,layers_dict,device):
                             args.temp.optimizer = optim.SGD(pp, lr=args.lr,weight_decay=args.wd)
 
             args.temp.first=0
-        model.add_module('temp',args.temp)
+        #model.add_module('temp',args.temp)
         bsz=args.mb_size
         if args.use_multiple_gpus is not None:
             bsz=bsz//args.use_multiple_gpus
@@ -137,8 +137,8 @@ class network(nn.Module):
     def forward(self,input,args,clapp=False, lay=None):
 
         #print('IN',input.shape, input.get_device())
-        if args.temp.first==0:
-            args.temp=self.temp
+        #if args.temp.first==0:
+         #   args.temp=self.temp
             #print('INP_dim',input.shape[0])
         out = input
         in_dims=[]
@@ -391,13 +391,14 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
 
         # Loop over batches.
 
-        if isinstance(model, torch.nn.DataParallel):
-            dvv=model.module.temp.dv
-            optimizer=model.module.temp.optimizer
-        else:
-            dvv=model.temp.dv
-            optimizer=model.temp.optimizer
-
+        #if isinstance(model, torch.nn.DataParallel):
+        #    dvv=model.module.temp.dv
+        #    optimizer=model.module.temp.optimizer
+        #else:
+        #    dvv=model.temp.dv
+        #    optimizer=model.temp.optimizer
+        optimizer=args.temp.optimizer
+        dvv=args.temp.dv
         TIME=0
         tra=iter(train)
         for j in np.arange(0, num_tr, jump,dtype=np.int32):
@@ -451,12 +452,14 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
 
 def loss_and_acc(model, args, input, target, dtype="train", lnum=0):
 
-        if isinstance(model, torch.nn.DataParallel):
-            dvv = model.module.temp.dv
-            optimizer = model.module.temp.optimizer
-        else:
-            dvv = model.temp.dv
-            optimizer = model.temp.optimizer
+        # if isinstance(model, torch.nn.DataParallel):
+        #     dvv = model.module.temp.dv
+        #     optimizer = model.module.temp.optimizer
+        # else:
+        #     dvv = model.temp.dv
+        #     optimizer = model.temp.optimizer
+        dvv=args.temp.dv
+        optimizer=args.temp.optimizer
         # Embedding training with image and its deformed counterpart
         if type(input) is list:
 
