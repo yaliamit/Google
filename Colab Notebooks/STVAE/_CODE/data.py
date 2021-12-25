@@ -45,6 +45,8 @@ class DL(DataLoader):
         #    self.check_worker_number_rationality()
         #    return _MultiProcessingDataLoaderIterWithIndicies(self)
 
+
+class ContrastiveLearningViewGenerator(object):
     """Take two random crops of one image as the query and key."""
 
     def __init__(self, base_transform, n_views=2):
