@@ -388,15 +388,6 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
 
         ll=1
         full_loss=np.zeros(ll); full_acc=np.zeros(ll); count=np.zeros(ll)
-
-        # Loop over batches.
-
-        #if isinstance(model, torch.nn.DataParallel):
-        #    dvv=model.module.temp.dv
-        #    optimizer=model.module.temp.optimizer
-        #else:
-        #    dvv=model.temp.dv
-        #    optimizer=model.temp.optimizer
         optimizer=args.temp.optimizer
         dvv=args.temp.dv
         TIME=0
@@ -405,16 +396,16 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
             lnum=0
             if d_type=='train':
                 optimizer.zero_grad()
-            #if type(train) is DL:
+
             BB, indlist=next(tra)
             data_in=BB[0].to(dvv,non_blocking=True)
             target=BB[1].to(dvv, dtype=torch.long)
 
-            data=get_data(data_in,args,dvv)
+            data=get_data(data_in,args,dvv, d_type)
 
-            with torch.no_grad() if (d_type!='train') else dummy_context_mgr():
-                out=forw(model,args,data)
-                loss, acc = get_loss(model, args, out, target)
+            #with torch.no_grad() if (d_type!='train') else dummy_context_mgr():
+            out=forw(model,args,data)
+            loss, acc = get_loss(model, args, out, target)
             if (d_type == 'train'):
                 loss.backward()
                 if args.grad_clip>0.:
@@ -434,7 +425,7 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
         return [full_acc/(count*jump), full_loss/(count)]
 
 
-def get_data(data_in, args, dvv):
+def get_data(data_in, args, dvv, d_type):
     if args.embedd:
         with torch.no_grad():
             if args.crop == 0:
