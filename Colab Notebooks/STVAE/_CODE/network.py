@@ -387,8 +387,8 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
             data=get_data(data_in,args,dvv, d_type)
 
             with torch.no_grad() if (d_type!='train') else dummy_context_mgr():
-                out=forw(model,args,data)
-                loss, acc = get_loss(args, out, target, dvv)
+                out, OUT=forw(model,args,data)
+                loss, acc = get_loss(args, out, OUT, target, dvv)
             if args.randomize_layers is not None and d_type == "train":
                     for i, k in enumerate(args.KEYS):
                         if args.randomize_layers[lnum * 2] not in k and args.randomize_layers[lnum * 2 + 1] not in k:
@@ -452,25 +452,30 @@ def forw(model, args, input, lnum=0):
         if args.randomize_layers is not None:
             out = OUT[args.randomize_layers[lnum * 2 + 1]]
 
-    return out
+    return out, OUT
 
-def get_loss(args, out, target, dvv):
+def get_loss(args, out, OUT, target, dvv):
 
         # Embedding training with image and its deformed counterpart
         if type(out) is list:
+            if args.embedd_type == 'orig':
+                loss, acc = get_embedd_loss(out[0],out[1],dvv,args.thr)
+            elif args.embedd_type == 'binary':
+                loss, acc = get_embedd_loss_binary(out[0],out[1],dvv,args.no_standardize)
+            elif args.embedd_type == 'L1dist_hinge':
                 loss, acc = args.temp.loss(out[0], out[1], dvv, args.no_standardize, future=args.future, thr=args.thr,
                                            delta=args.delta)
+            elif args.embedd_type == 'clapp':
+                loss, acc = get_embedd_loss_clapp(out[0].reshape(out[0].shape[0],-1),out[1].reshape(out[1].shape[0],-1),dvv,args.thr)
+
         else:
 
-
-            #if args.randomize_layers is not None:
-            #    out = OUT[args.randomize_layers[lnum * 2 + 1]]
             pen = 0
-            #if args.penalize_activations is not None:
-            #    for l in args.layer_text:
-            #        if 'penalty' in l:
-            #            pen += args.penalize_activations * torch.sum(
-            #                torch.mean((OUT[l['name']] * OUT[l['name']]).reshape(args.mb_size, -1), dim=1))
+            if args.penalize_activations is not None:
+                for l in args.layer_text:
+                    if 'penalty' in l:
+                        pen += args.penalize_activations * torch.sum(
+                            torch.mean((OUT[l['name']] * OUT[l['name']]).reshape(args.mb_size, -1), dim=1))
             # Compute loss and accuracy
             loss, acc = get_acc_and_loss(args, out, target)
             #loss += pen
