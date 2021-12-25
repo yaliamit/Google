@@ -453,10 +453,13 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
         else:
             dvv=model.temp.dv
             optimizer=model.temp.optimizer
+
         TIME=0
         tra=iter(train)
         for j in np.arange(0, num_tr, jump,dtype=np.int32):
             lnum=0
+            if d_type=='train':
+                optimizer.zero_grad()
             #if type(train) is DL:
             BB, indlist=next(tra)
             data_in=BB[0].to(dvv,non_blocking=True)
@@ -484,13 +487,9 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
             with torch.no_grad() if (d_type!='train') else dummy_context_mgr():
                 loss, acc = loss_and_acc(model, args, data, target,dtype=d_type, lnum=lnum)
             if (d_type == 'train'):
-
-                optimizer.zero_grad()
                 loss.backward()
-                if args.grad_clip>0.:
-                    nn.utils.clip_grad_value_(model.parameters(),args.grad_clip)
-
-
+                #if args.grad_clip>0.:
+                #    nn.utils.clip_grad_value_(model.parameters(),args.grad_clip
                 optimizer.step()
 
             full_loss[lnum] += loss.item()
