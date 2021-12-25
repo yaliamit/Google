@@ -140,6 +140,7 @@ class network(nn.Module):
         if args.temp.first==0:
             args.temp=self.temp
             #print('INP_dim',input.shape[0])
+        everything= args.everything or args.randomize is not None or args.penalize_activations is not None
         out = input
         in_dims=[]
         if (args.temp.first):
@@ -172,14 +173,16 @@ class network(nn.Module):
                                 inp_feats+=[OUTS[p].shape[1]]
                                 loc_in_dims+=[in_dims[args.lnti[p]]]
                 if ('input' in ll['name']):
-                    #OUTS[ll['name']]=input
                     out=input
+                    if everything:
+                        OUTS[ll['name']]=out
+
                 if ('shift' in ll['name']):
                      if args.temp.first:
                          self.layers.add_module(ll['name'],shifts(ll['shifts']))
-                     #out=getattr(self.layers,ll['name'])(OUTS[inp_ind])
                      out=getattr(self.layers,ll['name'])(out)
-                     #OUTS[ll['name']]=out
+                     if everything:
+                         OUTS[ll['name']] = out
                 if ('conv' in ll['name']):
                     if args.temp.first:
                         bis = True
@@ -189,42 +192,36 @@ class network(nn.Module):
                         if 'stride' in ll:
                             stride=ll['stride']
                         pd=(ll['filter_size']//stride) // 2
-                        if not args.temp.back:
-                            if 'fa' in ll['name'] and not 'ga' in pre and 'Darwin' not in os.uname():
+                        if 'fa' in ll['name'] and not 'ga' in pre and 'Darwin' not in os.uname():
                                 self.layers.add_module(ll['name'],FAConv2d(inp_feats,ll['num_filters'],ll['filter_size'],stride=stride,fa=args.fa,padding=pd, bias=bis))
-                            else:
+                        else:
                                 self.layers.add_module(ll['name'],nn.Conv2d(inp_feats,ll['num_filters'],ll['filter_size'],stride=stride,padding=pd, bias=bis))
-                            if 'zero' in ll:
+                        if 'zero' in ll:
                                 temp=getattr(self.layers, ll['name'])
                                 temp.weight.data=ll['zero']*torch.ones_like(temp.weight.data)
-                        else:
-                            self.layers.add_module(ll['name'],nn.Conv2d(inp_feats,ll['num_filters'],ll['filter_size'],stride=1,padding=pd))
-                            self.back_layers.add_module(ll['name']+'_bk',nn.Conv2d(ll['num_filters'],inp_feats,ll['filter_size'],stride=1,padding=pd))
-                            if 'zero' in ll:
-                                temp=getattr(self.back_layers, ll['name']+'_bk')
-                                temp.weight.data[0,0]=ll['zero']*torch.ones_like(temp.weight.data[0,0])
+
                     out = getattr(self.layers, ll['name'])(out)
-                    #out=getattr(self.layers, ll['name'])(OUTS[inp_ind])
-                    #OUTS[ll['name']]=out
+                    if everything:
+                        OUTS[ll['name']] = out
+
                 if 'non_linearity' in ll['name']:
                     if args.temp.first:
                         low=-1.; high=1.
                         if 'lims' in ll:
                             low=ll['lims'][0]; high=ll['lims'][1]
                         self.layers.add_module(ll['name'],NONLIN(ll['type'],low=low,high=high))
-                        if args.temp.back:
-                            self.back_layers.add_module(ll['name']+'_bk',NONLIN(ll['type'],low=low,high=high))
-                    out = getattr(self.layers, ll['name'])(out)
 
-                    #OUTS[ll['name']] = getattr(self.layers, ll['name'])(OUTS[inp_ind])
+                    out = getattr(self.layers, ll['name'])(out)
+                    if everything:
+                        OUTS[ll['name']] = out
                 if ('Avg' in ll['name']):
                     if args.first:
                         HW=(np.int32(OUTS[inp_ind].shape[2]/2),np.int32(OUTS[inp_ind].shape[3]/2))
                         self.layers.add_module(ll['name'],nn.AvgPool2d(HW,HW))
                     out = getattr(self.layers, ll['name'])(out)
+                    if everything:
+                        OUTS[ll['name']] = out
 
-                    #out = getattr(self.layers, ll['name'])(OUTS[inp_ind])
-                    #OUTS[ll['name']] = out
                 if ('pool' in ll['name']):
                     if args.temp.first:
                         stride = ll['pool_size']
@@ -233,26 +230,20 @@ class network(nn.Module):
                         pp=[np.int32(np.mod(ll['pool_size'],2))]
                         pp=(ll['pool_size']-1)//2
                         self.layers.add_module(ll['name'],nn.MaxPool2d(ll['pool_size'], stride=stride, padding=pp))
-                        if args.temp.back:
-                            #self.back_layers.add_module(ll['name']+'_bk',nn.UpsamplingNearest2d(scale_factor=stride))
-                            self.back_layers.add_module(ll['name']+'_bk',nn.UpsamplingNearest2d(size=out.shape[2:4]))
+
 
                     out = getattr(self.layers, ll['name'])(out)
-
-                    #out = getattr(self.layers, ll['name'])(OUTS[inp_ind])
-                    #OUTS[ll['name']]=out
-
+                    if everything:
+                        OUTS[ll['name']] = out
 
                 if ('drop' in ll['name']):
                     if args.temp.first:
                         self.layers.add_module(ll['name'],torch.nn.Dropout(p=ll['drop'], inplace=False))
-                        if args.temp.back:
-                            self.back_layers.add_module(ll['name']+'_bk',torch.nn.Dropout(p=ll['drop'],inplace=False))
+
 
                     out = getattr(self.layers, ll['name'])(out)
-
-                    #out = getattr(self.layers, ll['name'])(OUTS[inp_ind])
-                    #OUTS[ll['name']]=out
+                    if everything:
+                        OUTS[ll['name']] = out
 
                 if ('dense' in ll['name']):
                     if args.temp.first:
@@ -260,45 +251,36 @@ class network(nn.Module):
                         bis=True
                         if ('nb' in ll):
                             bis=False
-                        if not args.temp.back:
-                            if 'fa' in ll['name']:
+                        if 'fa' in ll['name']:
                                 self.layers.add_module(ll['name'],FALinear(in_dim,out_dim,bias=bis, fa=args.fa))
-                            else:
-                                self.layers.add_module(ll['name'],nn.Linear(in_dim,out_dim,bias=bis))
                         else:
-                            self.layers.add_module(ll['name'],nn.Linear(in_dim,out_dim,bias=bis))
+                                self.layers.add_module(ll['name'],nn.Linear(in_dim,out_dim,bias=bis))
 
-                        if args.temp.back:
-                            self.back_layers.add_module(ll['name']+'_bk_'+'reshape',Reshape(list(OUTS[inp_ind].shape[1:])))
-                            self.back_layers.add_module(ll['name']+'_bk',nn.Linear(out_dim,in_dim,bias=bis))
-                    #out=OUTS[inp_ind]
                     out = out.reshape(out.shape[0], -1)
                     out = getattr(self.layers, ll['name'])(out)
+                    if everything:
+                        OUTS[ll['name']] = out
 
-                    #out=getattr(self.layers, ll['name'])(out)
-                    #OUTS[ll['name']]=out
                 if 'inject' in ll['name']:
                     if args.temp.first:
                         stride=ll['stride']
                         self.layers.add_module(ll['name'],Inject(stride))
                     out = getattr(self.layers, ll['name'])(out)
+                    if everything:
+                        OUTS[ll['name']] = out
 
-                    #out = getattr(self.layers, ll['name'])(OUTS[inp_ind])
-                    #OUTS[ll['name']] = out
                 if 'subsample' in ll['name']:
                     if args.temp.first:
                         stride = None
                         if 'stride' in ll:
                             stride = ll['stride']
                         self.layers.add_module(ll['name'], Subsample(stride=stride))
-                        if args.temp.back:
-                            #self.back_layers.add_module(ll['name']+'_bk',nn.UpsamplingNearest2d(scale_factor=stride))
-                            self.back_layers.add_module(ll['name']+'_bk',Inject(stride))
+
 
                     out = getattr(self.layers, ll['name'])(out)
+                    if everything:
+                        OUTS[ll['name']] = out
 
-                    #out = getattr(self.layers, ll['name'])(OUTS[inp_ind])
-                    #OUTS[ll['name']] = out
                 if ('norm') in ll['name']:
                     if args.temp.first:
                         if args.bn=='full':
@@ -319,36 +301,14 @@ class network(nn.Module):
                             self.layers.add_module(ll['name'],diag2d(OUTS[old_name].shape[1]))
                         else:
                             self.layers.add_module(ll['name'],Iden())
-                        if args.temp.back:
-                            if args.bn=='full':
-                                if len(OUTS[inp_ind].shape)==4 and args.bn:
-                                    self.back_layers.add_module(ll['name'],nn.BatchNorm2d(OUTS[inp_ind].shape[1]))
-                                else:
-                                    self.back_layers.add_module(ll['name'],nn.BatchNorm1d(OUTS[inp_ind].shape[1]))
-                            elif args.bn == 'half_full':
-                                    if len(OUTS[old_name].shape) == 4 and args.bn:
-                                        self.back_layers.add_module(ll['name'],
-                                                           nn.BatchNorm2d(OUTS[inp_ind].shape[1], affine=False))
-                                    else:
-                                        self.back_layers.add_module(ll['name'],
-                                                           nn.BatchNorm1d(OUTS[inp_ind].shape[1], affine=False))
-                            elif args.bn == 'layerwise':
-                                self.layers.add_module(ll['name'], nn.LayerNorm(OUTS[inp_ind].shape[2:4]))
-                            elif args.bn == 'instance':
-                                self.layers.add_module(ll['name'],
-                                                       nn.InstanceNorm2d(OUTS[inp_ind].shape[1], affine=True))
-                            elif args.bn == 'simple':
-                                    self.back_layers.add_module(ll['name'], diag2d(OUTS[inp_ind].shape[1]))
-                            else:
-                                    self.back_layers.add_module(ll['name'], Iden())
+
                     if not args.temp.first:
                         out = getattr(self.layers, ll['name'])(out)
-
-                        #out = getattr(self.layers, ll['name'])(OUTS[inp_ind])
+                        if everything:
+                            OUTS[ll['name']] = out
                     else:
                         pass
-                    #    out = OUTS[inp_ind]
-                    #OUTS[ll['name']]=out
+
 
                 if ('opr' in ll['name']):
                     if 'add' in ll['name']:
@@ -358,11 +318,11 @@ class network(nn.Module):
                 if ('num_filters' in ll):
                     inp_feats = ll['num_filters']
                 if ('shifts' in ll['name']):
-                     inp_feats=OUTS[ll['name']].shape[1]
-                prev_shape=out.shape #OUTS[ll['name']].shape
+                     inp_feats=out.shape[1] #OUTS[ll['name']].shape[1]
+
+                prev_shape=out.shape
 
                 if args.temp.first:
-                    #args.fout.write(ll['name']+' '+str(np.array(OUTS[ll['name']].shape))+'\n')
                     args.fout.write(ll['name']+' '+str(np.array(prev_shape))+'\n')
 
                 in_dim=np.prod(prev_shape[1:])
@@ -381,12 +341,10 @@ class network(nn.Module):
             if clapp:
                 out = self.clapp(out)
 
-                #out=self.clapp(OUTS[old_name])
-
         out1=[]
 
-        #if(args.temp.everything or args.randomize is not None or args.penalize_activations is not None):
-        #    out1=OUTS
+        if(everything):
+            out1=OUTS
 
         return(out,out1)
 
@@ -430,7 +388,13 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
 
             with torch.no_grad() if (d_type!='train') else dummy_context_mgr():
                 out=forw(model,args,data)
-                loss, acc = get_loss(model, args, out, target)
+                loss, acc = get_loss(args, out, target)
+            if args.randomize_layers is not None and d_type == "train":
+                    for i, k in enumerate(args.KEYS):
+                        if args.randomize_layers[lnum * 2] not in k and args.randomize_layers[lnum * 2 + 1] not in k:
+                            optimizer.param_groups[0]['params'][i].requires_grad = False
+                        else:
+                            optimizer.param_groups[0]['params'][i].requires_grad = True
             if (d_type == 'train'):
                 loss.backward()
                 if args.grad_clip>0.:
@@ -490,26 +454,15 @@ def forw(model, args, input, lnum=0):
 
     return out
 
-def get_loss(model, args, out, target):
+def get_loss(args, out, target, dvv):
 
-        if isinstance(model, torch.nn.DataParallel):
-            dvv = model.module.temp.dv
-            optimizer = model.module.temp.optimizer
-        else:
-            dvv = model.temp.dv
-            optimizer = model.temp.optimizer
         # Embedding training with image and its deformed counterpart
-        if type(input) is list:
+        if type(out) is list:
                 loss, acc = args.temp.loss(out[0], out[1], dvv, args.no_standardize, future=args.future, thr=args.thr,
                                            delta=args.delta)
         else:
 
-            # if args.randomize_layers is not None and dtype == "train":
-            #     for i, k in enumerate(args.KEYS):
-            #         if args.randomize_layers[lnum * 2] not in k and args.randomize_layers[lnum * 2 + 1] not in k:
-            #             optimizer.param_groups[0]['params'][i].requires_grad = False
-            #         else:
-            #             optimizer.param_groups[0]['params'][i].requires_grad = True
+
             #if args.randomize_layers is not None:
             #    out = OUT[args.randomize_layers[lnum * 2 + 1]]
             pen = 0
