@@ -436,16 +436,16 @@ def get_data(data_in, args, dvv, d_type):
 
 def forw(model, args, input, lnum=0):
 
-
+    OUT=None
     if type(input) is list:
 
-        out1, ot1 = model.forward(input[1], args)
+        out1, _ = model.forward(input[1], args)
         # print('out1',out1.device.index)
         with torch.no_grad():
             cl = False
             if args.embedd_type == 'clapp':
                 cl = True
-            out0, ot0 = model.forward(input[0], args, clapp=cl)
+            out0, _ = model.forward(input[0], args, clapp=cl)
         out=[out0,out1]
     else:
         out, OUT = model.forward(input, args)
