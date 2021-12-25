@@ -21,8 +21,9 @@ class ENC_DEC(nn.Module):
 
     def forw(self,input, args):
 
-        self.model.temp.everything=True
+        args.temp.everything=True
         out,out1=self.model.forward(input, args)
+        args.temp.everything=False
 
         return(out,out1)
 
