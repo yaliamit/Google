@@ -222,6 +222,9 @@ def erode(do_er,data,extra=None):
 
 
 def deform_data(x_in,perturb,trans,s_factor,h_factor,embedd,dv):
+
+        if perturb==0:
+            return x_in
         #t1=time.time()
         h=x_in.shape[2]
         w=x_in.shape[3]
