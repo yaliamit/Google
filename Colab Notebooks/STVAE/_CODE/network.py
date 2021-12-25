@@ -172,12 +172,14 @@ class network(nn.Module):
                                 inp_feats+=[OUTS[p].shape[1]]
                                 loc_in_dims+=[in_dims[args.lnti[p]]]
                 if ('input' in ll['name']):
-                    OUTS[ll['name']]=input
+                    #OUTS[ll['name']]=input
+                    out=input
                 if ('shift' in ll['name']):
                      if args.temp.first:
                          self.layers.add_module(ll['name'],shifts(ll['shifts']))
-                     out=getattr(self.layers,ll['name'])(OUTS[inp_ind])
-                     OUTS[ll['name']]=out
+                     #out=getattr(self.layers,ll['name'])(OUTS[inp_ind])
+                     out=getattr(self.layers,ll['name'])(out)
+                     #OUTS[ll['name']]=out
                 if ('conv' in ll['name']):
                     if args.temp.first:
                         bis = True
@@ -201,9 +203,9 @@ class network(nn.Module):
                             if 'zero' in ll:
                                 temp=getattr(self.back_layers, ll['name']+'_bk')
                                 temp.weight.data[0,0]=ll['zero']*torch.ones_like(temp.weight.data[0,0])
-                                
-                    out=getattr(self.layers, ll['name'])(OUTS[inp_ind])
-                    OUTS[ll['name']]=out
+                    out = getattr(self.layers, ll['name'])(out)
+                    #out=getattr(self.layers, ll['name'])(OUTS[inp_ind])
+                    #OUTS[ll['name']]=out
                 if 'non_linearity' in ll['name']:
                     if args.temp.first:
                         low=-1.; high=1.
@@ -212,14 +214,17 @@ class network(nn.Module):
                         self.layers.add_module(ll['name'],NONLIN(ll['type'],low=low,high=high))
                         if args.temp.back:
                             self.back_layers.add_module(ll['name']+'_bk',NONLIN(ll['type'],low=low,high=high))
+                    out = getattr(self.layers, ll['name'])(out)
 
-                    OUTS[ll['name']] = getattr(self.layers, ll['name'])(OUTS[inp_ind])
+                    #OUTS[ll['name']] = getattr(self.layers, ll['name'])(OUTS[inp_ind])
                 if ('Avg' in ll['name']):
                     if args.first:
                         HW=(np.int32(OUTS[inp_ind].shape[2]/2),np.int32(OUTS[inp_ind].shape[3]/2))
                         self.layers.add_module(ll['name'],nn.AvgPool2d(HW,HW))
-                    out = getattr(self.layers, ll['name'])(OUTS[inp_ind])
-                    OUTS[ll['name']] = out
+                    out = getattr(self.layers, ll['name'])(out)
+
+                    #out = getattr(self.layers, ll['name'])(OUTS[inp_ind])
+                    #OUTS[ll['name']] = out
                 if ('pool' in ll['name']):
                     if args.temp.first:
                         stride = ll['pool_size']
@@ -231,8 +236,11 @@ class network(nn.Module):
                         if args.temp.back:
                             #self.back_layers.add_module(ll['name']+'_bk',nn.UpsamplingNearest2d(scale_factor=stride))
                             self.back_layers.add_module(ll['name']+'_bk',nn.UpsamplingNearest2d(size=out.shape[2:4]))
-                    out = getattr(self.layers, ll['name'])(OUTS[inp_ind])
-                    OUTS[ll['name']]=out
+
+                    out = getattr(self.layers, ll['name'])(out)
+
+                    #out = getattr(self.layers, ll['name'])(OUTS[inp_ind])
+                    #OUTS[ll['name']]=out
 
 
                 if ('drop' in ll['name']):
@@ -240,8 +248,11 @@ class network(nn.Module):
                         self.layers.add_module(ll['name'],torch.nn.Dropout(p=ll['drop'], inplace=False))
                         if args.temp.back:
                             self.back_layers.add_module(ll['name']+'_bk',torch.nn.Dropout(p=ll['drop'],inplace=False))
-                    out = getattr(self.layers, ll['name'])(OUTS[inp_ind])
-                    OUTS[ll['name']]=out
+
+                    out = getattr(self.layers, ll['name'])(out)
+
+                    #out = getattr(self.layers, ll['name'])(OUTS[inp_ind])
+                    #OUTS[ll['name']]=out
 
                 if ('dense' in ll['name']):
                     if args.temp.first:
@@ -260,16 +271,20 @@ class network(nn.Module):
                         if args.temp.back:
                             self.back_layers.add_module(ll['name']+'_bk_'+'reshape',Reshape(list(OUTS[inp_ind].shape[1:])))
                             self.back_layers.add_module(ll['name']+'_bk',nn.Linear(out_dim,in_dim,bias=bis))
-                    out=OUTS[inp_ind]
+                    #out=OUTS[inp_ind]
                     out = out.reshape(out.shape[0], -1)
-                    out=getattr(self.layers, ll['name'])(out)
-                    OUTS[ll['name']]=out
+                    out = getattr(self.layers, ll['name'])(out)
+
+                    #out=getattr(self.layers, ll['name'])(out)
+                    #OUTS[ll['name']]=out
                 if 'inject' in ll['name']:
                     if args.temp.first:
                         stride=ll['stride']
                         self.layers.add_module(ll['name'],Inject(stride))
-                    out = getattr(self.layers, ll['name'])(OUTS[inp_ind])
-                    OUTS[ll['name']] = out
+                    out = getattr(self.layers, ll['name'])(out)
+
+                    #out = getattr(self.layers, ll['name'])(OUTS[inp_ind])
+                    #OUTS[ll['name']] = out
                 if 'subsample' in ll['name']:
                     if args.temp.first:
                         stride = None
@@ -279,8 +294,11 @@ class network(nn.Module):
                         if args.temp.back:
                             #self.back_layers.add_module(ll['name']+'_bk',nn.UpsamplingNearest2d(scale_factor=stride))
                             self.back_layers.add_module(ll['name']+'_bk',Inject(stride))
-                    out = getattr(self.layers, ll['name'])(OUTS[inp_ind])
-                    OUTS[ll['name']] = out
+
+                    out = getattr(self.layers, ll['name'])(out)
+
+                    #out = getattr(self.layers, ll['name'])(OUTS[inp_ind])
+                    #OUTS[ll['name']] = out
                 if ('norm') in ll['name']:
                     if args.temp.first:
                         if args.bn=='full':
@@ -324,10 +342,13 @@ class network(nn.Module):
                             else:
                                     self.back_layers.add_module(ll['name'], Iden())
                     if not args.temp.first:
-                        out = getattr(self.layers, ll['name'])(OUTS[inp_ind])
+                        out = getattr(self.layers, ll['name'])(out)
+
+                        #out = getattr(self.layers, ll['name'])(OUTS[inp_ind])
                     else:
-                        out = OUTS[inp_ind]
-                    OUTS[ll['name']]=out
+                        pass
+                    #    out = OUTS[inp_ind]
+                    #OUTS[ll['name']]=out
 
                 if ('opr' in ll['name']):
                     if 'add' in ll['name']:
@@ -338,11 +359,13 @@ class network(nn.Module):
                     inp_feats = ll['num_filters']
                 if ('shifts' in ll['name']):
                      inp_feats=OUTS[ll['name']].shape[1]
-                if args.temp.first:
-                    args.fout.write(ll['name']+' '+str(np.array(OUTS[ll['name']].shape))+'\n')
+                prev_shape=out.shape #OUTS[ll['name']].shape
 
-                prev_shape=OUTS[ll['name']].shape
-                in_dim=np.prod(OUTS[ll['name']].shape[1:])
+                if args.temp.first:
+                    #args.fout.write(ll['name']+' '+str(np.array(OUTS[ll['name']].shape))+'\n')
+                    args.fout.write(ll['name']+' '+str(np.array(prev_shape))+'\n')
+
+                in_dim=np.prod(prev_shape[1:])
                 in_dims+=[in_dim]
                 old_name=ll['name']
                 if lay is not None and lay in ll['name']:
@@ -356,12 +379,14 @@ class network(nn.Module):
                 if args.update_layers is not None:
                     args.update_layers.append('clapp')
             if clapp:
-                out=self.clapp(OUTS[old_name])
+                out = self.clapp(out)
+
+                #out=self.clapp(OUTS[old_name])
 
         out1=[]
 
-        if(args.temp.everything or args.randomize is not None or args.penalize_activations is not None):
-            out1=OUTS
+        #if(args.temp.everything or args.randomize is not None or args.penalize_activations is not None):
+        #    out1=OUTS
 
         return(out,out1)
 
@@ -403,9 +428,9 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
 
             data=get_data(data_in,args,dvv, d_type)
 
-            #with torch.no_grad() if (d_type!='train') else dummy_context_mgr():
-            out=forw(model,args,data)
-            loss, acc = get_loss(model, args, out, target)
+            with torch.no_grad() if (d_type!='train') else dummy_context_mgr():
+                out=forw(model,args,data)
+                loss, acc = get_loss(model, args, out, target)
             if (d_type == 'train'):
                 loss.backward()
                 if args.grad_clip>0.:
