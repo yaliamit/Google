@@ -432,8 +432,8 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
                 loss, acc = loss_and_acc(model, args, data, target,dtype=d_type, lnum=lnum)
             if (d_type == 'train'):
                 loss.backward()
-                #if args.grad_clip>0.:
-                #    nn.utils.clip_grad_value_(model.parameters(),args.grad_clip
+                if args.grad_clip>0.:
+                    nn.utils.clip_grad_value_(model.parameters(),args.grad_clip)
                 optimizer.step()
 
             full_loss[lnum] += loss.item()
