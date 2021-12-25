@@ -431,7 +431,7 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
             with torch.no_grad() if (d_type!='train') else dummy_context_mgr():
                 loss, acc = loss_and_acc(model, args, data, target,dtype=d_type, lnum=lnum)
             if (d_type == 'train'):
-                #loss.backward()
+                loss.backward()
                 #if args.grad_clip>0.:
                 #    nn.utils.clip_grad_value_(model.parameters(),args.grad_clip
                 optimizer.step()
@@ -505,8 +505,8 @@ def loss_and_acc(model, args, input, target, dtype="train", lnum=0):
             # Compute loss and accuracy
             loss, acc = get_acc_and_loss(args, out, target)
             loss += pen
-            if dtype=='train':
-                loss.backward()
+            #if dtype=='train':
+             #   loss.backward()
         return loss, acc
 
 def get_embedding(model, args, train):
