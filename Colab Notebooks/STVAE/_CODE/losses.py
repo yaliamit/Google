@@ -193,8 +193,8 @@ class L1_loss(nn.Module):
         out1 = standardize(out1, nostd)
         #ymat = 2 * torch.eye(self.bsz).to(dv) - 1
         bsz=out0.shape[0]
-        OUT = (thr-torch.cdist(out0, out1, p=1))-1
-        diag=torch.diag(OUT)+2
+        OUT = -(thr-torch.cdist(out0, out1, p=1))
+        diag=-torch.diag(OUT)
         OUT[range(bsz),range(bsz)]=diag
 
         if future:

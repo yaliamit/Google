@@ -136,7 +136,7 @@ class network(nn.Module):
 
     def forward(self,input,args,clapp=False, lay=None):
 
-        print('IN',input.shape, input.get_device())
+        #print('IN',input.shape, input.get_device())
         if args.temp.first==0:
             args.temp=self.temp
             #print('INP_dim',input.shape[0])
@@ -372,63 +372,7 @@ class network(nn.Module):
 
         return xx
 
-    def loss_and_acc(model, args, input, target, dtype="train", lnum=0):
-        print('OUT',input.shape)
-        if isinstance(model, torch.nn.DataParallel):
-            dvv = model.module.temp.dv
-            optimizer = model.module.temp.optimizer
-        else:
-            dvv = model.temp.dv
-            optimizer = model.temp.optimizer
-        # Embedding training with image and its deformed counterpart
-        if type(input) is list:
 
-            out1, ot1 = model.forward(input[1], args)
-            # print('out1',out1.device.index)
-            with torch.no_grad():
-                cl = False
-                if args.embedd_type == 'clapp':
-                    cl = True
-                out0, ot0 = model.forward(input[0], args, clapp=cl)
-                # print('out0', out0.device.index)
-            if args.embedd_type == 'orig':
-                pass
-                # loss, acc = get_embedd_loss(out0,out1,dvv,args.thr)
-            elif args.embedd_type == 'binary':
-                pass
-                # loss, acc = get_embedd_loss_binary(out0,out1,dvv,args.no_standardize)
-            elif args.embedd_type == 'L1dist_hinge':
-                loss, acc = args.temp.loss(out0, out1, dvv, args.no_standardize, future=args.future, thr=args.thr,
-                                           delta=args.delta)
-            elif args.embedd_type == 'clapp':
-                pass
-                # out0 = out0.reshape(out0.shape[0], -1)
-                # out1 = out1.reshape(out1.shape[0], -1)
-                # loss, acc = get_embedd_loss_clapp(out0,out1,dvv,args.thr)
-        # Classification training
-
-        else:
-
-            if args.randomize_layers is not None and dtype == "train":
-                for i, k in enumerate(args.KEYS):
-                    if args.randomize_layers[lnum * 2] not in k and args.randomize_layers[lnum * 2 + 1] not in k:
-                        optimizer.param_groups[0]['params'][i].requires_grad = False
-                    else:
-                        optimizer.param_groups[0]['params'][i].requires_grad = True
-
-            out, OUT = model.forward(input, args)
-            if args.randomize_layers is not None:
-                out = OUT[args.randomize_layers[lnum * 2 + 1]]
-            pen = 0
-            if args.penalize_activations is not None:
-                for l in args.layer_text:
-                    if 'penalty' in l:
-                        pen += args.penalize_activations * torch.sum(
-                            torch.mean((OUT[l['name']] * OUT[l['name']]).reshape(args.mb_size, -1), dim=1))
-            # Compute loss and accuracy
-            loss, acc = get_acc_and_loss(args, out, target)
-            loss += pen
-        return loss, acc
 
 def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
 
@@ -487,7 +431,7 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
             with torch.no_grad() if (d_type!='train') else dummy_context_mgr():
                 loss, acc = loss_and_acc(model, args, data, target,dtype=d_type, lnum=lnum)
             if (d_type == 'train'):
-                loss.backward()
+                #loss.backward()
                 #if args.grad_clip>0.:
                 #    nn.utils.clip_grad_value_(model.parameters(),args.grad_clip
                 optimizer.step()
@@ -506,7 +450,7 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
 
 
 def loss_and_acc(model, args, input, target, dtype="train", lnum=0):
-        print('OUT',input[0].shape)
+
         if isinstance(model, torch.nn.DataParallel):
             dvv = model.module.temp.dv
             optimizer = model.module.temp.optimizer
@@ -561,6 +505,8 @@ def loss_and_acc(model, args, input, target, dtype="train", lnum=0):
             # Compute loss and accuracy
             loss, acc = get_acc_and_loss(args, out, target)
             loss += pen
+            if dtype=='train':
+                loss.backward()
         return loss, acc
 
 def get_embedding(model, args, train):
