@@ -131,11 +131,11 @@ class STVAE_mix(nn.Module):
         self.enc_conv=ENC_DEC(sh,self.dv,args,args.enc_layers)
         final_shape=np.array(self.enc_conv.model.temp.output_shape)[1:]
         final_shape[0]=final_shape[0]/args.n_mix
-        if self.u_dim>0:
-            trans_shape=final_shape
-            trans_shape[1]=self.u_dim
-            final_shape[1]=self.z_dim
-            self.dec_trans_top=ENC_DEC(trans_shape,self.dv,args,args.dec_trans_layers)
+        # if self.u_dim>0:
+        #     trans_shape=final_shape
+        #     trans_shape[1]=self.u_dim
+        #     final_shape[1]=self.z_dim
+        #     self.dec_trans_top=ENC_DEC(trans_shape,self.dv,args,args.dec_trans_layers)
         self.enc_conv.model.temp.final_shape=final_shape
         self.dec_conv_top=[ENC_DEC(final_shape,self.dv,args,args.dec_layers_top) for i in range(self.n_mix)]
         final_shape=np.array(self.dec_conv_top[0].model.temp.output_shape)[1:]
