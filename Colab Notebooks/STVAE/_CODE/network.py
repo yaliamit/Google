@@ -140,7 +140,7 @@ class network(nn.Module):
         if args.temp.first==0:
             args.temp=self.temp
             #print('INP_dim',input.shape[0])
-        everything= args.everything or args.randomize is not None or args.penalize_activations is not None
+        everything= args.temp.everything or args.randomize is not None or args.penalize_activations is not None
         out = input
         in_dims=[]
         if (args.temp.first):
@@ -388,7 +388,7 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
 
             with torch.no_grad() if (d_type!='train') else dummy_context_mgr():
                 out=forw(model,args,data)
-                loss, acc = get_loss(args, out, target)
+                loss, acc = get_loss(args, out, target, dvv)
             if args.randomize_layers is not None and d_type == "train":
                     for i, k in enumerate(args.KEYS):
                         if args.randomize_layers[lnum * 2] not in k and args.randomize_layers[lnum * 2 + 1] not in k:
