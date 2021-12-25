@@ -141,6 +141,7 @@ class network(nn.Module):
             args.temp=self.temp
             #print('INP_dim',input.shape[0])
         everything= args.temp.everything or args.randomize is not None or args.penalize_activations is not None
+        print("EVERYTHIN",everything)
         out = input
         in_dims=[]
         if (args.temp.first):
