@@ -140,8 +140,7 @@ class network(nn.Module):
         if args.temp.first==0:
             args.temp=self.temp
             #print('INP_dim',input.shape[0])
-        everything= args.temp.everything or args.randomize is not None or args.penalize_activations is not None
-        print("EVERYTHIN",everything)
+        everything= args.temp.everything or args.randomize_layers is not None or args.penalize_activations is not None
         out = input
         in_dims=[]
         if (args.temp.first):
