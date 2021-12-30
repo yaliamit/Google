@@ -65,9 +65,9 @@ def get_network(layers,nf=None):
     layers_dict=LP
     if (nf is not None):
         LP[0]['num_filters']=nf
-    layer_names_to_indices={}
-    for i,ll in enumerate(LP):
-        layer_names_to_indices[ll['name']]=i
-    lnti=layer_names_to_indices
+    # layer_names_to_indices={}
+    # for i,ll in enumerate(LP):
+    #     layer_names_to_indices[ll['name']]=i
+    # lnti=layer_names_to_indices
 
-    return lnti, layers_dict
+    return layers_dict

@@ -93,118 +93,95 @@ class SimCLRLoss(torch.nn.Module):
 
 
 
-def simclr_loss(out0, out1, dv, nostd):
-        # Standardize 64 dim outputs of original and deformed images
-        bsz=out0.shape[0]
-        out0a = torch.nn.functional.normalize(out0, dim=1)
-        out1a = torch.nn.functional.normalize(out1, dim=1)
-
-        #out0a = standardize(out0,nostd)
-        #out1a = standardize(out1,nostd)
-        # Compute 3 covariance matrices - 0-1, 0-0, 1-1.
-        COV = torch.mm(out0a, out1a.transpose(0, 1))
-        COV1 = torch.mm(out1a, out1a.transpose(0, 1))
-        COV0 = torch.mm(out0a, out0a.transpose(0, 1))
-        # Diagonals of covariances.
-        v0 = torch.diag(COV0)
-        v1 = torch.diag(COV1)
-        v = torch.diag(COV)
-        # Mulitnomial logistic loss just computed on positive match examples, with all other examples as a separate class.
-        lecov = torch.log(
-            torch.exp(torch.logsumexp(COV, dim=1)) + torch.exp(torch.logsumexp(COV0 - torch.diag(v0), dim=1)))
-        lecov += torch.log(
-            torch.exp(torch.logsumexp(COV, dim=1)) + torch.exp(torch.logsumexp(COV1 - torch.diag(v1), dim=1)))
-        lecov = (.5 * (lecov) - v)
-
-        loss = torch.mean(lecov)
-        # Accuracy
-        ID = 2. * torch.eye(out0.shape[0]).to(dv) - 1.
-        icov = ID * COV
-        acc = torch.sum((icov > 0).type(torch.float)) / bsz
-
-        return loss, acc
 
 
-def get_embedd_loss(out0,out1,dv, thr):
+class SIMCLR_loss(nn.Module):
+    def  __init__(self,dv, tau=1.):
+        super(SIMCLR_loss,self).__init__()
+        self.dv=dv
+        self.tau=tau
 
-        tau=thr
+    def __call__(self,out0,out1):
+
         bsz=out0.shape[0]
         out0a = torch.nn.functional.normalize(out0, dim=1)
         out1a = torch.nn.functional.normalize(out1, dim=1)
         #out0a=standardize(out0, nostd)
         #out1a=standardize(out1, nostd)
-        COV=torch.mm(out0a,out1a.transpose(0,1))/tau
-        COV1 = torch.mm(out1a, out1a.transpose(0, 1))/tau
-        COV0 = torch.mm(out0a,out0a.transpose(0,1))/tau
-        vb=(torch.eye(bsz)*1e10).to(dv)
+        COV=torch.mm(out0a,out1a.transpose(0,1))/self.tau
+        COV1 = torch.mm(out1a, out1a.transpose(0, 1))/self.tau
+        COV0 = torch.mm(out0a,out0a.transpose(0,1))/self.tau
+        vb=(torch.eye(bsz)*1e10).to(self.dv)
 
         cc = torch.cat((COV, COV0 - vb), dim=1)
-        targ = torch.arange(bsz).to(dv)
+        targ = torch.arange(bsz).to(self.dv)
         l1 = F.cross_entropy(cc, targ)
         cc = torch.cat((COV.T, COV1 - vb), dim=1)
         l2 = F.cross_entropy(cc, targ)
         loss =  (l1 + l2) / 2
 
-        ID=2.*torch.eye(out0.shape[0]).to(dv)-1.
+        ID=2.*torch.eye(out0.shape[0]).to(self.dv)-1.
         icov=ID*COV
 
-        acc=torch.sum((icov> -.5/tau).type(torch.float))/bsz
+        acc=torch.sum((icov> -.5/self.tau).type(torch.float))/bsz
         return loss,acc
 
 
-def get_embedd_loss_binary(out0, out1,dv, nostd):
+class binary_loss(nn.Module):
+    def  __init__(self,dv, nostd=False, thr=.75):
+        super(binary_loss,self).__init__()
+        self.dv=dv
+        self.nostd=nostd
+        self.thr=thr
+
+    def __call__(self,out0, out1):
 
         bsz=out0.shape[0]
         # Standardize 64 dim outputs of original and deformed images
-        out0a = standardize(out0, nostd)
-        out1a = standardize(out1, nostd)
+        out0a = standardize(out0, self.nostd)
+        out1a = standardize(out1, self.nostd)
         # Compute 3 covariance matrices - 0-1, 0-0, 1-1.
         COV = torch.mm(out0a, out1a.transpose(0, 1))
         cc=COV.flatten()
-        targ=torch.zeros(cc.shape[0]).to(dv)
+        targ=torch.zeros(cc.shape[0]).to(self.dv)
         targ[0:cc.shape[0]:(COV.shape[0]+1)]=1
         loss=F.binary_cross_entropy_with_logits(cc,targ,pos_weight=torch.tensor(float(bsz)))
 
 
-        icov = (cc-.75) * (2.*targ-1.)
+        icov = (cc-self.thr) * (2.*targ-1.)
         acc = torch.sum((icov > 0).type(torch.float)) / bsz
 
         return loss, acc
 
 
-def get_embedd_loss_future(out0, out1,nostd,future):
-    thr = 2.
-    #out0 = standardize(out0,nostd)
-    #out1 = standardize(out1,nostd)
-    loss=torch.sum(torch.relu(1-thr+torch.sum(torch.abs(out0-out1),dim=1)))
-    for i in range(1,future):
-        loss+=torch.sum(torch.relu(1+thr-torch.sum(torch.abs(out0[0:-i]-out1[i:]),dim=1)))
-
-    return loss
-
 
 class L1_loss(nn.Module):
-    def  __init__(self,dv,bsz):
+    def  __init__(self,dv,bsz, future=0, thr=2., delta=1., WW=1., nostd=True):
         super(L1_loss,self).__init__()
+        self.dv=dv
+        self.bsz=bsz
+        self.future=future
+        self.thr=thr
+        self.delta=delta
+        self.WW=WW
+        self.nostd=nostd
 
-    def __call__(self,out0,out1,dv, nostd=True, future=0, thr=2., delta=1., WW=1):
-        out0 = standardize(out0, nostd)
-        # out1=torch.tanh(out1)
-        out1 = standardize(out1, nostd)
-        #ymat = 2 * torch.eye(self.bsz).to(dv) - 1
+    def __call__(self,out0,out1):
+        out0 = standardize(out0, self.nostd)
+        out1 = standardize(out1, self.nostd)
         bsz=out0.shape[0]
         CC=-torch.cdist(out0,out1,p=1)
-        OUT = -(thr+CC)
+        OUT = -(self.thr+CC)
         diag=-torch.diag(OUT)
         OUT[range(bsz),range(bsz)]=diag
 
-        if future:
+        if self.future:
             loss = 0
-            for i in range(future):
+            for i in range(self.future):
                 # fac = 1. if i==0 else 1./future
-                loss += (torch.sum(torch.relu(delta - torch.diagonal(OUT, i))))
-        elif future == 0:
-            loss = (1 - WW) * torch.sum(torch.relu(delta - torch.diag(OUT))) + WW * torch.sum(torch.relu(delta - OUT))
+                loss += (torch.sum(torch.relu(self.delta - torch.diagonal(OUT, i))))
+        elif self.future == 0:
+            loss = (1 - self.WW) * torch.sum(torch.relu(self.delta - torch.diag(OUT))) + self.WW * torch.sum(torch.relu(self.delta - OUT))
             # loss = torch.sum(torch.relu(delta - OUT))
 
         acc = torch.sum(OUT > 0).type(torch.float) / bsz
@@ -212,63 +189,36 @@ class L1_loss(nn.Module):
         return loss, acc
 
 
-def get_embedd_loss_new(out0, out1, dv, nostd=True,future=0, thr=2.,delta=1.,WW=1):
-    bsz = out0.shape[0]
-    # out0=torch.tanh(out0)
-    out0 = standardize(out0,nostd)
-    # out1=torch.tanh(out1)
-    out1 = standardize(out1,nostd)
-    OUT=-torch.cdist(out0,out1,p=1)
-    #out0b = out0.repeat
-    #out1b = out1.repeat_interleave(bsz, dim=0)
-    #outd = out0b - out1b
-    #outd = torch.sum(torch.relu(outd) + torch.relu(-outd), dim=1)
-    #OUT = -outd.reshape(bsz, bsz).transpose(0, 1)
+class clapp_loss(nn.Module):
+    def  __init__(self,dv, delta=1., future=0, nostd=True):
+        super(clapp_loss,self).__init__()
 
-    # Multiply by y=-1/1
-    OUT = (OUT + thr) * (2. * torch.eye(bsz).to(dv) - 1.)
-    #print('mid',time.time()-t1)
+        self.dv=dv
+        self.delta=delta
+        self.future=future
+        self.nostd=nostd
 
-    if future:
-        loss=0
-        for i in range(future):
-            #fac = 1. if i==0 else 1./future
-            loss+=(torch.sum(torch.relu(delta-torch.diagonal(OUT,i))))
-    elif future==0:
-        loss = (1-WW)*torch.sum(torch.relu(delta-torch.diag(OUT)))+WW*torch.sum(torch.relu(delta-OUT))
-        #loss = torch.sum(torch.relu(delta - OUT))
-    with torch.no_grad():
+    def __call__(self,out0, out1):
+
+        bsz = out0.shape[0]
+        out0=out0.reshape(bsz, -1)
+        out1=out1.reshape(bsz, -1)
+        out0 = standardize(out0,self.nostd)
+        out1 = standardize(out1,self.nostd)
+        OUT=torch.mm(out0,out1.transpose(0,1))
+
+        # Multiply by y=-1/1
+        OUT = OUT  * (2. * torch.eye(bsz).to(self.dv) - 1.)
+
+        if self.future:
+            loss=0
+            for i in range(self.future):
+                fac = 1. if i==0 else 1./self.future
+                loss+=fac*(torch.sum(torch.relu(self.delta-torch.diagonal(OUT,i))))
+        elif self.future==0:
+            loss = torch.sum(torch.relu(self.delta - OUT))
+
         acc = torch.sum(OUT > 0).type(torch.float) / bsz
 
 
-    return loss, acc
-
-
-def get_embedd_loss_clapp(out0, out1, dv, nostd=True,future=0, thr=2.,delta=1.):
-    bsz = out0.shape[0]
-    # out0=torch.tanh(out0)
-    out0 = standardize(out0,nostd)
-    # out1=torch.tanh(out1)
-    out1 = standardize(out1,nostd)
-    OUT=torch.mm(out0,out1.transpose(0,1))
-    #out0b = out0.repeat([bsz, 1])
-    #out1b = out1.repeat_interleave(bsz, dim=0)
-    #outd = torch.sum(out0b*out1b,dim=1)
-    #OUT = outd.reshape(bsz, bsz).transpose(0, 1)
-
-    # Multiply by y=-1/1
-    OUT = OUT  * (2. * torch.eye(bsz).to(dv) - 1.)
-    #print('mid',time.time()-t1)
-
-    if future:
-        loss=0
-        for i in range(future):
-            fac = 1. if i==0 else 1./future
-            loss+=fac*(torch.sum(torch.relu(delta-torch.diagonal(OUT,i))))
-    elif future==0:
-        loss = torch.sum(torch.relu(delta - OUT))
-
-    acc = torch.sum(OUT > 0).type(torch.float) / bsz
-
-
-    return loss, acc
+        return loss, acc

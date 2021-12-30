@@ -5,6 +5,7 @@ from images import deform_data
 from losses import *
 import sys
 from layers import *
+from get_net_text import get_network
 import time
 from data import DL
 
@@ -20,12 +21,6 @@ pre=get_pre()
 
 osu=os.uname()
 
-def get_criterion(args):
-    if args.hinge:
-        args.temp.criterion = hinge_loss(num_class=args.num_class)
-    else:
-        args.temp.criterion = nn.CrossEntropyLoss()
-    args.CLR = SimCLRLoss(args.mb_size, args.temp.dv)
 
 class temp_args(nn.Module):
     def  __init__(self):
@@ -33,7 +28,6 @@ class temp_args(nn.Module):
         self.back=None
         self.first=0
         self.everything=False
-        self.lnti = None
         self.layer_text = None
         self.dv = None
         self.optimizer=None
@@ -41,31 +35,48 @@ class temp_args(nn.Module):
         KEYS=None
     
 
-def initialize_model(model,args, sh,lnti,layers_dict,device):
+def initialize_model(args, sh, layers,device, layers_dict=None):
 
-    args.temp=temp_args()
-    args.temp.lnti=lnti
-    args.temp.layer_text=layers_dict
-    args.temp.dv=device
-    args.temp.back = ('ae' in args.type)
-    args.temp.everything=False
-    get_criterion(args)
+    model=network()
+    if layers_dict==None:
+        layers_dict=get_network(layers)
+
+    atemp = temp_args()
+    atemp.layer_text = layers_dict
+    atemp.dv = device
+    atemp.everything = False
+    atemp.bn=args.bn
+    atemp.fout=args.fout
+    atemp.fa=args.fa
+    atemp.embedd_type=args.embedd_type
+    atemp.randomize_layers=args.randomize_layers
+    atemp.penalize_activations=args.penalize_activations
+    if args.hinge:
+        atemp.loss = hinge_loss(num_class=args.num_class)
+    else:
+        atemp.loss = nn.CrossEntropyLoss()
+
     if args.crop and len(sh) == 3:
         sh = (sh[0], args.crop, args.crop)
         print(sh)
-
-    if args.clapp_dim is not None:
-        model.add_module('clapp', nn.Conv2d(args.clapp_dim[1], args.clapp_dim[1], 1))
+    if args.embedd_type=='clapp' and args.embedd:
+        if args.clapp_dim is not None:
+            model.add_module('clapp', nn.Conv2d(args.clapp_dim[1], args.clapp_dim[1], 1))
+        if args.update_layers is not None:
+            args.update_layers.append('clapp')
 
     if sh is not None:
         temp = torch.zeros([1] + list(sh))  # .to(device)
         # Run the network once on dummy data to get the correct dimensions.
-        args.temp.first=1
-        bb = model.forward(temp,args)
-        args.temp.output_shape = bb[0].shape
+        atemp.first=1
+        bb = model.forward(temp,atemp)
+        if args.embedd_type=='clapp' and args.embedd:
+            args.clapp_dim=atemp.clapp_dim
+
+        atemp.output_shape = bb[0].shape
 
 
-        if args.temp.first==1:
+        if 'ae' not in args.type:
             #print(self.layers, file=self.fout)
             tot_pars = 0
             KEYS=[]
@@ -77,11 +88,11 @@ def initialize_model(model,args, sh,lnti,layers_dict,device):
             # TEMPORARY
             if True:
                 pp=[]
-                args.temp.KEYS=KEYS
+                atemp.KEYS=KEYS
                 for k,p in zip(KEYS,model.parameters()):
                     if (args.update_layers is None):
-                        if args.temp.first==1:
-                            args.fout.write('TO optimizer '+k+ str(np.array(p.shape))+'\n')
+                        if atemp.first==1:
+                            atemp.fout.write('TO optimizer '+k+ str(np.array(p.shape))+'\n')
                         tot_pars += np.prod(np.array(p.shape))
                         pp+=[p]
                     else:
@@ -89,39 +100,49 @@ def initialize_model(model,args, sh,lnti,layers_dict,device):
                         for u in args.update_layers:
                             if u == k.split('.')[1] or u==k.split('.')[0]:
                                 found=True
-                                if args.temp.first==1:
-                                    args.fout.write('TO optimizer '+k+ str(np.array(p.shape))+'\n')
+                                if atemp.first==1:
+                                    atemp.fout.write('TO optimizer '+k+ str(np.array(p.shape))+'\n')
                                 tot_pars += np.prod(np.array(p.shape))
                                 pp+=[p]
                         if not found:
                             p.requires_grad=False
-                if args.temp.first==1:
-                    args.fout.write('tot_pars,' + str(tot_pars)+'\n')
+                if atemp.first==1:
+                    atemp.fout.write('tot_pars,' + str(tot_pars)+'\n')
                 if 'ae' not in args.type:
                     if (args.optimizer_type == 'Adam'):
-                            if args.temp.first==1:
-                                args.fout.write('Optimizer Adam '+str(args.lr)+'\n')
-                            args.temp.optimizer = optim.Adam(pp, lr=args.lr,weight_decay=args.wd)
+                            if atemp.first==1:
+                                atemp.fout.write('Optimizer Adam '+str(args.lr)+'\n')
+                            atemp.optimizer = optim.Adam(pp, lr=args.lr,weight_decay=args.wd)
                     else:
-                            if args.first==1:
-                                args.fout.write('Optimizer SGD '+str(args.lr))
-                            args.temp.optimizer = optim.SGD(pp, lr=args.lr,weight_decay=args.wd)
+                            if atemp.first==1:
+                                atemp.fout.write('Optimizer SGD '+str(args.lr))
+                            atemp.optimizer = optim.SGD(pp, lr=args.lr,weight_decay=args.wd)
 
-            args.temp.first=0
-        model.add_module('temp',args.temp)
+        atemp.first=0
         bsz=args.mb_size
+        if args.embedd:
+            if args.embedd_type=='L1dist_hinge':
+                atemp.loss=L1_loss(atemp.dv, bsz, args.future, args.thr, args.delta, WW=1., nostd=True)
+            elif args.embedd_type=='clapp':
+                atemp.loss=clapp_loss(atemp.dv)
+            elif args.embedd_type=='binary':
+                atemp.loss=binary_loss(atemp.dv)
+            elif args.embedd_type=='orig':
+                atemp.loss=SIMCLR_loss(atemp.dv)
+
+        model.add_module('temp',atemp)
         if args.use_multiple_gpus is not None:
             bsz=bsz//args.use_multiple_gpus
-        args.temp.loss=L1_loss(args.temp.dv, bsz)
-        #model.to(args.temp.dv)
+        model=model.to(atemp.dv)
+        return model
 
 
-def get_acc_and_loss(args, out, targ):
+def get_acc_and_loss(aloss, out, targ):
             v, mx = torch.max(out, 1)
             # Non-space characters
             # Total loss
-            loss = args.temp.criterion(out, targ)
-            # total accuracy
+            loss = aloss(out, targ)
+            # total accuracy        out = input
             acc = torch.sum(mx.eq(targ))
             return loss, acc
 
@@ -134,24 +155,24 @@ class network(nn.Module):
 
 
 
-    def forward(self,input,args,clapp=False, lay=None):
+    def forward(self,input,atemp=None,clapp=False, lay=None):
 
         #print('IN',input.shape, input.get_device())
-        if args.temp.first==0:
-            args.temp=self.temp
+        if atemp is None:
+            atemp=self.temp
+
+        everything = atemp.first or atemp.everything or atemp.randomize_layers is not None or atemp.penalize_activations is not None or lay is not None
+
             #print('INP_dim',input.shape[0])
-        everything= args.temp.everything or args.randomize_layers is not None or args.penalize_activations is not None
-        out = input
-        in_dims=[]
-        if (args.temp.first):
+        in_dims={}
+        if (atemp.first):
             self.layers = nn.ModuleList()
-            if args.temp.back:
-                self.back_layers=nn.ModuleList()
+
         OUTS={}
         old_name=''
 
         DONE=False
-        for i,ll in enumerate(args.temp.layer_text):
+        for i,ll in enumerate(atemp.layer_text):
             if not DONE:
                 inp_ind = old_name
 
@@ -160,31 +181,31 @@ class network(nn.Module):
                     # over ride default inp_feats
                     if len(pp)==1:
                         inp_ind=pp[0]
-                        if args.temp.first:
+                        if atemp.first:
                             inp_feats=OUTS[pp[0]].shape[1]
-                            in_dim=in_dims[args.temp.lnti[pp[0]]]
+                            in_dim=in_dims[pp[0]]
                     else:
                         inp_feats=[]
                         loc_in_dims=[]
                         inp_ind=[]
                         for p in pp:
                             inp_ind += [p]
-                            if args.first:
+                            if atemp.first:
                                 inp_feats+=[OUTS[p].shape[1]]
-                                loc_in_dims+=[in_dims[args.lnti[p]]]
+                                loc_in_dims+=[in_dims[p]]
                 if ('input' in ll['name']):
                     out=input
                     if everything:
                         OUTS[ll['name']]=out
 
                 if ('shift' in ll['name']):
-                     if args.temp.first:
+                     if atemp.first:
                          self.layers.add_module(ll['name'],shifts(ll['shifts']))
                      out=getattr(self.layers,ll['name'])(out)
                      if everything:
                          OUTS[ll['name']] = out
                 if ('conv' in ll['name']):
-                    if args.temp.first:
+                    if atemp.first:
                         bis = True
                         if ('nb' in ll):
                             bis = False
@@ -193,19 +214,20 @@ class network(nn.Module):
                             stride=ll['stride']
                         pd=(ll['filter_size']//stride) // 2
                         if 'fa' in ll['name'] and not 'ga' in pre and 'Darwin' not in os.uname():
-                                self.layers.add_module(ll['name'],FAConv2d(inp_feats,ll['num_filters'],ll['filter_size'],stride=stride,fa=args.fa,padding=pd, bias=bis))
+                                self.layers.add_module(ll['name'],FAConv2d(inp_feats,ll['num_filters'],ll['filter_size'],stride=stride,fa=atemp.fa,padding=pd, bias=bis))
                         else:
                                 self.layers.add_module(ll['name'],nn.Conv2d(inp_feats,ll['num_filters'],ll['filter_size'],stride=stride,padding=pd, bias=bis))
                         if 'zero' in ll:
                                 temp=getattr(self.layers, ll['name'])
                                 temp.weight.data=ll['zero']*torch.ones_like(temp.weight.data)
-
+                    if everything:
+                        out = OUTS[inp_ind]
                     out = getattr(self.layers, ll['name'])(out)
                     if everything:
                         OUTS[ll['name']] = out
 
                 if 'non_linearity' in ll['name']:
-                    if args.temp.first:
+                    if atemp.first:
                         low=-1.; high=1.
                         if 'lims' in ll:
                             low=ll['lims'][0]; high=ll['lims'][1]
@@ -215,7 +237,7 @@ class network(nn.Module):
                     if everything:
                         OUTS[ll['name']] = out
                 if ('Avg' in ll['name']):
-                    if args.first:
+                    if atemp.first:
                         HW=(np.int32(OUTS[inp_ind].shape[2]/2),np.int32(OUTS[inp_ind].shape[3]/2))
                         self.layers.add_module(ll['name'],nn.AvgPool2d(HW,HW))
                     out = getattr(self.layers, ll['name'])(out)
@@ -223,7 +245,7 @@ class network(nn.Module):
                         OUTS[ll['name']] = out
 
                 if ('pool' in ll['name']):
-                    if args.temp.first:
+                    if atemp.first:
                         stride = ll['pool_size']
                         if ('stride' in ll):
                             stride = ll['stride']
@@ -237,7 +259,7 @@ class network(nn.Module):
                         OUTS[ll['name']] = out
 
                 if ('drop' in ll['name']):
-                    if args.temp.first:
+                    if atemp.first:
                         self.layers.add_module(ll['name'],torch.nn.Dropout(p=ll['drop'], inplace=False))
 
 
@@ -246,63 +268,67 @@ class network(nn.Module):
                         OUTS[ll['name']] = out
 
                 if ('dense' in ll['name']):
-                    if args.temp.first:
+                    if atemp.first:
                         out_dim=ll['num_units']
                         bis=True
                         if ('nb' in ll):
                             bis=False
                         if 'fa' in ll['name']:
-                                self.layers.add_module(ll['name'],FALinear(in_dim,out_dim,bias=bis, fa=args.fa))
+                                self.layers.add_module(ll['name'],FALinear(in_dim,out_dim,bias=bis, fa=atemp.fa))
                         else:
                                 self.layers.add_module(ll['name'],nn.Linear(in_dim,out_dim,bias=bis))
-
+                    if everything:
+                        out=OUTS[inp_ind]
                     out = out.reshape(out.shape[0], -1)
                     out = getattr(self.layers, ll['name'])(out)
                     if everything:
                         OUTS[ll['name']] = out
 
                 if 'inject' in ll['name']:
-                    if args.temp.first:
+                    if atemp.first:
                         stride=ll['stride']
                         self.layers.add_module(ll['name'],Inject(stride))
+                    if everything:
+                        out = OUTS[inp_ind]
                     out = getattr(self.layers, ll['name'])(out)
                     if everything:
                         OUTS[ll['name']] = out
 
                 if 'subsample' in ll['name']:
-                    if args.temp.first:
+                    if atemp.first:
                         stride = None
                         if 'stride' in ll:
                             stride = ll['stride']
                         self.layers.add_module(ll['name'], Subsample(stride=stride))
 
-
+                    if everything:
+                        out = OUTS[inp_ind]
                     out = getattr(self.layers, ll['name'])(out)
                     if everything:
                         OUTS[ll['name']] = out
 
                 if ('norm') in ll['name']:
-                    if args.temp.first:
-                        if args.bn=='full':
-                            if len(OUTS[old_name].shape)==4 and args.bn:
+                    if atemp.first:
+                        if atemp.bn=='full':
+                            if len(OUTS[old_name].shape)==4 and atemp.bn:
                                 self.layers.add_module(ll['name'],nn.BatchNorm2d(OUTS[old_name].shape[1]))
                             else:
                                 self.layers.add_module(ll['name'],nn.BatchNorm1d(OUTS[old_name].shape[1]))
-                        elif args.bn=='half_full':
-                            if len(OUTS[old_name].shape)==4 and args.bn:
+                        elif atemp.bn=='half_full':
+                            if len(OUTS[old_name].shape)==4 and atemp.bn:
                                 self.layers.add_module(ll['name'],nn.BatchNorm2d(OUTS[old_name].shape[1], affine=False))
                             else:
                                 self.layers.add_module(ll['name'],nn.BatchNorm1d(OUTS[old_name].shape[1], affine=False))
-                        elif args.bn=='layerwise':
+                        elif atemp.bn=='layerwise':
                                 self.layers.add_module(ll['name'],nn.LayerNorm(OUTS[old_name].shape[2:4]))
-                        elif args.bn=='instance':
+                        elif atemp.bn=='instance':
                             self.layers.add_module(ll['name'], nn.InstanceNorm2d(OUTS[old_name].shape[1],affine=True))
-                        elif args.bn=='simple':
+                        elif atemp.bn=='simple':
                             self.layers.add_module(ll['name'],diag2d(OUTS[old_name].shape[1]))
                         else:
                             self.layers.add_module(ll['name'],Iden())
 
-                    if not args.temp.first:
+                    if not atemp.first:
                         out = getattr(self.layers, ll['name'])(out)
                         if everything:
                             OUTS[ll['name']] = out
@@ -318,26 +344,25 @@ class network(nn.Module):
                 if ('num_filters' in ll):
                     inp_feats = ll['num_filters']
                 if ('shifts' in ll['name']):
-                     inp_feats=out.shape[1] #OUTS[ll['name']].shape[1]
+                     inp_feats=out.shape[1]
 
                 prev_shape=out.shape
 
-                if args.temp.first:
-                    args.fout.write(ll['name']+' '+str(np.array(prev_shape))+'\n')
+                if atemp.first:
+                    atemp.fout.write(ll['name']+' '+str(np.array(prev_shape))+'\n')
 
                 in_dim=np.prod(prev_shape[1:])
-                in_dims+=[in_dim]
+                in_dims[ll['name']]=in_dim
                 old_name=ll['name']
                 if lay is not None and lay in ll['name']:
                     DONE=True
 
-        if args.embedd_type == 'clapp':
+        if atemp.embedd_type == 'clapp':
 
-            if args.temp.first:
-                args.clapp_dim = prev_shape
-                self.add_module('clapp', nn.Conv2d(args.clapp_dim[1], args.clapp_dim[1], 1))
-                if args.update_layers is not None:
-                    args.update_layers.append('clapp')
+            if atemp.first:
+                atemp.clapp_dim = prev_shape
+                self.add_module('clapp', nn.Conv2d(atemp.clapp_dim[1], atemp.clapp_dim[1], 1))
+
             if clapp:
                 out = self.clapp(out)
 
@@ -371,8 +396,8 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
 
         ll=1
         full_loss=np.zeros(ll); full_acc=np.zeros(ll); count=np.zeros(ll)
-        optimizer=args.temp.optimizer
-        dvv=args.temp.dv
+        optimizer=model.temp.optimizer
+        dvv=model.temp.dv
         TIME=0
         tra=iter(train)
         for j in np.arange(0, num_tr, jump,dtype=np.int32):
@@ -388,7 +413,7 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
 
             with torch.no_grad() if (d_type!='train') else dummy_context_mgr():
                 out, OUT=forw(model,args,data)
-                loss, acc = get_loss(args, out, OUT, target, dvv)
+                loss, acc = get_loss(model.temp.loss,args, out, OUT, target)
             if args.randomize_layers is not None and d_type == "train":
                     for i, k in enumerate(args.KEYS):
                         if args.randomize_layers[lnum * 2] not in k and args.randomize_layers[lnum * 2 + 1] not in k:
@@ -439,35 +464,26 @@ def forw(model, args, input, lnum=0):
     OUT=None
     if type(input) is list:
 
-        out1, _ = model.forward(input[1], args)
+        out1, _ = model.forward(input[1])
         # print('out1',out1.device.index)
         with torch.no_grad():
             cl = False
             if args.embedd_type == 'clapp':
                 cl = True
-            out0, _ = model.forward(input[0], args, clapp=cl)
+            out0, _ = model.forward(input[0], clapp=cl)
         out=[out0,out1]
     else:
-        out, OUT = model.forward(input, args)
+        out, OUT = model.forward(input)
         if args.randomize_layers is not None:
             out = OUT[args.randomize_layers[lnum * 2 + 1]]
 
     return out, OUT
 
-def get_loss(args, out, OUT, target, dvv):
+def get_loss(aloss, args, out, OUT, target):
 
         # Embedding training with image and its deformed counterpart
         if type(out) is list:
-            if args.embedd_type == 'orig':
-                loss, acc = get_embedd_loss(out[0],out[1],dvv,args.thr)
-            elif args.embedd_type == 'binary':
-                loss, acc = get_embedd_loss_binary(out[0],out[1],dvv,args.no_standardize)
-            elif args.embedd_type == 'L1dist_hinge':
-                loss, acc = args.temp.loss(out[0], out[1], dvv, args.no_standardize, future=args.future, thr=args.thr,
-                                           delta=args.delta)
-            elif args.embedd_type == 'clapp':
-                loss, acc = get_embedd_loss_clapp(out[0].reshape(out[0].shape[0],-1),out[1].reshape(out[1].shape[0],-1),dvv,args.thr)
-
+            loss,acc = aloss(out[0],out[1])
         else:
 
             pen = 0
@@ -477,71 +493,12 @@ def get_loss(args, out, OUT, target, dvv):
                         pen += args.penalize_activations * torch.sum(
                             torch.mean((OUT[l['name']] * OUT[l['name']]).reshape(args.mb_size, -1), dim=1))
             # Compute loss and accuracy
-            loss, acc = get_acc_and_loss(args, out, target)
-            #loss += pen
-            # if dtype=='train':
-            #   loss.backward()
-        return loss, acc
-
-def loss_and_acc(model, args, input, target, dtype="train", lnum=0):
-
-        if isinstance(model, torch.nn.DataParallel):
-            dvv = model.module.temp.dv
-            optimizer = model.module.temp.optimizer
-        else:
-            dvv = model.temp.dv
-            optimizer = model.temp.optimizer
-        # Embedding training with image and its deformed counterpart
-        if type(input) is list:
-
-            out1, ot1 = model.forward(input[1], args)
-            # print('out1',out1.device.index)
-            with torch.no_grad():
-                cl = False
-                if args.embedd_type == 'clapp':
-                    cl = True
-                out0, ot0 = model.forward(input[0], args, clapp=cl)
-                # print('out0', out0.device.index)
-            if args.embedd_type == 'orig':
-                pass
-                # loss, acc = get_embedd_loss(out0,out1,dvv,args.thr)
-            elif args.embedd_type == 'binary':
-                pass
-                # loss, acc = get_embedd_loss_binary(out0,out1,dvv,args.no_standardize)
-            elif args.embedd_type == 'L1dist_hinge':
-                loss, acc = args.temp.loss(out0, out1, dvv, args.no_standardize, future=args.future, thr=args.thr,
-                                           delta=args.delta)
-            elif args.embedd_type == 'clapp':
-                pass
-                # out0 = out0.reshape(out0.shape[0], -1)
-                # out1 = out1.reshape(out1.shape[0], -1)
-                # loss, acc = get_embedd_loss_clapp(out0,out1,dvv,args.thr)
-        # Classification training
-
-        else:
-
-            if args.randomize_layers is not None and dtype == "train":
-                for i, k in enumerate(args.KEYS):
-                    if args.randomize_layers[lnum * 2] not in k and args.randomize_layers[lnum * 2 + 1] not in k:
-                        optimizer.param_groups[0]['params'][i].requires_grad = False
-                    else:
-                        optimizer.param_groups[0]['params'][i].requires_grad = True
-
-            out, OUT = model.forward(input, args)
-            if args.randomize_layers is not None:
-                out = OUT[args.randomize_layers[lnum * 2 + 1]]
-            pen = 0
-            if args.penalize_activations is not None:
-                for l in args.layer_text:
-                    if 'penalty' in l:
-                        pen += args.penalize_activations * torch.sum(
-                            torch.mean((OUT[l['name']] * OUT[l['name']]).reshape(args.mb_size, -1), dim=1))
-            # Compute loss and accuracy
-            loss, acc = get_acc_and_loss(args, out, target)
+            loss, acc = get_acc_and_loss(aloss, out, target)
             loss += pen
-            #if dtype=='train':
-             #   loss.backward()
+
         return loss, acc
+
+
 
 def get_embedding(model, args, train):
 
@@ -555,12 +512,12 @@ def get_embedding(model, args, train):
         tra=iter(train)
 
         for j in np.arange(0, num_tr, jump, dtype=np.int32):
-            BB = next(tra)
+            BB, _ = next(tra)
             data = BB[0]
             labels+=[BB[1].numpy()]
             data=data.to(model.temp.dv)
             with torch.no_grad():
-                out=model.forward(data, args, lay=args.embedd_layer)[1][args.embedd_layer].detach().cpu().numpy()
+                out=model.forward(data, lay=args.embedd_layer)[1][args.embedd_layer].detach().cpu().numpy()
                 OUT+=[out]
 
         OUTA=np.concatenate(OUT,axis=0)

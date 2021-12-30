@@ -218,7 +218,7 @@ def seq(par_file, predir, device, tlay=None, toldn=None):
         bb = f.read().split()
         lines = [ll.rstrip('\n') for ll in bb if '#' not in ll]
         args = parser.parse_args(lines)
-    lnti, layers_dict = prep.get_network(args.layers)
+    layers_dict = prep.get_network(args.layers)
     pert=args.perturb
     RESULTS = []
     oldn = toldn

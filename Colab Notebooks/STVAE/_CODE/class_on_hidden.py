@@ -177,12 +177,10 @@ def train_new_new(args,model,DATA,fout,device,net=None):
         args.embedd_type = None
         args.patch_size = None
         args.update_layers = None
-        hid_lnti, hid_layers_dict = prep.get_network(args.hid_layers)
         args.perturb = 0
         args.sched=args.hid_sched
-        net = network.network()
-        network.initialize_model(net, args, trdl.shape, hid_lnti, hid_layers_dict, device)
-        network.get_scheduler(args)
+        net=network.initialize_model(args, trdl.shape, args.hid_layers, device)
+        network.get_scheduler(args,net.temp.optimizer)
         if args.hid_model:
 
             datadirs = predir + 'Colab Notebooks/STVAE/'
@@ -206,7 +204,7 @@ def train_new_new(args,model,DATA,fout,device,net=None):
 
         if (freq - np.mod(epoch, freq) == 1):
             fout.write('epoch: {0} in {1:5.3f} seconds, LR {2:0.5f}\n'.format(epoch, time.time() - t1,
-                                                                              args.temp.optimizer.param_groups[0]['lr']))
+                                                                              net.temp.optimizer.param_groups[0]['lr']))
             fout.flush()
             t1 = time.time()
             if args.randomize:
@@ -239,11 +237,9 @@ def train_new_old(args,train,test,fout,device,net=None):
         args.lr = args.hid_lr
         args.embedd_type=None
         args.patch_size=None
-        hid_lnti, hid_layers_dict = prep.get_network(args.hid_layers)
         args.perturb=0
         #args.sched=[0,0]
-        net = network.network()
-        network.initialize_model(net, args, train.shape, hid_lnti, hid_layers_dict, device)
+        net=network.initialize_model(args, train.shape, args.hid_layers, device)
         network.get_scheduler(args)
         if args.hid_model:
 
