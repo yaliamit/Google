@@ -398,7 +398,7 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
         full_loss=np.zeros(ll); full_acc=np.zeros(ll); count=np.zeros(ll)
         if 'ga' in get_pre() and args.use_multiple_gpus is not None:
             optimizer = model.module.temp.optimizer
-            dvv=model.mudule.temp.dv
+            dvv=model.module.temp.dv
         else:
             optimizer = model.temp.optimizer
             dvv=model.temp.dv
