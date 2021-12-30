@@ -419,7 +419,7 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
 
             with torch.no_grad() if (d_type!='train') else dummy_context_mgr():
                 out, OUT=forw(model,args,data)
-                loss, acc = get_loss(model.temp.loss,args, out, OUT, target)
+                loss, acc = get_loss(lossf,args, out, OUT, target)
             if args.randomize_layers is not None and d_type == "train":
                     for i, k in enumerate(args.KEYS):
                         if args.randomize_layers[lnum * 2] not in k and args.randomize_layers[lnum * 2 + 1] not in k:
