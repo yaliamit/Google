@@ -396,7 +396,10 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
 
         ll=1
         full_loss=np.zeros(ll); full_acc=np.zeros(ll); count=np.zeros(ll)
-        optimizer=model.temp.optimizer
+        if 'ga' in get_pre() and args.use_multiple_gpus is not None:
+            optimizer = model.module.temp.optimizer
+        else:
+            optimizer = model.temp.optimizer
         dvv=model.temp.dv
         TIME=0
         tra=iter(train)
