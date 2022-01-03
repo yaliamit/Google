@@ -37,7 +37,7 @@ def show_examples_of_deformed_images(BB,args):
         GG+=[np.expand_dims(inp[i].numpy(),axis=0)]
         GG+=[np.expand_dims(out[i].numpy(),axis=0)]
     GG=np.concatenate(GG)
-    img = create_img(GG, inp.shape[1], inp.shape[2], inp.shape[3])
+    img = create_img(GG, inp.shape[1:])
 
     imsave('deformed.png', np.uint8(img * 255))
 
@@ -49,8 +49,9 @@ def make_sample(model,args,ex_file, datadirs=""):
     ex_file=datadirs+'_Samples/'+ex_file.split('.')[0]+'.npy'
 
     X=[]
-    for i in np.int32(np.arange(0,args.num_sample,model.bsz)):
-        x = model.sample_from_z_prior(args, lower=args.lower_decoder)
+    bsz=500
+    for i in np.int32(np.arange(0,args.num_sample,bsz)):
+        x = model.sample_from_z_prior(args, bsz, lower=args.lower_decoder)
         X += [x.detach().cpu().numpy()]
 
     X=np.uint8(np.concatenate(X,axis=0)*255)
@@ -66,8 +67,8 @@ def make_images(test,model,ex_file,args, datadirs=""):
         if not os.path.isdir(datadirs+'_Images'):
             os.makedirs(datadirs+'_Images', exist_ok=True)
         ex_f=datadirs+'_Images/'+args.out_file.split('.')[0]
-        old_bsz=model.bsz
-        model.bsz = 100
+        #old_bsz=model.bsz
+        #model.bsz = 100
         num_mu_iter=None
         torch.manual_seed(args.seed)
         np.random.seed(args.seed)
@@ -89,12 +90,13 @@ def make_images(test,model,ex_file,args, datadirs=""):
 
 
 
-        model.bsz=old_bsz
+        #model.bsz=old_bsz
 
 
-def create_img(XX,c,h,w,ri=10,rj=10,sep=0):
+def create_img(XX,sh,ri=10,rj=10,sep=0):
     mat = []
     t = 0
+    c=sh[0]; h=sh[1]; w=sh[2]
     for i in range(ri):
         line = []
         for j in range(rj):
@@ -114,15 +116,16 @@ def create_img(XX,c,h,w,ri=10,rj=10,sep=0):
 
 def create_image(XX, model, ex_file):
 
-    img=create_img(XX,model.input_channels,model.h,model.w)
+    img=create_img(XX,model.initial_shape)
 
     imsave(ex_file+'.png', np.uint8(img*255))
 
     #print("Saved the sampled images")
 
 def show_sampled_images(model,ex_file, args, clust=None, lower=False):
-    theta = torch.zeros(model.bsz, model.u_dim)
-    X=model.sample_from_z_prior(args, theta,clust,lower=lower)
+    bsz=1000
+    theta = torch.zeros(bsz, model.u_dim)
+    X=model.sample_from_z_prior(args, bsz, theta=theta,clust=clust,lower=lower)
     XX=X.detach().cpu().numpy()
     if clust is not None:
         ex_file=ex_file+'_'+str(clust)
