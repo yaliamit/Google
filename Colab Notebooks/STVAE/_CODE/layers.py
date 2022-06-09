@@ -89,8 +89,8 @@ pre=get_pre()
 datadirs=pre+'Colab Notebooks/STVAE/_CODE/'
 osu=os.uname()
 
-if 'Linux' in osu[0] and not 'ga' in pre:
-    cudnn_convolution = load(name="cudnn_convolution", sources=[datadirs + "cudnn_convolution.cpp"], verbose=True)
+#if 'Linux' in osu[0] and not 'ga' in pre:
+#    cudnn_convolution = load(name="cudnn_convolution", sources=[datadirs + "cudnn_convolution.cpp"], verbose=True)
 
 
 class diag2d(nn.Module):
@@ -122,10 +122,13 @@ class Reshape(nn.Module):
         return(out)
 
 class Inject(nn.Module):
-    def __init__(self, ps):
+    def __init__(self, ll):
         super(Inject,self).__init__()
 
-        self.ps=ps
+        self.ps=ll['stride']
+        self.sh=ll['shape']
+        self.feats=ll['num_filters']
+
     def forward(self,input):
 
         if input.is_cuda:
@@ -133,6 +136,7 @@ class Inject(nn.Module):
             dv=torch.device('cuda:'+str(num))
         else:
             dv=torch.device('cpu')
+        input=input.reshape(-1,self.feats, self.sh[0],self.sh[1])
         out=torch.zeros(input.shape[0],input.shape[1],input.shape[2]*self.ps,input.shape[3]*self.ps).to(dv)
         out[:,:,0:out.shape[2]:self.ps,0:out.shape[3]:self.ps]=input
 

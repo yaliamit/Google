@@ -38,9 +38,17 @@ class temp_args(nn.Module):
 def initialize_model(args, sh, layers,device, layers_dict=None):
 
     model=network()
+    #if not read_model:
     if layers_dict==None:
-        layers_dict=get_network(layers)
-
+            layers_dict=get_network(layers)
+    # else:
+    #     print('LOADING OLD MODEL')
+    #     sm = torch.load(datadirs + '_output/' + args.model + '.pt', map_location='cpu')
+    #     args=sm['args']
+    #     # model_old = network.network()
+    for l in layers_dict:
+        if 'dense_gaus' in l['name']:
+            l['num_units']=sh[0]
     atemp = temp_args()
     atemp.layer_text = layers_dict
     atemp.dv = device
@@ -69,12 +77,14 @@ def initialize_model(args, sh, layers,device, layers_dict=None):
         temp = torch.zeros([1] + list(sh))  # .to(device)
         # Run the network once on dummy data to get the correct dimensions.
         atemp.first=1
+        atemp.input_shape=None
         bb = model.forward(temp,atemp)
         if args.embedd_type=='clapp' and args.embedd:
             args.clapp_dim=atemp.clapp_dim
 
         atemp.output_shape = bb[0].shape
-
+        if atemp.input_shape is None:
+            atemp.input_shape = sh
 
         if 'ae' not in args.type:
             #print(self.layers, file=self.fout)
@@ -127,6 +137,8 @@ def initialize_model(args, sh, layers,device, layers_dict=None):
                 atemp.loss=clapp_loss(atemp.dv)
             elif args.embedd_type=='binary':
                 atemp.loss=binary_loss(atemp.dv)
+            elif args.embedd_type=='direct':
+                atemp.loss=direct_loss(bsz,atemp.output_shape[1],device=atemp.dv)
             elif args.embedd_type=='orig':
                 atemp.loss=SIMCLR_loss(atemp.dv)
 
@@ -195,6 +207,11 @@ class network(nn.Module):
                                 loc_in_dims+=[in_dims[p]]
                 if ('input' in ll['name']):
                     out=input
+                    if atemp.first:
+                        if 'shape' in ll and 'num_filters' in ll:
+                            atemp.input_shape=[ll['num_filters']]+list(ll['shape'])
+
+                     #   out=out.reshape(out.shape[0],ll['num_filters'],)
                     if everything:
                         OUTS[ll['name']]=out
 
@@ -205,6 +222,11 @@ class network(nn.Module):
                      if everything:
                          OUTS[ll['name']] = out
                 if ('conv' in ll['name']):
+                    if everything:
+                        out = OUTS[inp_ind]
+                    if len(out.shape)==2:
+                        wdim=np.int(np.sqrt(out.shape[1]/inp_feats))
+                        out=out.reshape(out.shape[0],inp_feats,wdim,wdim)
                     if atemp.first:
                         bis = True
                         if ('nb' in ll):
@@ -220,8 +242,7 @@ class network(nn.Module):
                         if 'zero' in ll:
                                 temp=getattr(self.layers, ll['name'])
                                 temp.weight.data=ll['zero']*torch.ones_like(temp.weight.data)
-                    if everything:
-                        out = OUTS[inp_ind]
+
                     out = getattr(self.layers, ll['name'])(out)
                     if everything:
                         OUTS[ll['name']] = out
@@ -276,6 +297,9 @@ class network(nn.Module):
                         if 'fa' in ll['name']:
                                 self.layers.add_module(ll['name'],FALinear(in_dim,out_dim,bias=bis, fa=atemp.fa))
                         else:
+                            if 'Lin' in ll:
+                                self.layers.add_module(ll['name'],Linear(in_dim,out_dim, scale=0, iden=True))
+                            else:
                                 self.layers.add_module(ll['name'],nn.Linear(in_dim,out_dim,bias=bis))
                     if everything:
                         out=OUTS[inp_ind]
@@ -286,8 +310,7 @@ class network(nn.Module):
 
                 if 'inject' in ll['name']:
                     if atemp.first:
-                        stride=ll['stride']
-                        self.layers.add_module(ll['name'],Inject(stride))
+                        self.layers.add_module(ll['name'],Inject(ll))
                     if everything:
                         out = OUTS[inp_ind]
                     out = getattr(self.layers, ll['name'])(out)

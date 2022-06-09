@@ -59,7 +59,7 @@ def get_names(args):
     return ARGS, STRINGS, EX_FILES, SMS
 
 
-def get_models(device, fout, sh,STRINGS,ARGS, args):
+def get_models(device, fout, sh,ARGS, args):
 
 
     models = []
@@ -136,23 +136,17 @@ def get_running_mean_var(model, name, dict_params):
     dict_params[msname] = getattr(model.layers, tname).num_batches_tracked.data
     return dict_params
 
-def copy_from_old_to_new(model, args, fout, SMS, strings,device, sh):
+def copy_from_old_to_new(model, args, fout, SMS,device, sh):
 
 
     print('cont training:', args.cont_training)
 
     if 'ae' in args.type:
         print('device')
-        #model=make_model(args, sh[1:], device, fout)
-        model.load_state_dict(SMS['model.state.dict'])
-        return
+        SMS['args'].fout = fout
+        model_old=STVAE_mix(sh,device,SMS['args'],opt_setup=False)
     else:
-        ### TEMPORARY
-        #SMS['args'] = args
-        #layers_dict = get_network(SMS['args'].layers, nf=sh[0])
         print('LOADING OLD MODEL')
-
-        #model_old = network.network()
         SMS['args'].fout=fout
         model_old=network.initialize_model(SMS['args'], sh, SMS['args'].layers, device)
 
@@ -166,8 +160,10 @@ def copy_from_old_to_new(model, args, fout, SMS, strings,device, sh):
     for name, param_old in params_old:
         #if 'clapp' in name:
         #    continue
+        print(name)
         temp=name.split('.')
-        temp[1]+='_fa'
+        if args.fa:
+            temp[1]+='_fa'
         temp_name='.'.join(temp)
         if name in dict_params:
             pass
@@ -176,7 +172,9 @@ def copy_from_old_to_new(model, args, fout, SMS, strings,device, sh):
         else:
             continue
             #if name in dict_params or temp_name in dict_params:
-        if (args.update_layers is None or 'copy' in args.update_layers or name.split('.')[1] not in args.update_layers):
+        namel=name.split(',')
+        currname= namel[0] if len(namel)==1 else namel[-2]
+        if (args.update_layers is None or 'copy' in args.update_layers or currname not in args.update_layers):
                     fout.write('copying ' + name + '\n')
                     dict_params[name].data.copy_(param_old.data)
                     if 'norm' in name and 'weight' in name:

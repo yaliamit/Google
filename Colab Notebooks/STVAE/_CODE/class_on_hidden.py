@@ -32,7 +32,7 @@ def prepare_recons(model, DATA, args,fout):
             HVARS=[]
             for j in np.arange(0, INP.shape[0], 500):
                 inp = INP[j:j + 500]
-                rr, h_vars, losses, out_enc= model.recon(inp, args.nti)
+                rr, h_vars, losses, out_enc, _ = model.recon(inp, args.nti)
                 recloss+=losses[0]
                 totloss+=losses[1]
                 RR += [rr.detach().cpu().numpy()]

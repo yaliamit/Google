@@ -46,7 +46,7 @@ def test_models(ARGS, SMS, test, models, fout):
         for sm, model, args, cf in zip(SMS, models, ARGS, CF):
             model.load_state_dict(sm['model.state.dict'])
             if 'vae' in args.type:
-                testMU, testLOGVAR, testPI = model.initialize_mus(test.shape[0], model)
+                testMU, testLOGVAR, testPI = model.initialize_mus(test.shape[0], model.final_shape, model.n_mix)
             print(cf)
             iid, RY, cl_rate, acc = model.run_epoch_classify(test, 'test', fout=fout, num_mu_iter=args.nti, conf_thresh=cf)
             CL_RATE += [cl_rate]
@@ -61,7 +61,7 @@ def test_models(ARGS, SMS, test, models, fout):
             #model.load_state_dict(sm['model.state.dict'])
             model.bsz=args.mb_size
             if 'vae' in args.type:
-                testMU, testLOGVAR, testPI = model.initialize_mus(test.shape[0], model)
+                testMU, testLOGVAR, testPI = model.initialize_mus(test.shape[0], model.final_shape, model.n_mix)
             model.run_epoch(test, 0, args.nti, testMU, testLOGVAR, testPI, d_type='test', fout=fout)
 
 
@@ -94,9 +94,9 @@ def train_model(model, args, ex_file, DATA, fout):
     fout.write("Num train:{0}, Num test:{1}\n".format(num_train,num_test))
 
     if 'ae' in args.type:
-        trainMU, trainLOGVAR, trPI = initialize_mus(num_train, model)
+        trainMU, trainLOGVAR, trPI = initialize_mus(num_train, model.final_shape, model.n_mix)
         if val is not None:
-            valMU, valLOGVAR, valPI = initialize_mus(num_val,model)
+            valMU, valLOGVAR, valPI = initialize_mus(num_val,model.final_shape, model.n_mix)
 
     time1=time.time()
     VAL_ACC=[]
@@ -104,7 +104,7 @@ def train_model(model, args, ex_file, DATA, fout):
 
     if args.OPT and args.cont_training:
         print("Updating training optimal parameters before continuing")
-        trainMU, trainLOGVAR, trPI, tr_acc = run_epoch(model,args,train, 0, args.nti, trainMU, trainLOGVAR, trPI,
+        trainMU, trainLOGVAR, trPI, tr_acc = model.run_epoch(args,train, 0, args.nti, trainMU, trainLOGVAR, trPI,
                                                              d_type='test', fout=fout)
 
     if 'ga' in get_pre() and args.use_multiple_gpus is not None:
@@ -150,11 +150,12 @@ def train_model(model, args, ex_file, DATA, fout):
 
     if 'ae' in args.type:
         make_images(test, model, ex_file, args, datadirs=datadirs)
-        make_sample(model,args, ex_file, datadirs=datadirs)
+        #make_sample(model,args, ex_file, datadirs=datadirs)
 
         if (args.n_class):
-            model.run_epoch_classify(train, 'train', fout=fout, num_mu_iter=args.nti)
-            model.run_epoch_classify(test, 'test', fout=fout, num_mu_iter=args.nti)
+            #model.run_epoch_classify(train, 'train', fout=fout, num_mu_iter=args.nti)
+            #model.run_epoch_classify(test, 'test', fout=fout, num_mu_iter=args.nti)
+            pass
         elif args.cl is None:
             #if not args.OPT:
                 #LLG=model.compute_likelihood(test[0],250)
@@ -162,10 +163,10 @@ def train_model(model, args, ex_file, DATA, fout):
             rho=model.rho.detach().cpu().numpy()
             print('rho',np.exp(rho)/np.sum(np.exp(rho)),file=fout)
             if args.hid_layers is None:
-                testMU, testLOGVAR, testPI = initialize_mus(num_train, model)
+                testMU, testLOGVAR, testPI = initialize_mus(num_train, model.final_shape, model.n_mix)
                 print('args.nti',args.nti,args.mu_lr,file=fout)
                 model.run_epoch(args, train,  0, args.nti, testMU, testLOGVAR, testPI, d_type='train_test', fout=fout)
-                testMU, testLOGVAR, testPI = initialize_mus(num_test, model)
+                testMU, testLOGVAR, testPI = initialize_mus(num_test, model.final_shape, model.n_mix)
                 model.run_epoch(args, test,  0, args.nti, testMU, testLOGVAR, testPI, d_type='test_test', fout=fout)
 
         fout.write('writing to ' + ex_file + '\n')

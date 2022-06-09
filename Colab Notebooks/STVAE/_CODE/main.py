@@ -26,7 +26,7 @@ def main_loc(par_file, device,net=None):
   ARGS[0].patch_size=args.patch_size
   print('NUMCLASS',args.num_class)
 
-  models=prep.get_models(device, fout, sh, STRINGS, ARGS, args)
+  models=prep.get_models(device, fout, sh, ARGS, args)
   if args.deform:
       OUT=[]
       LL=[]
@@ -48,7 +48,7 @@ def main_loc(par_file, device,net=None):
   model_out=models[0]
 
   if args.cont_training and not args.run_existing:
-      prep.copy_from_old_to_new(models[0], args, fout, SMS[0], STRINGS[0], device, sh)
+      prep.copy_from_old_to_new(models[0], args, fout, SMS[0], device, sh)
       models[0].nti = args.nti
       models[0].opt_jump = args.opt_jump
       train_model(models[0], args, EX_FILES[0], DATA, fout)

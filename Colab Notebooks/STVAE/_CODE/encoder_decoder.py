@@ -25,6 +25,7 @@ class encoder_mix(nn.Module):
 
         #self.model = network.network()
         self.model=network.initialize_model(args, sh, args.enc_layers, dv, layers_dict=layers_dict)
+
         self.final_shape=np.array(self.model.temp.output_shape[1:], dtype=int)
         self.final_shape[0]/=args.n_mix
 
@@ -35,11 +36,12 @@ class encoder_mix(nn.Module):
         self.model.temp.everything = True
         h,h1=self.model(inputs)
         self.model.temp.everything = False
-        s_mu = h1['dense_mu'] if 'dense_mu' in h1 else h1['conv_mu']
-        s_logvar= h1['dense_var'] if 'dense_var' in h1 else h1 ['conv_var']
-        pi = torch.softmax(h1['dense_pi'], dim=1)
+        var={}
+        var['mu'] = h1['dense_mu'] if 'dense_mu' in h1 else h1['conv_mu']
+        var['logvar']= h1['dense_var'] if 'dense_var' in h1 else h1 ['conv_var']
+        var['pi'] = h1['dense_pi'] if 'dense_pi' in h1 else h1['dense_pi_c']
 
-        return s_mu, s_logvar, pi,[h,h1]
+        return var, [h,h1]
 
 
 class decoder_mix(nn.Module):
@@ -54,18 +56,25 @@ class decoder_mix(nn.Module):
         f_shape=np.array(self.dec_conv_top[0].temp.output_shape)[1:]
         self.dec_conv_bot=network.initialize_model(args, f_shape, args.dec_layers_bot, dv)
 
-
+        if hasattr(self.dec_conv_bot.layers, 'inject'):
+           self.in_feats=self.dec_conv_bot.layers.inject.feats
+           self.in_shape=self.dec_conv_bot.layers.inject.sh
 
     def forward(self,inputs,rng=None):
 
+        if (rng is None):
+            rng = range(inputs.shape[0])
         xx=[]
         uu=[]
-        for i,inp in enumerate(inputs):
+        for i,inp in zip(rng,inputs): #enumerate(inputs):
 
             if self.u_dim>0:
                 u = inp.narrow(len(inp.shape) - 1, 0, self.u_dim)
                 z = inp.narrow(len(inp.shape) - 1, self.u_dim, self.z_dim)
-                uu+=[self.dec_trans_top[i](u)[0]]
+                pu=self.dec_trans_top[i](u)[0]
+                #pu[:,0]=.3
+                #pu[:,1]=0
+                uu+=[pu]
             else:
                 z=inp
             x=self.dec_conv_top[i](z)[0]
@@ -78,9 +87,27 @@ class decoder_mix(nn.Module):
             uu = torch.stack(uu,dim=0)
         return xx, uu
 
+    def lower_forward(self,input):
+
+        xx = []
+        for i, inp in enumerate(input):
+            x, u = self.dec_conv_bot(inp)
+            xx += [x]
+        xx = torch.stack(xx, dim=0)
+        xx = torch.sigmoid(xx)
+
+        return xx, None
 
 
+    def top_forward(self,input):
 
+        xx = []
+        for i, inp in enumerate(input):
+            x = self.dec_conv_top[i](inp)[0]
+            xx += [x]
+        xx = torch.stack(xx, dim=0)
+
+        return xx, None
 
 
 

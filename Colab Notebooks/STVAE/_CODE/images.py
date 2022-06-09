@@ -101,7 +101,10 @@ def create_img(XX,sh,ri=10,rj=10,sep=0):
         line = []
         for j in range(rj):
             if (t < len(XX)):
-                line += [XX[t].reshape((c, h, w)).transpose(1, 2, 0)]
+                newx=XX[t].reshape((c, h, w)).transpose(1, 2, 0)
+                newx[:,0,:]=1.
+                newx[0,:,:]=1.
+                line += [newx]
             else:
                 line += [np.zeros((c,h,w)).transpose(1, 2, 0)]
             line+=[np.ones((c,sep,w)).transpose(1,2,0)]
@@ -112,6 +115,7 @@ def create_img(XX,sh,ri=10,rj=10,sep=0):
         img = np.concatenate([manifold, manifold, manifold], axis=2)
     else:
         img=manifold
+    img=1-img
     return img
 
 def create_image(XX, model, ex_file):
@@ -157,40 +161,60 @@ def show_reconstructed_images(test,model,ex_file, args, cl=None, extra=None):
     np.random.shuffle(test[0])
     inp=torch.from_numpy(erode(args.erode,test[0:100],extra=extra))
 
+    if args.perturb>0:
+        inp = deform_data(inp, args.perturb, args.transformation, args.s_factor, args.h_factor, True, model.dv)
+
     num_iter=args.nti
+    Xb=None
     if (cl is not None):
-        X,_,_,_=model.recon(args, inp,num_iter,cl,lower=args.lower_decoder)
+        X,var,_,_,rec, _ =model.recon(args, inp,num_iter,cl,lower=args.lower_decoder, back_ground=args.use_clutter_model)
         if args.lower_decoder:
-            X,_,_,_ = model.recon(args, inp, num_iter, cl, lower=False, back_ground=X)
+            X = X.cpu().detach().numpy().reshape(inp.shape)
+            XX = np.concatenate([inp[0:50], X[0:50]])
+            create_image(XX, model, ex_file + '_lower_recon' + '_' + str(cl))
+            X,_,_,_,_,Xb = model.recon(args, inp, num_iter, cl, lower=False, back_ground=var)
     else:
-        X,_,_,_ = model.recon(args, inp, num_iter,lower=args.lower_decoder)
+        Xb=None
+        X,var,_,_ ,rec,Xb= model.recon(args, inp, num_iter,lower=args.lower_decoder, back_ground=args.use_clutter_model)
         if args.lower_decoder:
-            X,_,_,_ = model.recon(inp, num_iter, lower=False, back_ground=X)
+            X = X.cpu().detach().numpy().reshape(inp.shape)
+            XX = np.concatenate([inp[0:50], X[0:50]])
+            create_image(XX, model, ex_file + '_lower_recon')
+            X,_,_,_,rec, Xb = model.recon(args,inp, num_iter, lower=False, back_ground=var)
+        if Xb is not None:
+            Xb=Xb.cpu().detach().numpy().reshape(inp.shape)
+            Xb=np.concatenate([inp[0:50],Xb[0:50]])
     X = X.cpu().detach().numpy().reshape(inp.shape)
     XX=np.concatenate([inp[0:50],X[0:50]])
     if (cl is not None):
         create_image(XX,model, ex_file+'_recon'+'_'+str(cl))
     else:
         create_image(XX, model, ex_file + '_recon')
+        if Xb is not None:
+            create_image(Xb, model, ex_file + '_recon_both')
+
+
 
 def add_occlusion(recon_data):
     recon_data[0][0:20,0:13,:,:]=0
     return recon_data
 
-def add_clutter(recon_data):
+def add_clutter(recon_data,dv,block_size):
 
-    block_size=3
-    num_clutter=2
-    dim=np.zeros((1,2))
-    dim[0,0]=recon_data[0].shape[1]-block_size
-    dim[0,1]=recon_data[0].shape[2]-block_size
-    qq=np.random.rand(recon_data.shape[0],num_clutter,2)
-    rr=np.int32(qq*dim)
+
+    num_clutter=3
+    numim=recon_data.shape[0]
+    #dim=torch.zeros((1,2))
+    dim0=recon_data.shape[2]-np.int(block_size)
+    dim1=recon_data.shape[3]-np.int(block_size)
+    qq0=torch.randint(dim0,(numim,num_clutter,)).to(dv)
+    qq1=torch.randint(dim1,(numim,num_clutter)).to(dv)
+    rr=torch.cat([qq0,qq1],dim=1)
     for  rrr,im in zip(rr,recon_data):
         for k in range(num_clutter):
-            x=rrr[k,0]
-            y=rrr[k,1]
-            im[0,x:x+block_size,y:y+block_size]=np.ones((block_size,block_size))
+            x=rrr[k*2]
+            y=rrr[k*2+1]
+            im[0,x:x+block_size,y:y+block_size]=1.
 
     return recon_data
 
@@ -199,26 +223,30 @@ def add_clutter(recon_data):
 def erode(do_er,data,extra=None):
 
     #rdata=rotate_dataset_rand(data) #,angle=40,scale=.2)
-    rdata=data
+    # do_er[0] lower bound of placement of random box
+    # do_er[1] width/height of random box
+    # do_er[2] number of boxes
+    if do_er[2]==0:
+        return data
+    do_er=np.array(do_er)
     if extra is None:
         extra=data
-    if (do_er):
+    nrows=data.shape[2]
+    ncols=data.shape[3]
+    ndata=data
+    lrows = np.argmax(np.diff(np.sum(data, axis=3),axis=2)>0,axis=2) + 1
+    urows = nrows-np.argmax(np.flip(np.diff(np.sum(data, axis=3),axis=2)>0,axis=2),axis=2)
+    lcols = np.argmax(np.diff(np.sum(data, axis=2),axis=2)>0,axis=2) + 1
+    ucols = ncols-np.argmax(np.flip(np.diff(np.sum(data, axis=2),axis=2)>0,axis=2),axis=2)
+    for b in range(do_er[2]):
 
-        # el=np.zeros((3,3))
-        # el[0,1]=el[1,0]=el[1,2]=el[2,1]=el[1,1]=1
-        rr=np.random.randint(3,6,size=(len(data),2))
+        rr=np.random.randint(do_er[0],28-do_er[1],size=(len(data),2))
         ii=np.random.randint(0,len(extra),size=len(data))
-        ndata=np.zeros_like(data)
+        bbr=np.minimum(np.random.randint(low=lrows,high=urows).squeeze(),nrows-do_er[1])
+        bbc=np.minimum(np.random.randint(low=lcols,high=ucols).squeeze(),ncols-do_er[1])
         for j in range(len(ndata)):
-            ndata[j]=data[j]
-            ndata[j,0,rr[j,0]:,rr[j,1]:]=np.maximum(ndata[j,0,rr[j,0]:,rr[j,1]:],extra[ii[j],:(28-rr[j,0]),:(28-rr[j,1])])
-        #     if (r):
-        #         dda=ndimage.binary_erosion(dd[0,:,:]>0,el).astype(dd.dtype)
-        #     else:
-        #         dda=ndimage.binary_dilation(dd[0,:,:]>.9,el).astype(dd.dtype)
-        #     ndd[0,:,:]=dda
-    else:
-        ndata=rdata
+            ndata[j,0,rr[j,0]:rr[j,0]+do_er[1],rr[j,1]:rr[j,1]+do_er[1]]=\
+                np.maximum(ndata[j,0,rr[j,0]:rr[j,0]+do_er[1],rr[j,1]:rr[j,1]+do_er[1]],extra[ii[j],0,bbr[j]:bbr[j]+do_er[1],bbc[j]:bbc[j]+do_er[1]])
 
     return ndata
 
@@ -249,6 +277,7 @@ def deform_data(x_in,perturb,trans,s_factor,h_factor,embedd,dv):
         rr[:, [0,4]] = 1
         if trans=='shift':
           u[:,[0,1,3,4]]=0
+          u[:,[2,5]]=torch.tensor([perturb,0])
         elif trans=='scale':
           u[:,[1,3]]=0
         elif 'rotate' in trans:
@@ -276,10 +305,10 @@ def deform_data(x_in,perturb,trans,s_factor,h_factor,embedd,dv):
             x_out_hsv[:,1,:,:]=torch.clamp(x_out_hsv[:,1,:,:]*vv,0.,1.)
             x_out_hsv[:,0,:,:]=torch.remainder(x_out_hsv[:,0,:,:]+uu,1.)
             x_out=hsv_to_rgb(x_out_hsv,dv)
-
-        ii=torch.where(torch.bernoulli(torch.ones(nn)*.5)==1)
-        for i in ii:
-              x_out[i]=x_out[i].flip(3)
+        if trans != 'shift':
+            ii=torch.where(torch.bernoulli(torch.ones(nn)*.5)==1)
+            for i in ii:
+                x_out[i]=x_out[i].flip(3)
 
         #print('Def time',time.time()-t1)
         return x_out

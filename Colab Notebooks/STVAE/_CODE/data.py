@@ -197,6 +197,7 @@ def get_data_pre(args,dataset):
     PARS['crop']=args.crop
     PARS['h_factor']=args.h_factor
     PARS['jit']=args.h_factor
+    PARS['thr']=args.threshold
 
     if args.cl is not None:
         PARS['one_class'] = args.cl
@@ -497,6 +498,9 @@ def get_letters(PARS):
     print(train_data.shape)
     if 'binarized' not in data_set:
         train_data=np.float32(train_data/255.)
+        if PARS['thr'] is not None:
+            train_data=np.float32(train_data>PARS['thr'])
+
     train_labels=np.load(pre+data_set+'_labels.npy')
     test_data=train_data[-10000:]
     train_data=train_data[:-10000]
@@ -508,7 +512,18 @@ def get_letters(PARS):
         train_data=train_data[:-PARS['nval']]
         val_labels=train_labels[-PARS['nval']:]
         train_labels=train_labels[:-PARS['nval']]
-        val=(val_data,val_labels)
+
+
+    if ('one_class' in PARS):
+        train_data=train_data[train_labels==PARS['one_class']]
+        train_labels=train_labels[train_labels==PARS['one_class']]
+        test_data = test_data[test_labels == PARS['one_class']]
+        test_labels = test_labels[test_labels == PARS['one_class']]
+        if (PARS['nval']>0):
+            val_data = val_data[val_labels == PARS['one_class']]
+            val_labels = val_labels[val_labels == PARS['one_class']]
+    if PARS['nval']>0:
+        val = (val_data, val_labels)
     return (train_data, train_labels), val, (test_data, test_labels)
 
 

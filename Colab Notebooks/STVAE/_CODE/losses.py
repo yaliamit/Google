@@ -28,6 +28,26 @@ class hinge_loss(nn.Module):
         loss /= input.shape[0]
         return loss
 
+class direct_loss(nn.Module):
+    def __init__(self, batch_size, out_dim, eps=0, alpha=0, device='cpu'):
+        super(direct_loss, self).__init__()
+        self.dv = device
+        self.eps=eps
+        self.alpha=alpha
+        self.cov=torch.eye(out_dim).to(self.dv)
+        self.eye=self.eps*torch.eye(out_dim).to(self.dv)
+
+    def forward(self,out0,out1):
+
+        with torch.no_grad():
+            self.cov=(1-self.alpha)*(out0.T @ out1)+self.alpha*self.cov
+
+        outa=out0 @ (self.cov + self.eye)
+
+        loss= torch.sum(torch.abs(outa-out1))
+
+        return loss, loss
+
 
 class Barlow_loss(nn.Module):
     def __init__(self, batch_size, device, lambd=.004, scale=1./32.):
@@ -58,41 +78,6 @@ class Barlow_loss(nn.Module):
         off_diag = self.off_diagonal(c).pow_(2).sum().mul(self.scale)
         loss = on_diag + self.lambd * off_diag
         return loss
-
-
-class SimCLRLoss(torch.nn.Module):
-    def __init__(self, batch_size, device='cpu'):
-        super(SimCLRLoss, self).__init__()
-        self.device = device
-        self.batch_size = batch_size
-        self.mask = self.create_mask(batch_size)
-        self.criterion = torch.nn.CrossEntropyLoss()
-
-    # create a mask that enables us to sum over positive pairs only
-    def create_mask(self, batch_size):
-        mask = torch.eye(batch_size, dtype=torch.bool).to(self.device)
-        return mask
-
-    def forward(self, output, tau=0.1):
-        norm = torch.nn.functional.normalize(output, dim=1)
-        h1,h2 = torch.split(norm, self.batch_size)
-
-        aa = torch.mm(h1,h1.transpose(0,1))/tau
-        aa_s = aa[~self.mask].view(aa.shape[0],-1)
-        bb = torch.mm(h2,h2.transpose(0,1))/tau
-        bb_s = bb[~self.mask].view(bb.shape[0],-1)
-        ab = torch.mm(h1,h2.transpose(0,1))/tau
-        ba = torch.mm(h2,h1.transpose(0,1))/tau
-
-        labels = torch.arange(self.batch_size).to(output.device)
-        loss_a = self.criterion(torch.cat([ab,aa_s],dim=1),labels)
-        loss_b = self.criterion(torch.cat([ba,bb_s],dim=1),labels)
-
-        loss = (loss_a+loss_b)/2
-        return loss
-
-
-
 
 
 class SIMCLR_loss(nn.Module):
