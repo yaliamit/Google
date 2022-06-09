@@ -429,6 +429,7 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
             lossf=model.temp.loss
         TIME=0
         tra=iter(train)
+        out_norm=0
         for j in np.arange(0, num_tr, jump,dtype=np.int32):
             lnum=0
             if d_type=='train':
@@ -442,6 +443,8 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
 
             with torch.no_grad() if (d_type!='train') else dummy_context_mgr():
                 out, OUT=forw(model,args,data)
+                if model.temp.embedd_type=='direct':
+                    out_norm+=torch.mean(torch.norm(out[0],dim=1))
                 loss, acc = get_loss(lossf,args, out, OUT, target)
             if args.randomize_layers is not None and d_type == "train":
                     for i, k in enumerate(args.KEYS):
@@ -462,6 +465,7 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
 
 
         if freq-np.mod(epoch,freq)==1:
+           print('OUT NORM',out_norm/count[0])
            for l in range(ll):
                 fout.write('\n ====> Ep {}: {} Full loss: {:.4F}, Full acc: {:.6F} \n'.format(d_type,epoch,
                     full_loss[l] /count[l], full_acc[l]/(count[l]*jump)))

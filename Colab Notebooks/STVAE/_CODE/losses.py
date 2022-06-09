@@ -40,7 +40,6 @@ class direct_loss(nn.Module):
 
     def forward(self,out0,out1):
 
-        print('out0',torch.sum(torch.norm(out0)))
         with torch.no_grad():
             self.cov=(1-self.alpha)*(out1.T @ out1)+self.alpha*self.cov
 
