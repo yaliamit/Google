@@ -467,7 +467,7 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
 
 
         if freq-np.mod(epoch,freq)==1:
-           print('OUT NORM',out_norm/count[0])
+           fwrite('OUT NORM',out_norm/count[0])
            for l in range(ll):
                 fout.write('\n ====> Ep {}: {} Full loss: {:.4F}, Full acc: {:.6F} \n'.format(d_type,epoch,
                     full_loss[l] /count[l], full_acc[l]/(count[l]*jump)))
