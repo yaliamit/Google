@@ -456,7 +456,8 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
                 optimizer.step()
 
             full_loss[lnum] += loss.item()
-            full_acc[lnum] += acc.item()
+            if acc is not None:
+                full_acc[lnum] += acc.item()
             count[lnum]+=1
 
 
