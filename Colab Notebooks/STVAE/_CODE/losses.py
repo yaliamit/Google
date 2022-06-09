@@ -29,7 +29,7 @@ class hinge_loss(nn.Module):
         return loss
 
 class direct_loss(nn.Module):
-    def __init__(self, batch_size, out_dim, eps=0, alpha=0, device='cpu'):
+    def __init__(self, batch_size, out_dim, eps=0, alpha=0.9, device='cpu'):
         super(direct_loss, self).__init__()
         self.dv = device
         self.eps=eps
@@ -42,7 +42,7 @@ class direct_loss(nn.Module):
         print('out0',torch.sum(torch.norm(out0)))
         with torch.no_grad():
             self.cov=(1-self.alpha)*(out0.T @ out1)+self.alpha*self.cov
-
+        print(torch.sum(torch.diag(self.cov)))
         outa=out0 @ (self.cov + self.eye)
 
         loss= torch.sum(torch.abs(outa-out1))
