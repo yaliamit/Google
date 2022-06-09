@@ -139,6 +139,8 @@ def initialize_model(args, sh, layers,device, layers_dict=None):
                 atemp.loss=binary_loss(atemp.dv)
             elif args.embedd_type=='direct':
                 atemp.loss=direct_loss(bsz,atemp.output_shape[1],device=atemp.dv)
+            elif args.embedd_type=='barlow':
+                atemp.loss=barlow_loss(bsz,atemp.output_shape[1],device=atemp.dv)
             elif args.embedd_type=='orig':
                 atemp.loss=SIMCLR_loss(atemp.dv)
 

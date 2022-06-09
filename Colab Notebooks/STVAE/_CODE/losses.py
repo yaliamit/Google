@@ -50,9 +50,9 @@ class direct_loss(nn.Module):
         return loss, None
 
 
-class Barlow_loss(nn.Module):
-    def __init__(self, batch_size, device, lambd=.004, scale=1./32.):
-        super(Barlow_loss, self).__init__()
+class barlow_loss(nn.Module):
+    def __init__(self, batch_size, dim, device='cpu', lambd=.004, scale=1./32.):
+        super(barlow_loss, self).__init__()
         self.batch_size = batch_size # 2000 in my experiments
         self.device = device
         self.lambd = lambd # 3.9e-3 in the paper
@@ -62,23 +62,22 @@ class Barlow_loss(nn.Module):
         # '64' here refers to the output dimension of the base encoder
         # the paper claimed that this loss benefits from larger output dim
         # I have tried dim=512 and 1024, no significant differences
-        self.bn = nn.BatchNorm1d(64, affine=False, track_running_stats=True)
+        self.bn = nn.BatchNorm1d(dim, affine=False, track_running_stats=True)
     def off_diagonal(self,c):
         return c-torch.diag_embed(torch.diagonal(c))
 
-    def forward(self, X):
+    def forward(self, out0, out1):
         # two branches
-        x1 = X[::2]
-        x2 = X[1::2]
+
 
         # empirical cross-correlation matrix
-        c = self.bn(x1).T @ self.bn(x2)
+        c = self.bn(out0).T @ self.bn(out1)
         c.div_(self.batch_size)
 
         on_diag = torch.diagonal(c).add_(-1).pow_(2).sum().mul(self.scale)
         off_diag = self.off_diagonal(c).pow_(2).sum().mul(self.scale)
         loss = on_diag + self.lambd * off_diag
-        return loss
+        return loss, None
 
 
 class SIMCLR_loss(nn.Module):
