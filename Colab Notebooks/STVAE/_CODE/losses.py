@@ -46,7 +46,7 @@ class direct_loss(nn.Module):
 
         loss= torch.sum(torch.abs(outa-out1))
 
-        return loss, loss
+        return loss, None
 
 
 class Barlow_loss(nn.Module):
