@@ -138,7 +138,7 @@ def initialize_model(args, sh, layers,device, layers_dict=None):
             elif args.embedd_type=='binary':
                 atemp.loss=binary_loss(atemp.dv)
             elif args.embedd_type=='direct':
-                atemp.loss=direct_loss(bsz,atemp.output_shape[1],alpha=args.delta, eps=args.eps, device=atemp.dv)
+                atemp.loss=direct_loss(bsz,atemp.output_shape[1],alpha=args.alpha, eps=args.eps, device=atemp.dv)
             elif args.embedd_type=='barlow':
                 atemp.loss=barlow_loss(bsz,atemp.output_shape[1],device=atemp.dv)
             elif args.embedd_type=='orig':
@@ -468,7 +468,7 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
 
         if freq-np.mod(epoch,freq)==1:
            fout.write('\n OUT_norm {:.4F} \n'.format(out_norm/count[0]))
-           print(model.cov)
+           print(model.temp.loss.cov)
            for l in range(ll):
                 fout.write('\n ====> Ep {}: {} Full loss: {:.4F}, Full acc: {:.6F} \n'.format(d_type,epoch,
                     full_loss[l] /count[l], full_acc[l]/(count[l]*jump)))
