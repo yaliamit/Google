@@ -36,7 +36,7 @@ class direct_loss(nn.Module):
         self.alpha=alpha
         self.cov=torch.eye(out_dim).to(self.dv)
         self.eye=self.eps*torch.eye(out_dim).to(self.dv)
-
+        self.lamda=1.
     def forward(self,out0,out1):
 
         with torch.no_grad():
@@ -44,7 +44,7 @@ class direct_loss(nn.Module):
 
         outa=out1 @ (self.cov + self.eye)
 
-        loss= torch.sum(torch.abs(outa-out0))   #+self.lamda*(torch.sum(.1-out0))
+        loss= torch.sum(torch.abs(outa-out0))+self.lamda*(torch.mean(.5-torch.abs(out0)))
 
         return loss, None
 
