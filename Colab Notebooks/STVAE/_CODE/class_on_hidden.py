@@ -189,7 +189,7 @@ def train_new_new(args,model,DATA,fout,device,net=None):
 
 
 
-    freq = 1
+    freq = 10
     freq_test=10
     t1 = time.time()
     if 'ga' in get_pre() and args.use_multiple_gpus is not None:
