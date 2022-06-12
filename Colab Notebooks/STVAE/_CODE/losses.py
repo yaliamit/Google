@@ -78,6 +78,42 @@ class barlow_loss(nn.Module):
         loss = on_diag + self.lambd * off_diag
         return loss, None
 
+class simclr_loss(nn.Module):
+    def  __init__(self,dv, bsz, tau=1.):
+        super(simclr_loss,self).__init__()
+        self.dv=dv
+        self.tau=tau
+        self.bsz=bsz
+        self.ID=2*torch.eye(bsz).to(dv)-1
+
+    def __call__(self,out0,out1):
+
+        # Standardize 64 dim outputs of original and deformed images
+        out0a = standardize(out0,False)
+        out1a = standardize(out1,False)
+        # Compute 3 covariance matrices - 0-1, 0-0, 1-1.
+        COV = torch.mm(out0a, out1a.transpose(0, 1))
+        COV1 = torch.mm(out1a, out1a.transpose(0, 1))
+        COV0 = torch.mm(out0a, out0a.transpose(0, 1))
+        # Diagonals of covariances.
+        v0 = torch.diag(COV0)
+        v1 = torch.diag(COV1)
+        v = torch.diag(COV)
+        # Mulitnomial logistic loss just computed on positive match examples, with all other examples as a separate class.
+        lecov = torch.log(
+            torch.exp(torch.logsumexp(COV, dim=1)) + torch.exp(torch.logsumexp(COV0 - torch.diag(v0), dim=1)))
+        lecov += torch.log(
+            torch.exp(torch.logsumexp(COV, dim=1)) + torch.exp(torch.logsumexp(COV1 - torch.diag(v1), dim=1)))
+        lecov = .5 * (lecov) - v
+
+        loss = torch.mean(lecov)
+        # Accuracy
+
+        icov = self.ID * COV
+        acc = torch.sum((icov > 0).type(torch.float)) / self.bsz
+
+        return loss, acc
+
 
 class SIMCLR_loss(nn.Module):
     def  __init__(self,dv, tau=1.):

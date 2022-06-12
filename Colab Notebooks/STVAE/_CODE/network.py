@@ -142,7 +142,7 @@ def initialize_model(args, sh, layers,device, layers_dict=None):
             elif args.embedd_type=='barlow':
                 atemp.loss=barlow_loss(bsz,atemp.output_shape[1],device=atemp.dv)
             elif args.embedd_type=='orig':
-                atemp.loss=SIMCLR_loss(atemp.dv)
+                atemp.loss=simclr_loss(atemp.dv,bsz)
 
         model.add_module('temp',atemp)
         if args.use_multiple_gpus is not None:
@@ -502,8 +502,7 @@ def forw(model, args, input, lnum=0):
     if type(input) is list:
 
         out1, _ = model.forward(input[1])
-        # print('out1',out1.device.index)
-        with torch.no_grad():
+        with torch.no_grad() if (args.block) else dummy_context_mgr():
             cl = False
             if args.embedd_type == 'clapp':
                 cl = True

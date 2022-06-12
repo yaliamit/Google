@@ -99,6 +99,7 @@ def process_args(parser):
     parser.add_argument('--embedd_layer', default=None, help='embedding layer')
     parser.add_argument('--reinit', action='store_true', help='reinitialize part of trained model')
     parser.add_argument('--only_pi', action='store_true', help='only optimize over pi')
+    parser.add_argument('--block', action='store_true', help='block one branch of embedding comp in SSL')
     parser.add_argument('--verbose', action='store_true', help='only optimize over pi')
     parser.add_argument('--edges', action='store_true', help='compute edges')
     parser.add_argument('--no_standardize', action='store_true', help='standardize embeddings')
