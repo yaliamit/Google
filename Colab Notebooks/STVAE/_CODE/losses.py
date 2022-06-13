@@ -110,7 +110,7 @@ class simclr_loss(nn.Module):
         # Accuracy
 
         icov = self.ID * COV
-        acc = torch.sum((icov > 0).type(torch.float)) / self.bsz
+        acc = torch.sum((icov > -.5).type(torch.float)) / self.bsz
 
         return loss, acc
 
