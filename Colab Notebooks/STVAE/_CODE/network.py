@@ -482,8 +482,8 @@ def get_data(data_in, args, dvv, d_type):
             if args.crop == 0:
                 data_out = deform_data(data_in, args.perturb, args.transformation, args.s_factor, args.h_factor,
                                        args.embedd, dvv)
-                data_in = deform_data(data_in, args.perturb, args.transformation, args.s_factor, args.h_factor,
-                                      args.embedd, dvv)
+                #data_in = deform_data(data_in, args.perturb, args.transformation, args.s_factor, args.h_factor,
+                 #                     args.embedd, dvv)
                 data = [data_in, data_out]
             else:
                 data_p = data_in
