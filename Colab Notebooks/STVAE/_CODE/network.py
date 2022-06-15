@@ -446,7 +446,7 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
             with torch.no_grad() if (d_type!='train') else dummy_context_mgr():
                 out, OUT=forw(model,args,data)
                 if d_type != 'train' and j==0:
-                    s=torch.linalg.svdvals(out[0])
+                    s=torch.linalg.svdvals(out[0][0])
                     print(s.cpu().numpy())
                 if model.temp.embedd_type=='direct':
                      out_norm+=torch.mean(torch.norm(out[0],dim=1))
