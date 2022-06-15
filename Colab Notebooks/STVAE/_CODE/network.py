@@ -473,7 +473,7 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
            fout.write('\n OUT_norm {:.4F} \n'.format(out_norm/count[0]))
            #print(model.temp.loss.cov)
            for l in range(ll):
-                fout.write('\n ====> Ep {}: {} Full loss: {:.4F}, Full acc: {:.6F} \n'.format(d_type,epoch,
+                fout.write('\n ====> Ep {}: {} Full loss: {:.7F}, Full acc: {:.6F} \n'.format(d_type,epoch,
                     full_loss[l] /(count[l]*jump), full_acc[l]/(count[l]*jump)))
 
         return [full_acc/(count*jump), full_loss/(count)]
