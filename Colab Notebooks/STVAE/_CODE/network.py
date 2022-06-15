@@ -445,7 +445,7 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
 
             with torch.no_grad() if (d_type!='train') else dummy_context_mgr():
                 out, OUT=forw(model,args,data)
-                if j==0 and type(out) is list:
+                if j==0 and type(out) is list and args.embedd_type=='direct':
                     _,s,_=torch.linalg.svd(out[0])
                     s=s/torch.sum(s)
                     ent=-torch.sum(s*torch.log(s))
