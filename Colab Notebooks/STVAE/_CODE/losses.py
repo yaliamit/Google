@@ -56,7 +56,7 @@ class barlow_loss(nn.Module):
         super(barlow_loss, self).__init__()
         self.batch_size = batch_size # 2000 in my experiments
         self.device = device
-        self.lambd = lambd # 3.9e-3 in the paper
+        self.lamda = lamda # 3.9e-3 in the paper
         self.scale = scale # 1/32 in the paper
 
         # normalization layer for the representations x1 and x2
