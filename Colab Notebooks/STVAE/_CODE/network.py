@@ -445,6 +445,9 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
 
             with torch.no_grad() if (d_type!='train') else dummy_context_mgr():
                 out, OUT=forw(model,args,data)
+                if d_type != 'train' and j==0:
+                    s=torch.linalg.svdvals(out[0])
+                    print(s.cpu().numpy())
                 if model.temp.embedd_type=='direct':
                      out_norm+=torch.mean(torch.norm(out[0],dim=1))
                 loss, acc = get_loss(lossf,args, out, OUT, target)
@@ -482,8 +485,8 @@ def get_data(data_in, args, dvv, d_type):
             if args.crop == 0:
                 data_out = deform_data(data_in, args.perturb, args.transformation, args.s_factor, args.h_factor,
                                        args.embedd, dvv)
-                #data_in = deform_data(data_in, args.perturb, args.transformation, args.s_factor, args.h_factor,
-                 #                     args.embedd, dvv)
+                if args.double_aug:
+                    data_in = deform_data(data_in, args.perturb, args.transformation, args.s_factor, args.h_factor,args.embedd, dvv)
                 data = [data_in, data_out]
             else:
                 data_p = data_in

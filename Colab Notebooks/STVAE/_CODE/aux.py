@@ -100,6 +100,7 @@ def process_args(parser):
     parser.add_argument('--reinit', action='store_true', help='reinitialize part of trained model')
     parser.add_argument('--only_pi', action='store_true', help='only optimize over pi')
     parser.add_argument('--block', action='store_true', help='block one branch of embedding comp in SSL')
+    parser.add_argument('--double_aug', action='store_true', help='augment both branches in SSL')
     parser.add_argument('--verbose', action='store_true', help='only optimize over pi')
     parser.add_argument('--edges', action='store_true', help='compute edges')
     parser.add_argument('--no_standardize', action='store_true', help='standardize embeddings')
