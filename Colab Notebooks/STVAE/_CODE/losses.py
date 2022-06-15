@@ -52,7 +52,7 @@ class direct_loss(nn.Module):
 
 
 class barlow_loss(nn.Module):
-    def __init__(self, batch_size, dim, device='cpu', lambd=.004, scale=1./32.):
+    def __init__(self, batch_size, dim, device='cpu', lamda=.004, scale=1./32.):
         super(barlow_loss, self).__init__()
         self.batch_size = batch_size # 2000 in my experiments
         self.device = device
@@ -77,7 +77,7 @@ class barlow_loss(nn.Module):
 
         on_diag = torch.diagonal(c).add_(-1).pow_(2).sum().mul(self.scale)
         off_diag = self.off_diagonal(c).pow_(2).sum().mul(self.scale)
-        loss = on_diag + self.lambd * off_diag
+        loss = on_diag + self.lamda * off_diag
         return loss, None
 
 class simclr_loss(nn.Module):
