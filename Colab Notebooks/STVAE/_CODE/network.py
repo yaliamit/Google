@@ -449,7 +449,7 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
                     _,s,_=torch.linalg.svd(out[0])
                     aamax=torch.max(s[:-1]/s[1:])
                     aamean=torch.mean(s[:-1]/s[1:])
-                    print(s[:-1]/s[1:],'max jump',aamax.numpy(),aamean.numpy())
+                    print(s[:-1]/s[1:],'max jump',aamax.cpu().numpy(),aamean.cpu().numpy())
                 if model.temp.embedd_type=='direct':
                      out_norm+=torch.mean(torch.norm(out[0],dim=1))
                 loss, acc = get_loss(lossf,args, out, OUT, target)
