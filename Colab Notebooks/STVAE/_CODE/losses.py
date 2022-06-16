@@ -64,8 +64,8 @@ class barlow_loss(nn.Module):
 
     def forward(self, out0, out1):
         # two branches
-        out0a = standardize(out0, False)
-        out1a = standardize(out1, False)
+        out0a = standardize(out0-torch.mean(out0,dim=1,keepdim=True), False)
+        out1a = standardize(out1-torch.mean(out1,dim=1,keepdim=True), False)
 
         # empirical cross-correlation matrix
         c = (out0a).T @ (out1a)
