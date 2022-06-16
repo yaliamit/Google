@@ -9,7 +9,7 @@ def standardize(out, nostd):
     else:
         outa = out.reshape(out.shape[0], -1)
         sd = torch.sqrt(torch.sum(outa * outa, dim=1)).reshape(-1, 1)
-        out_a = outa / (sd + .01)
+        out_a = outa / (sd + .0001)
         #print(sd.mean(),sd.std())
     return out_a
 
