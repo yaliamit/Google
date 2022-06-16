@@ -39,8 +39,9 @@ class direct_loss(nn.Module):
         self.lamda=lamda
     def forward(self,out0,out1):
 
-        with torch.no_grad():
-            self.cov=(1-self.alpha)*(out1.T @ out1)+self.alpha*self.cov
+        cc=(out1.T @ out1)
+        #with torch.no_grad():
+        self.cov=(1-self.alpha)*cc+self.alpha*self.cov
 
         outa=out1 @ (self.cov + self.eye)
 
@@ -114,37 +115,6 @@ class simclr_loss(nn.Module):
 
         return loss, acc
 
-
-class SIMCLR_loss(nn.Module):
-    def  __init__(self,dv, tau=1.):
-        super(SIMCLR_loss,self).__init__()
-        self.dv=dv
-        self.tau=tau
-
-    def __call__(self,out0,out1):
-
-        bsz=out0.shape[0]
-        out0a = torch.nn.functional.normalize(out0, dim=1)
-        out1a = torch.nn.functional.normalize(out1, dim=1)
-        #out0a=standardize(out0, nostd)
-        #out1a=standardize(out1, nostd)
-        COV=torch.mm(out0a,out1a.transpose(0,1))/self.tau
-        COV1 = torch.mm(out1a, out1a.transpose(0, 1))/self.tau
-        COV0 = torch.mm(out0a,out0a.transpose(0,1))/self.tau
-        vb=(torch.eye(bsz)*1e10).to(self.dv)
-
-        cc = torch.cat((COV, COV0 - vb), dim=1)
-        targ = torch.arange(bsz).to(self.dv)
-        l1 = F.cross_entropy(cc, targ)
-        cc = torch.cat((COV.T, COV1 - vb), dim=1)
-        l2 = F.cross_entropy(cc, targ)
-        loss =  (l1 + l2) / 2
-
-        ID=2.*torch.eye(out0.shape[0]).to(self.dv)-1.
-        icov=ID*COV
-
-        acc=torch.sum((icov> -.5/self.tau).type(torch.float))/bsz
-        return loss,acc
 
 
 class binary_loss(nn.Module):
