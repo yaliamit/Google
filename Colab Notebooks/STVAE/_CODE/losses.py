@@ -59,20 +59,16 @@ class barlow_loss(nn.Module):
         self.lamda = lamda # 3.9e-3 in the paper
         self.scale = scale # 1/32 in the paper
 
-        # normalization layer for the representations x1 and x2
-        # '64' here refers to the output dimension of the base encoder
-        # the paper claimed that this loss benefits from larger output dim
-        # I have tried dim=512 and 1024, no significant differences
-        self.bn = nn.BatchNorm1d(dim, affine=False, track_running_stats=True)
     def off_diagonal(self,c):
         return c-torch.diag_embed(torch.diagonal(c))
 
     def forward(self, out0, out1):
         # two branches
-
+        out0a = standardize(out0, False)
+        out1a = standardize(out1, False)
 
         # empirical cross-correlation matrix
-        c = self.bn(out0).T @ self.bn(out1)
+        c = (out0a).T @ (out1a)
         c.div_(self.batch_size)
 
         on_diag = torch.diagonal(c).add_(-1).pow_(2).sum().mul(self.scale)
