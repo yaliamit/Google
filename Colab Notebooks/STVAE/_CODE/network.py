@@ -72,6 +72,8 @@ def initialize_model(args, sh, layers,device, layers_dict=None):
             model.add_module('clapp', nn.Conv2d(args.clapp_dim[1], args.clapp_dim[1], 1))
         if args.update_layers is not None:
             args.update_layers.append('clapp')
+    if args.embedd_type=='AE':
+        atemp.everything=True
 
     if sh is not None:
         temp = torch.zeros([1] + list(sh))  # .to(device)
@@ -143,7 +145,8 @@ def initialize_model(args, sh, layers,device, layers_dict=None):
                 atemp.loss=barlow_loss(bsz,atemp.output_shape[1],device=atemp.dv,lamda=args.lamda)
             elif args.embedd_type=='orig':
                 atemp.loss=simclr_loss(atemp.dv,bsz)
-
+            elif args.embedd_type=='AE':
+                atemp.loss=AE_loss(lamda=args.lamda)
         model.add_module('temp',atemp)
         if args.use_multiple_gpus is not None:
             bsz=bsz//args.use_multiple_gpus
@@ -452,7 +455,7 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
                     print('ent',ent.cpu().numpy())
                 if model.temp.embedd_type=='direct':
                      out_norm+=torch.mean(torch.norm(out[0],dim=1))
-                loss, acc = get_loss(lossf,args, out, OUT, target)
+                loss, acc = get_loss(lossf,args, out, OUT, target, data)
             if args.randomize_layers is not None and d_type == "train":
                     for i, k in enumerate(args.KEYS):
                         if args.randomize_layers[lnum * 2] not in k and args.randomize_layers[lnum * 2 + 1] not in k:
@@ -503,16 +506,21 @@ def get_data(data_in, args, dvv, d_type):
 
 def forw(model, args, input, lnum=0):
 
-    OUT=None
+
     if type(input) is list:
 
-        out1, _ = model.forward(input[1])
+        out1, OUT1 = model.forward(input[1])
+        if args.embedd_type=='AE':
+            OUT1=OUT1['dense_final']
         with torch.no_grad() if (args.block) else dummy_context_mgr():
             cl = False
             if args.embedd_type == 'clapp':
                 cl = True
-            out0, _ = model.forward(input[0], clapp=cl)
+            out0, OUT0 = model.forward(input[0], clapp=cl)
+            if args.embedd_type == 'AE':
+                OUT0 = OUT0['dense_final']
         out=[out0,out1]
+        OUT=[OUT0,OUT1]
     else:
         out, OUT = model.forward(input)
         if args.randomize_layers is not None:
@@ -520,11 +528,14 @@ def forw(model, args, input, lnum=0):
 
     return out, OUT
 
-def get_loss(aloss, args, out, OUT, target):
+def get_loss(aloss, args, out, OUT, target, data=None):
 
         # Embedding training with image and its deformed counterpart
         if type(out) is list:
-            loss,acc = aloss(out[0],out[1])
+            if args.embedd_type != 'AE':
+                loss,acc = aloss(out[0],out[1])
+            else:
+                loss, acc = aloss(out[0], out[1], OUT[0],OUT[1],data[0],data[1])
         else:
 
             pen = 0

@@ -13,6 +13,25 @@ def standardize(out, nostd):
         #print(sd.mean(),sd.std())
     return out_a
 
+class AE_loss(nn.Module):
+    def __init__(self, lamda=0, double_aug=False):
+        super(AE_loss, self).__init__()
+
+        self.lamda=lamda
+        self.criterion=nn.MSELoss()
+        self.double_aug=double_aug
+
+    def forward(self,out0,out1,emb0,emb1,data0,data1):
+
+        dim_emb=emb0.shape[1]
+        loss_rec=self.criterion(out1,data0)
+        loss_emb=self.criterion(emb0,emb1)
+
+        loss=loss_rec+self.lamda*loss_emb/dim_emb
+
+        return loss, loss_emb
+
+
 
 class hinge_loss(nn.Module):
     def __init__(self, mu=1., num_class=10):
