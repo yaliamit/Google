@@ -146,7 +146,7 @@ def initialize_model(args, sh, layers,device, layers_dict=None):
             elif args.embedd_type=='orig':
                 atemp.loss=simclr_loss(atemp.dv,bsz)
             elif args.embedd_type=='AE':
-                atemp.loss=AE_loss(lamda=args.lamda)
+                atemp.loss=AE_loss(lamda=args.lamda, l1=args.L1)
         model.add_module('temp',atemp)
         if args.use_multiple_gpus is not None:
             bsz=bsz//args.use_multiple_gpus

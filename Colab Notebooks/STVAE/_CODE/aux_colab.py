@@ -145,7 +145,7 @@ def make_par_file_for_this_layer(args, oldn, i, d, pert, lines, layers_dict, dat
     head_name_layer='dense_p'
     nn = d['name']
     done = False
-    break_name_layer=break_name_layer+str(args.hid_drop)
+    break_name_layer=break_name_layer+str(.5)
     if True:
         # if 'final' in nn or 'input' in nn or 'drop' in nn or (i < len(layers_dict) - 1 and
         #                                                      'pool' in layers_dict[i + 1]['name']):

@@ -172,7 +172,7 @@ def copy_from_old_to_new(model, args, fout, SMS,device, sh):
         else:
             continue
             #if name in dict_params or temp_name in dict_params:
-        namel=name.split(',')
+        namel=name.split('.')
         currname= namel[0] if len(namel)==1 else namel[-2]
         if (args.update_layers is None or 'copy' in args.update_layers or currname not in args.update_layers):
                     fout.write('copying ' + name + '\n')

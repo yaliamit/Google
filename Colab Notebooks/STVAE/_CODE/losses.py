@@ -14,11 +14,15 @@ def standardize(out, nostd):
     return out_a
 
 class AE_loss(nn.Module):
-    def __init__(self, lamda=0, double_aug=False):
+    def __init__(self, lamda=0, l1=False, double_aug=False):
         super(AE_loss, self).__init__()
 
         self.lamda=lamda
-        self.criterion=nn.MSELoss()
+        if l1:
+            self.criterion = nn.L1Loss()
+        else:
+            self.criterion=nn.MSELoss()
+
         self.double_aug=double_aug
 
     def forward(self,out0,out1,emb0,emb1,data0,data1):
