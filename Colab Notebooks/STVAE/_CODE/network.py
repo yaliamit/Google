@@ -453,7 +453,7 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
                     s=s/torch.sum(s)
                     ent=-torch.sum(s*torch.log(s))
                     print('ent',ent.cpu().numpy())
-                if model.temp.embedd_type=='direct':
+                if model.module.temp.embedd_type=='direct':
                      out_norm+=torch.mean(torch.norm(out[0],dim=1))
                 loss, acc = get_loss(lossf,args, out, OUT, target, data)
             if args.randomize_layers is not None and d_type == "train":
