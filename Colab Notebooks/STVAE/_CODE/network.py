@@ -314,7 +314,8 @@ class network(nn.Module):
                                 nn.init.zeros_(temp.bias)
                     if everything:
                         out=OUTS[inp_ind]
-                    out = out.reshape(out.shape[0], -1)
+                    if 'Lin' not in ll:
+                        out = out.reshape(out.shape[0], -1)
                     out = getattr(self.layers, ll['name'])(out)
                     if everything:
                         OUTS[ll['name']] = out

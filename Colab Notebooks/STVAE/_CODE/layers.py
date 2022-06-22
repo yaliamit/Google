@@ -291,7 +291,7 @@ class Linear(nn.Module):
         super(Linear, self).__init__()
 
         # If dimensions are zero just return a dummy variable of the same dimension as input
-        self.lin=ident()
+        self.lin=nn.Identity()
         # If diagonal normal with diagonal cov.
         if (diag_flag and dim1>0):
             self.lin=diag(dim1)
