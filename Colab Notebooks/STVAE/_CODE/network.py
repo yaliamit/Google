@@ -124,7 +124,7 @@ def initialize_model(args, sh, layers,device, layers_dict=None):
                     if (args.optimizer_type == 'Adam'):
                             if atemp.first==1:
                                 atemp.fout.write('Optimizer Adam '+str(args.lr)+'\n')
-                            atemp.optimizer = optim.Adam(pp, lr=args.lr,weight_decay=args.wd)
+                            atemp.optimizer = optim.Adam(model.parameters(), lr=args.lr,weight_decay=args.wd)
                     else:
                             if atemp.first==1:
                                 atemp.fout.write('Optimizer SGD '+str(args.lr))
