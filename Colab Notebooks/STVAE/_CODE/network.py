@@ -115,6 +115,8 @@ def initialize_model(args, sh, layers,device, layers_dict=None):
                                 if atemp.first==1:
                                     atemp.fout.write('TO optimizer '+k+ str(np.array(p.shape))+'\n')
                                 tot_pars += np.prod(np.array(p.shape))
+                                nn.init.xavier_normal_(p)
+                                #nn.init.zeros_(p.bias)
                                 pp+=[p]
                         if not found:
                             p.requires_grad=False
