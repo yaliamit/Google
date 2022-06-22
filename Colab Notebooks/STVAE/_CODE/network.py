@@ -115,8 +115,6 @@ def initialize_model(args, sh, layers,device, layers_dict=None):
                                 if atemp.first==1:
                                     atemp.fout.write('TO optimizer '+k+ str(np.array(p.shape))+'\n')
                                 tot_pars += np.prod(np.array(p.shape))
-                                nn.init.xavier_normal_(p)
-                                #nn.init.zeros_(p.bias)
                                 pp+=[p]
                         if not found:
                             p.requires_grad=False
@@ -244,11 +242,13 @@ class network(nn.Module):
                         pd=(ll['filter_size']//stride) // 2
                         if 'fa' in ll['name'] and not 'ga' in pre and 'Darwin' not in os.uname():
                                 self.layers.add_module(ll['name'],FAConv2d(inp_feats,ll['num_filters'],ll['filter_size'],stride=stride,fa=atemp.fa,padding=pd, bias=bis))
+                                #nn.init.zeros_(p.bias)
                         else:
                                 self.layers.add_module(ll['name'],nn.Conv2d(inp_feats,ll['num_filters'],ll['filter_size'],stride=stride,padding=pd, bias=bis))
                         if 'zero' in ll:
                                 temp=getattr(self.layers, ll['name'])
-                                temp.weight.data=ll['zero']*torch.ones_like(temp.weight.data)
+                                nn.init.xavier_normal_(temp)
+                                temp.bias.data=ll['zero']*torch.ones_like(temp.weight.data)
 
                     out = getattr(self.layers, ll['name'])(out)
                     if everything:
@@ -308,6 +308,10 @@ class network(nn.Module):
                                 self.layers.add_module(ll['name'],Linear(in_dim,out_dim, scale=0, iden=True))
                             else:
                                 self.layers.add_module(ll['name'],nn.Linear(in_dim,out_dim,bias=bis))
+                        if 'zero' in ll:
+                                temp=getattr(self.layers, ll['name'])
+                                nn.init.xavier_normal_(temp)
+                                temp.bias.data=ll['zero']*torch.ones_like(temp.weight.data)
                     if everything:
                         out=OUTS[inp_ind]
                     out = out.reshape(out.shape[0], -1)
