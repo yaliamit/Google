@@ -295,7 +295,7 @@ class Linear(nn.Module):
         # If diagonal normal with diagonal cov.
         if (diag_flag and dim1>0):
             self.lin=diag(dim1)
-        else:
+        elif not iden:
             if (dim2>0):
                 if (dim1>0):
                     bis = True if dim1>1 else False
