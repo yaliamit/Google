@@ -247,8 +247,8 @@ class network(nn.Module):
                                 self.layers.add_module(ll['name'],nn.Conv2d(inp_feats,ll['num_filters'],ll['filter_size'],stride=stride,padding=pd, bias=bis))
                         if 'zero' in ll:
                                 temp=getattr(self.layers, ll['name'])
-                                nn.init.xavier_normal_(temp)
-                                temp.bias.data=ll['zero']*torch.ones_like(temp.weight.data)
+                                nn.init.xavier_normal_(temp.weight)
+                                nn.init.zeros_(temp.bias)
 
                     out = getattr(self.layers, ll['name'])(out)
                     if everything:
@@ -310,8 +310,8 @@ class network(nn.Module):
                                 self.layers.add_module(ll['name'],nn.Linear(in_dim,out_dim,bias=bis))
                         if 'zero' in ll:
                                 temp=getattr(self.layers, ll['name'])
-                                nn.init.xavier_normal_(temp)
-                                temp.bias.data=ll['zero']*torch.ones_like(temp.weight.data)
+                                nn.init.xavier_normal_(temp.weight)
+                                nn.init.zeros_(temp.bias)
                     if everything:
                         out=OUTS[inp_ind]
                     out = out.reshape(out.shape[0], -1)
