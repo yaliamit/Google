@@ -158,7 +158,7 @@ class NONLIN(nn.Module):
         elif ('tanh' in self.type):
             return(F.tanh(input))
         elif ('sigmoid' in self.type):
-            return(F.sigmoid(input))
+            return(torch.sigmoid(input))
         elif ('relu' in self.type):
             return(F.relu(input))
         elif ('smx' in self.type):
