@@ -28,6 +28,7 @@ def process_args(parser):
     parser.add_argument('--layers',  nargs="*", default=None, help='main networ layers')
     parser.add_argument('--update_layers',nargs="*",default=None, help='layers to update')
     parser.add_argument('--copy_layers',nargs="*",default=None, help='layers to force copy')
+    parser.add_argument('--no_copy_layers',nargs="*",default=None, help='layers to not copy')
     parser.add_argument('--hid_layers',  nargs="*", default=None, help='layer for network on embedding')
     parser.add_argument('--tps_num', type=int, default=3, help='dimension of s')
     parser.add_argument('--sdim', type=int, default=26, help='dimension of s')
