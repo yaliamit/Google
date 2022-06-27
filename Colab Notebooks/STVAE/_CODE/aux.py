@@ -1,6 +1,11 @@
 import torch
 import numpy as np
 
+def tuple_type(strings):
+    strings = strings.replace("(", "").replace(")", "")
+    mapped_float = map(float, strings.split(","))
+    return tuple(mapped_float)
+
 def process_args(parser):
     parser.add_argument('--fa', type=int, default=0, help='Type of weight feedback - 0 - bp, 1-fixed, 2-urfb')
     parser.add_argument('--use_multiple_gpus', type=int, default=None, help='Number of gpus to use')
@@ -69,7 +74,7 @@ def process_args(parser):
     parser.add_argument('--lim', type=int, default=0, help='penalty on conv matrix')
     parser.add_argument('--num_mu_iter', type=int, default=10, help='Learning rate (default: .05)')
     parser.add_argument('--wd', type=float, default=0, help='Use weight decay')
-    parser.add_argument('--sched', type=float, default=[0.,0.], nargs="+", help='time step change')
+    parser.add_argument('--sched', type=tuple_type, default="(0.,0.)",  help='time step change')
     parser.add_argument('--hid_sched', type=float, default=[0.,0.], nargs=2, help='time step change')
     parser.add_argument('--cl', type=int, default=None, help='class (default: None)')
     parser.add_argument('--run_existing', action='store_true', help='Use existing model')
