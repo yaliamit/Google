@@ -524,7 +524,7 @@ def forw(model, args, input, lnum=0):
         out1, OOUT1 = model.forward(input[1])
         if args.embedd_type=='AE':
             OUT1=OOUT1['dense_final']
-            if args.layerwise:
+            if args.compare_layers is not None:
                 out1=OOUT1[args.compare_layers[1]]
                 data1=OOUT1[args.compare_layers[0]]
         with torch.no_grad() if (args.block) else dummy_context_mgr():
@@ -534,12 +534,13 @@ def forw(model, args, input, lnum=0):
             out0, OOUT0 = model.forward(input[0], clapp=cl)
             if args.embedd_type == 'AE':
                 OUT0 = OOUT0['dense_final']
-                if args.layerwise:
+                if args.compare_layers is not None:
                     out0 = OOUT0[args.compare_layers[1]]
                     data0 = OOUT0[args.compare_layers[0]]
         out=[out0,out1]
         OUT=[OUT0,OUT1]
-        data=[data0,data1]
+        if args.compare_layers is not None:
+            data=[data0,data1]
     else:
         out, OUT = model.forward(input)
         if args.randomize_layers is not None:
