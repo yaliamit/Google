@@ -49,12 +49,16 @@ class DL(DataLoader):
 class ContrastiveLearningViewGenerator(object):
     """Take two random crops of one image as the query and key."""
 
-    def __init__(self, base_transform, n_views=2):
-        self.base_transform = base_transform
+    def __init__(self, transform, n_views=2):
+        self.transform = transform
         self.n_views = n_views
+        self.base_transform=transforms.Compose([transforms.ToTensor()])
 
     def __call__(self, x):
-        return [self.base_transform(x) for i in range(self.n_views)]
+        if self.n_views>1:
+            return [self.base_transform(x), self.transform(x)]
+        else:
+            return self.base_transform(x)
 
 
 class ContrastiveLearningDataset:
@@ -448,6 +452,53 @@ def get_mnist(PARS):
     testl=one_hot(testl)
     return (tr,trl), (val,vall), (test,testl)
 
+def get_CIFAR10(batch_size = 500,size=None):
+
+    s=1
+    color_jitter = transforms.ColorJitter(0.8 * s, 0.8 * s, 0.8 * s, 0.2 * s)
+    transform_CIFAR = transforms.Compose([transforms.RandomResizedCrop(size=32),
+                                          transforms.RandomHorizontalFlip(),
+                                          transforms.RandomApply([color_jitter], p=0.8),
+                                          transforms.RandomGrayscale(p=0.2),
+                                          transforms.ToTensor()])
+    transform=ContrastiveLearningViewGenerator(transform_CIFAR)
+    train = datasets.CIFAR10(root = "data",train = True,download = True, transform = transform)
+    test = datasets.CIFAR10(root = "data",train = False,download = True, transform = transform)
+
+    num_class = len(train.classes)
+    shape = train.data.shape[1:]
+    if size is not None and size <= len(train):
+        train = Subset(train, random.sample(range(len(train)), size))
+    else:
+        size=len(train)
+    CIFAR10_train_loader = DL(train,batch_size,num_class,size,shape)
+    CIFAR10_test_loader = DL(test,batch_size,num_class,len(test),shape)
+
+    return CIFAR10_train_loader,CIFAR10_test_loader
+
+def get_CIFAR100(batch_size = 500, size=None):
+    s=1
+    color_jitter = transforms.ColorJitter(0.8 * s, 0.8 * s, 0.8 * s, 0.2 * s)
+    transform_CIFAR = transforms.Compose([transforms.RandomResizedCrop(size=32),
+                                          transforms.RandomHorizontalFlip(),
+                                          transforms.RandomApply([color_jitter], p=0.8),
+                                          transforms.RandomGrayscale(p=0.2),
+                                          transforms.ToTensor()])
+    transform = ContrastiveLearningViewGenerator(transform_CIFAR)
+    train = datasets.CIFAR100(root = "data",train = True,download = True, transform = transform)
+    test = datasets.CIFAR100(root = "data",train = False,download = True, transform = transform)
+    num_class = len(train.classes)
+    shape = list(np.array(train.data.shape[1:])[[2,0,1]])
+    if size is not None and size <= len(train):
+        train = Subset(train, random.sample(range(len(train)), size))
+    else:
+        size = len(train)
+    CIFAR100_train_loader = DL(train,batch_size,num_class,size,shape)
+    CIFAR100_test_loader = DL(test,batch_size,num_class,len(test),shape)
+
+    return CIFAR100_train_loader,CIFAR100_test_loader
+
+
 def get_cifar(PARS):
 
     data_set=PARS['data_set']
@@ -526,15 +577,31 @@ def get_letters(PARS):
         val = (val_data, val_labels)
     return (train_data, train_labels), val, (test_data, test_labels)
 
+def get_cifar_trans(PARS):
+    val=None
+    ftr = PARS['data_set'].split('_')[1]
+    if ftr=='trans10':
+        tr,te=get_CIFAR10(PARS['mb_size'])
+    else:
+        tr,te=get_CIFAR100(PARS['mb_size'])
+
+    return tr,val,te
+
+
+
 
 
 def get_data(PARS):
     if 'stl' in PARS['data_set']:
         if 'unlabeled' in PARS['data_set']:
             train,val,test=get_stl10_unlabeled(PARS['mb_size'],size=PARS['num_train'],crop=PARS['crop'])
+
         else:
             train, val, test = get_stl10_labeled(PARS['mb_size'], size=PARS['num_train'],crop=PARS['crop'],  jit=PARS['jit'])
         return train, val, test, train.shape[0]
+    elif 'cifar_trans' in PARS['data_set']:
+            train,val,test=get_cifar_trans(PARS)
+            return train, val, test, train.shape[0]
     elif ('cifar' in PARS['data_set']):
             train, val, test=get_cifar(PARS)
     else:

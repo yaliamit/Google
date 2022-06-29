@@ -448,13 +448,18 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
                 optimizer.zero_grad()
 
             BB, indlist=next(tra)
-            data_in=BB[0].to(dvv,non_blocking=True)
+            if type(BB[0]) is list:
+                data=[BB[0][0].to(dvv,non_blocking=True),BB[0][1].to(dvv,non_blocking=True)]
+            else:
+                data_in=BB[0].to(dvv,non_blocking=True)
+                data = get_data(data_in, args, dvv, d_type)
+
             target=BB[1].to(dvv, dtype=torch.long)
 
-            data=get_data(data_in,args,dvv, d_type)
+
 
             with torch.no_grad() if (d_type!='train') else dummy_context_mgr():
-                out, OUT=forw(model,args,data)
+                out, OUT, data =forw(model,args,data)
                 if j==0 and type(out) is list and args.embedd_type=='direct':
                     _,s,_=torch.linalg.svd(out[0])
                     s=s/torch.sum(s)
@@ -513,27 +518,34 @@ def get_data(data_in, args, dvv, d_type):
 
 def forw(model, args, input, lnum=0):
 
-
+    data=input
     if type(input) is list:
 
-        out1, OUT1 = model.forward(input[1])
+        out1, OOUT1 = model.forward(input[1])
         if args.embedd_type=='AE':
-            OUT1=OUT1['dense_final']
+            OUT1=OOUT1['dense_final']
+            if args.layerwise:
+                out1=OOUT1[args.compare_layers[1]]
+                data1=OOUT1[args.compare_layers[0]]
         with torch.no_grad() if (args.block) else dummy_context_mgr():
             cl = False
             if args.embedd_type == 'clapp':
                 cl = True
-            out0, OUT0 = model.forward(input[0], clapp=cl)
+            out0, OOUT0 = model.forward(input[0], clapp=cl)
             if args.embedd_type == 'AE':
-                OUT0 = OUT0['dense_final']
+                OUT0 = OOUT0['dense_final']
+                if args.layerwise:
+                    out0 = OOUT0[args.compare_layers[1]]
+                    data0 = OOUT0[args.compare_layers[0]]
         out=[out0,out1]
         OUT=[OUT0,OUT1]
+        data=[data0,data1]
     else:
         out, OUT = model.forward(input)
         if args.randomize_layers is not None:
             out = OUT[args.randomize_layers[lnum * 2 + 1]]
 
-    return out, OUT
+    return out, OUT, data
 
 def get_loss(aloss, args, out, OUT, target, data=None):
 

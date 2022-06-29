@@ -32,6 +32,7 @@ def process_args(parser):
     parser.add_argument('--dec_trans_top',  nargs="*", default=None, help='transform decoder layer')
     parser.add_argument('--layers',  nargs="*", default=None, help='main networ layers')
     parser.add_argument('--update_layers',nargs="*",default=None, help='layers to update')
+    parser.add_argument('--compare_layers',nargs="*",default=None, help='layers to update')
     parser.add_argument('--copy_layers',nargs="*",default=None, help='layers to force copy')
     parser.add_argument('--no_copy_layers',nargs="*",default=None, help='layers to not copy')
     parser.add_argument('--hid_layers',  nargs="*", default=None, help='layer for network on embedding')
