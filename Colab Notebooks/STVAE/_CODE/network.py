@@ -229,6 +229,7 @@ class network(nn.Module):
                 if ('conv' in ll['name']):
                     if everything:
                         out = OUTS[inp_ind]
+                    # Reshape to grid based data with inp_feats features.
                     if len(out.shape)==2:
                         wdim=np.int(np.sqrt(out.shape[1]/inp_feats))
                         out=out.reshape(out.shape[0],inp_feats,wdim,wdim)
@@ -527,6 +528,7 @@ def forw(model, args, input, lnum=0):
             if args.compare_layers is not None:
                 out1=OOUT1[args.compare_layers[1]]
                 data1=OOUT1[args.compare_layers[0]]
+                print(torch.max(torch.abs(data1)),torch.max(torch.abs(out1)))
         with torch.no_grad() if (args.block) else dummy_context_mgr():
             cl = False
             if args.embedd_type == 'clapp':
