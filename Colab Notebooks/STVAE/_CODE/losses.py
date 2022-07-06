@@ -30,7 +30,7 @@ class AE_loss(nn.Module):
         dim_emb=emb0.shape[1]
         loss_rec=self.criterion(out1,data0)
 
-        emb_loss=0
+        emb_loss=None
         if self.lamda>0:
             emb_loss=self.lamda*self.criterion(emb0,emb1)
         loss=loss_rec+emb_loss
