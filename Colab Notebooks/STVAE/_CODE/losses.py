@@ -28,12 +28,12 @@ class AE_loss(nn.Module):
     def forward(self,out0,out1,emb0,emb1,data0,data1):
 
         dim_emb=emb0.shape[1]
-        loss_rec=self.criterion(out1,data0)
+        loss=self.criterion(out1,data0)
 
         emb_loss=torch.tensor([0.])
         if self.lamda>0:
             emb_loss=self.lamda*self.criterion(emb0,emb1)
-        loss=loss_rec+emb_loss
+            loss+=emb_loss
 
         return loss, emb_loss
 
