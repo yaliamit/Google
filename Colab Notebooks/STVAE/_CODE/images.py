@@ -275,24 +275,25 @@ def deform_data(x_in,perturb,trans,s_factor,h_factor,embedd,dv):
         u[:,[2,5]]*=2.
 
         rr[:, [0,4]] = 1
-        if trans=='shift':
-          u[:,[0,1,3,4]]=0
-          u[:,[2,5]]=torch.tensor([perturb,0])
-        elif trans=='scale':
-          u[:,[1,3]]=0
-        elif 'rotate' in trans:
-          u[:,[0,1,3,4]]*=1.5
-          ang=u[:,0]
-          v=torch.zeros(nn,6)
-          v[:,0]=torch.cos(ang)
-          v[:,1]=-torch.sin(ang)
-          v[:,4]=torch.cos(ang)
-          v[:,3]=torch.sin(ang)
-          s=torch.ones(nn)
-          if 'scale' in trans:
-            s = torch.exp(u[:, 1])
-          u[:,[0,1,3,4]]=v[:,[0,1,3,4]]*s.reshape(-1,1).expand(nn,4)
-          rr[:,[0,4]]=0
+        if trans is not None:
+            if trans=='shift':
+              u[:,[0,1,3,4]]=0
+              u[:,[2,5]]=torch.tensor([perturb,0])
+            elif trans=='scale':
+              u[:,[1,3]]=0
+            elif 'rotate' in trans:
+              u[:,[0,1,3,4]]*=1.5
+              ang=u[:,0]
+              v=torch.zeros(nn,6)
+              v[:,0]=torch.cos(ang)
+              v[:,1]=-torch.sin(ang)
+              v[:,4]=torch.cos(ang)
+              v[:,3]=torch.sin(ang)
+              s=torch.ones(nn)
+              if 'scale' in trans:
+                s = torch.exp(u[:, 1])
+              u[:,[0,1,3,4]]=v[:,[0,1,3,4]]*s.reshape(-1,1).expand(nn,4)
+              rr[:,[0,4]]=0
         theta = (u+rr).view(-1, 2, 3)
         grid = F.affine_grid(theta, [nn,1,h,w],align_corners=True)
         x_out=F.grid_sample(x_in,grid,padding_mode='border',align_corners=True)
