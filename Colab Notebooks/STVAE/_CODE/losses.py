@@ -62,6 +62,7 @@ class direct_loss(nn.Module):
         self.cov=torch.eye(out_dim).to(self.dv)
         self.eye=self.eps*torch.eye(out_dim).to(self.dv)
         self.lamda=lamda
+        self.criterion=nn.L1Loss()
     def forward(self,out0,out1):
 
 
@@ -70,10 +71,10 @@ class direct_loss(nn.Module):
 
         outa=out1 @ (self.cov + self.eye)
 
-        loss= torch.sum(torch.abs(outa-out0)) #+self.lamda*(torch.mean(.5-torch.abs(out0)))
+        loss= self.criterion(outa,out0) #torch.sum(torch.abs(outa-out0)) #+self.lamda*(torch.mean(.5-torch.abs(out0)))
         loss1=torch.tensor([0.])
         if self.lamda>0:
-            loss1=torch.sum(torch.abs(out0-out1))
+            loss1= self.criterion(outa,out0)  #torch.sum(torch.abs(out0-out1))
             loss+=self.lamda*loss1
 
         return loss, loss1
