@@ -67,7 +67,7 @@ class direct_loss(nn.Module):
 
 
         with torch.no_grad():
-            self.cov=(out1.T @ out1) #(1-self.alpha)*cc+self.alpha*self.cov
+            self.cov=(1-self.alpha)*(out1.T @ out1)+self.alpha*self.cov
 
         outa=out1 @ (self.cov + self.eye)
 
