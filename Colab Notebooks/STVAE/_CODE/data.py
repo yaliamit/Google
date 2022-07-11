@@ -12,7 +12,7 @@ from torchvision import transforms, datasets
 from torch.utils.data import DataLoader, Subset, random_split
 import torch
 import random
-from torch.utils.data.dataloader import _SingleProcessDataLoaderIter
+from torch.utils.data.dataloader import _SingleProcessDataLoaderIter, _MultiProcessingDataLoaderIterWithIndicies
 from torch.utils.data import _utils
 
 
@@ -31,19 +31,20 @@ class _SingleProcessDataLoaderIterWithIndices(_SingleProcessDataLoaderIter):
         return data, index
 
 class DL(DataLoader):
-    def __init__(self, input, batch_size, num_class, num, shape, shuffle=False):
+    def __init__(self, input, batch_size, num_class, num, shape, num_workers=0, shuffle=False):
         super(DL, self).__init__(input,batch_size,shuffle)
         self.num=num
         self.num_class=num_class
         self.shape=shape
+        self.num_workers=num_workers
 
 
     def _get_iterator(self) -> '_BaseDataLoaderIter':
         if self.num_workers == 0:
             return _SingleProcessDataLoaderIterWithIndices(self)
-        #else:
-        #    self.check_worker_number_rationality()
-        #    return _MultiProcessingDataLoaderIterWithIndicies(self)
+        else:
+            self.check_worker_number_rationality()
+            return _MultiProcessingDataLoaderIterWithIndicies(self)
 
 
 class ContrastiveLearningViewGenerator(object):
@@ -153,7 +154,9 @@ def get_pre():
         if 'bernie' in aa[1]:
             pre='/home/amit/ga/Google/'
         elif 'midway' in aa[1]:
-            pre='/home/yaliamit/Google/'
+            pre='/home/yaliamit/Google/'aa=os.uname()
+    if 'Linux' in aa:
+        if 'bernie' in aa[1]:
         else:
             pre = 'ME/MyDrive/'
     else:
@@ -493,8 +496,13 @@ def get_CIFAR100(batch_size = 500, size=None):
         train = Subset(train, random.sample(range(len(train)), size))
     else:
         size = len(train)
-    CIFAR100_train_loader = DL(train,batch_size,num_class,size,shape)
-    CIFAR100_test_loader = DL(test,batch_size,num_class,len(test),shape)
+
+    numworkers=0
+    aa = os.uname()
+    if 'bernie' in aa[1]:
+        numworkers=1
+    CIFAR100_train_loader = DL(train,batch_size,num_class,size,shape,num_workers=numworkers)
+    CIFAR100_test_loader = DL(test,batch_size,num_class,len(test),shape,num_workers=numworkers)
 
     return CIFAR100_train_loader,CIFAR100_test_loader
 
