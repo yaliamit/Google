@@ -18,7 +18,7 @@ import os
 
 
 
-os.environ['KMP_DUPLICATE_LIB_OK']='True'
+
 
 # if 'Linux' in os.uname():
 #     from google.colab import drive

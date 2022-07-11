@@ -520,6 +520,7 @@ def get_data(data_in, args, dvv, d_type):
 def forw(model, args, input, lnum=0):
 
     data=input
+    OUT0=OUT1=None
     if type(input) is list:
 
         out1, OOUT1 = model.forward(input[1])

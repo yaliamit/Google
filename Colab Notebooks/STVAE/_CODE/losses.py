@@ -64,16 +64,18 @@ class direct_loss(nn.Module):
         self.lamda=lamda
     def forward(self,out0,out1):
 
-        cc=(out1.T @ out1)
+
         with torch.no_grad():
-            self.cov=(1-self.alpha)*cc+self.alpha*self.cov
+            self.cov=(out1.T @ out1) #(1-self.alpha)*cc+self.alpha*self.cov
 
         outa=out1 @ (self.cov + self.eye)
 
-        loss= torch.sum(torch.abs(outa-out0)**2) #+self.lamda*(torch.mean(.5-torch.abs(out0)))
+        loss= torch.sum(torch.abs(outa-out0)) #+self.lamda*(torch.mean(.5-torch.abs(out0)))
+        loss1=torch.tensor([0.])
+        if self.lamda>0:
+            loss1=torch.sum(torch.abs(out0-out1))
+            loss+=self.lamda*loss1
 
-        loss1=torch.sum(torch.abs(out0-out1)**2)
-        loss+=self.lamda*loss1
         return loss, loss1
 
 
