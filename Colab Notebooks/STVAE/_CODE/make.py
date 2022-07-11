@@ -142,7 +142,7 @@ def train_model(model, args, ex_file, DATA, fout):
         fout.flush()
         time2=time.time()
         if time2-time1>1800:
-            save_net_int(model, args.model_out+'_'+str((epoch % 3)), args, predir)
+            save_net_int(model, args.model_out+'_'+str((epoch)), args, predir)
             time1=time2
         if scheduler is not None:
             scheduler.step()
