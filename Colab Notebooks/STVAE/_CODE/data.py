@@ -12,39 +12,39 @@ from torchvision import transforms, datasets
 from torch.utils.data import DataLoader, Subset, random_split
 import torch
 import random
-from torch.utils.data.dataloader import _SingleProcessDataLoaderIter , _MultiProcessingDataLoaderIterWithIndicies
+#from torch.utils.data.dataloader import _SingleProcessDataLoaderIter , _MultiProcessingDataLoaderIterWithIndicies
 from torch.utils.data import _utils
 
 
-class _SingleProcessDataLoaderIterWithIndices(_SingleProcessDataLoaderIter):
-    def __init__(self, loader):
-        super(_SingleProcessDataLoaderIterWithIndices, self).__init__(loader)
-        assert self._timeout == 0
-        assert self._num_workers == 0
-
-
-    def _next_data(self):
-        index = self._next_index()  # may raise StopIteration
-        data = self._dataset_fetcher.fetch(index)  # may raise StopIteration
-        if self._pin_memory:
-            data = _utils.pin_memory.pin_memory(data)
-        return data, index
+# class _SingleProcessDataLoaderIterWithIndices(_SingleProcessDataLoaderIter):
+#     def __init__(self, loader):
+#         super(_SingleProcessDataLoaderIterWithIndices, self).__init__(loader)
+#         assert self._timeout == 0
+#         assert self._num_workers == 0
+#
+#
+#     def _next_data(self):
+#         index = self._next_index()  # may raise StopIteration
+#         data = self._dataset_fetcher.fetch(index)  # may raise StopIteration
+#         if self._pin_memory:
+#             data = _utils.pin_memory.pin_memory(data)
+#         return data, index
 
 class DL(DataLoader):
     def __init__(self, input, batch_size, num_class, num, shape, num_workers=0, shuffle=False):
-        super(DL, self).__init__(input,batch_size,shuffle)
+        super(DL, self).__init__(input,batch_size,shuffle,num_workers)
         self.num=num
         self.num_class=num_class
         self.shape=shape
         self.num_workers=num_workers
 
 
-    def _get_iterator(self) -> '_BaseDataLoaderIter':
-        if self.num_workers == 0:
-            return _SingleProcessDataLoaderIterWithIndices(self)
-        else:
-            self.check_worker_number_rationality()
-            return _MultiProcessingDataLoaderIterWithIndicies(self)
+    # def _get_iterator(self) -> '_BaseDataLoaderIter':
+    #     if self.num_workers == 0:
+    #         return _SingleProcessDataLoaderIterWithIndices(self)
+    #     else:
+    #         self.check_worker_number_rationality()
+    #         return _MultiProcessingDataLoaderIterWithIndicies(self)
 
 
 class ContrastiveLearningViewGenerator(object):
