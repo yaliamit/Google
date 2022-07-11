@@ -12,7 +12,7 @@ from torchvision import transforms, datasets
 from torch.utils.data import DataLoader, Subset, random_split
 import torch
 import random
-from torch.utils.data.dataloader import _SingleProcessDataLoaderIter, _MultiProcessingDataLoaderIterWithIndicies
+from torch.utils.data.dataloader import _SingleProcessDataLoaderIter , _MultiProcessingDataLoaderIterWithIndicies
 from torch.utils.data import _utils
 
 
@@ -154,9 +154,7 @@ def get_pre():
         if 'bernie' in aa[1]:
             pre='/home/amit/ga/Google/'
         elif 'midway' in aa[1]:
-            pre='/home/yaliamit/Google/'aa=os.uname()
-    if 'Linux' in aa:
-        if 'bernie' in aa[1]:
+            pre='/home/yaliamit/Google/'
         else:
             pre = 'ME/MyDrive/'
     else:
