@@ -496,9 +496,9 @@ def get_CIFAR100(batch_size = 500, size=None):
         size = len(train)
 
     numworkers=0
-    aa = os.uname()
-    if 'bernie' in aa[1]:
-        numworkers=1
+    # aa = os.uname()
+    # if 'bernie' in aa[1]:
+    #     numworkers=1
     CIFAR100_train_loader = DL(train,batch_size,num_class,size,shape,num_workers=numworkers)
     CIFAR100_test_loader = DL(test,batch_size,num_class,len(test),shape,num_workers=numworkers)
 
