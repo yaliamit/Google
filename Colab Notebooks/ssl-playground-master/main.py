@@ -23,6 +23,7 @@ def main(args):
     gpus = [args.gpu_id] if torch.cuda.is_available() and args.gpu_id >= 0 else 0
     s = "cuda:" + str(gpus[0])
     device = torch.device(s)
+    print(device)
     if args.deterministic:
         pl.seed_everything(args.seed)
     if args.backbone == 'resnet18':
@@ -93,7 +94,7 @@ def main(args):
     elif args.model == 'directcopy':
         model = DirectCopy(backbone, args.ssl_epochs, loss, args.dc_cm_grad, args.dc_m, args.dc_mu, args.dc_epsilon)
     elif args.model == 'directcopybp':
-        model = DirectCopyBP(backbone, args.ssl_epochs, loss, device, args.dc_cm_grad, args.dc_m, args.dc_mu, args.dc_epsilon, args.perturb)
+        model = DirectCopyBP(backbone, args.ssl_epochs, device, loss, args.dc_cm_grad, args.dc_m, args.dc_mu, args.dc_epsilon, args.perturb)
     else:
         raise ValueError('Model not supported')
 
