@@ -18,6 +18,11 @@ from transform_external import distortion3_collate_fn
 
 def main(args):
     print(args)
+
+
+    gpus = [args.gpu_id] if torch.cuda.is_available() and args.gpu_id >= 0 else 0
+    s = "cuda:" + gpus[0]
+    device = torch.device(s)
     if args.deterministic:
         pl.seed_everything(args.seed)
     if args.backbone == 'resnet18':
@@ -88,7 +93,7 @@ def main(args):
     elif args.model == 'directcopy':
         model = DirectCopy(backbone, args.ssl_epochs, loss, args.dc_cm_grad, args.dc_m, args.dc_mu, args.dc_epsilon)
     elif args.model == 'directcopybp':
-        model = DirectCopyBP(backbone, args.ssl_epochs, loss, args.dc_cm_grad, args.dc_m, args.dc_mu, args.dc_epsilon)
+        model = DirectCopyBP(backbone, args.ssl_epochs, loss, device, args.dc_cm_grad, args.dc_m, args.dc_mu, args.dc_epsilon, args.perturb)
     else:
         raise ValueError('Model not supported')
 
@@ -161,6 +166,7 @@ if __name__ == "__main__":
     parser.add_argument("--gpu_id", type=int, default=0)
     parser.add_argument("--loss", type=str, default=None)
     parser.add_argument("--margin", type=float, default=1.0)
+    parser.add_argument("--perturb", type=float, default=None)
     parser.add_argument("--dc_m", type=float, default=0.996)
     parser.add_argument("--dc_mu", type=float, default=0.5)
     parser.add_argument("--dc_epsilon", type=float, default=0.3)

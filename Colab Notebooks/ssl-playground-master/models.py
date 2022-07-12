@@ -145,7 +145,7 @@ class BYOL(pl.LightningModule, _MomentumEncoderMixin):
 
 
 class DirectCopy(pl.LightningModule, _MomentumEncoderMixin):
-    def __init__(self, backbone, max_epochs, loss=None, cm_grad=True,
+    def __init__(self, backbone, max_epochs, device, loss=None, cm_grad=True,
                  m=0.996, mu=0.5, epsilon=0.3):
         super().__init__()
         self.backbone = backbone
@@ -158,6 +158,7 @@ class DirectCopy(pl.LightningModule, _MomentumEncoderMixin):
         self.mu = mu
         self.epsilon = epsilon
         self.cm_grad = cm_grad
+        self.device=device
         if not loss:
             self.criterion = NegativeCosineSimilarity()
         else:
@@ -203,10 +204,130 @@ class DirectCopy(pl.LightningModule, _MomentumEncoderMixin):
         )
         return [optim], [scheduler]
 
+def deform_data(x_in, perturb, dv, trans=None, s_factor=4., h_factor=.2):
+
+        if perturb == 0:
+            return x_in
+        # t1=time.time()
+        h = x_in.shape[2]
+        w = x_in.shape[3]
+        nn = x_in.shape[0]
+        v = ((torch.rand(nn, 6) - .5) * perturb).to(dv)
+        # v=(torch.rand(nn, 6) * perturb)+perturb/4.
+        # vs=2*(torch.rand(nn,6)>.5)-1
+        # v=v*vs
+        rr = torch.zeros(nn, 6).to(dv)
+        u = v
+        # Ammplify the shift part of the
+        u[:, [2, 5]] *= 2.
+
+        rr[:, [0, 4]] = 1
+        if trans is not None:
+            if trans == 'shift':
+                u[:, [0, 1, 3, 4]] = 0
+                u[:, [2, 5]] = torch.tensor([perturb, 0])
+            elif trans == 'scale':
+                u[:, [1, 3]] = 0
+            elif 'rotate' in trans:
+                u[:, [0, 1, 3, 4]] *= 1.5
+                ang = u[:, 0]
+                v = torch.zeros(nn, 6)
+                v[:, 0] = torch.cos(ang)
+                v[:, 1] = -torch.sin(ang)
+                v[:, 4] = torch.cos(ang)
+                v[:, 3] = torch.sin(ang)
+                s = torch.ones(nn)
+                if 'scale' in trans:
+                    s = torch.exp(u[:, 1])
+                u[:, [0, 1, 3, 4]] = v[:, [0, 1, 3, 4]] * s.reshape(-1, 1).expand(nn, 4)
+                rr[:, [0, 4]] = 0
+        theta = (u + rr).view(-1, 2, 3)
+        grid = F.affine_grid(theta, [nn, 1, h, w], align_corners=True)
+        x_out = F.grid_sample(x_in, grid, padding_mode='border', align_corners=True)
+
+        if x_in.shape[1] == 3 and s_factor > 0:
+            v = torch.rand(nn, 2).to(dv)
+            vv = torch.pow(2, (v[:, 0] * s_factor - s_factor / 2)).reshape(nn, 1, 1)
+            uu = ((v[:, 1] - .5) * h_factor).reshape(nn, 1, 1)
+            x_out_hsv = rgb_to_hsv(x_out, dv)
+            x_out_hsv[:, 1, :, :] = torch.clamp(x_out_hsv[:, 1, :, :] * vv, 0., 1.)
+            x_out_hsv[:, 0, :, :] = torch.remainder(x_out_hsv[:, 0, :, :] + uu, 1.)
+            x_out = hsv_to_rgb(x_out_hsv, dv)
+        if trans != 'shift':
+            ii = torch.where(torch.bernoulli(torch.ones(nn) * .5) == 1)
+            for i in ii:
+                x_out[i] = x_out[i].flip(3)
+
+        # print('Def time',time.time()-t1)
+        return x_out
+
+
+def rgb_to_hsv(input, dv):
+    input = input.transpose(1, 3)
+    sh = input.shape
+    input = input.reshape(-1, 3)
+
+    mx, inmx = torch.max(input, dim=1)
+    mn, inmc = torch.min(input, dim=1)
+    df = mx - mn
+    h = torch.zeros(input.shape[0], 1).to(dv)
+    # if False: #'xla' not in device.type:
+    #     h.to(device)
+    ii = [0, 1, 2]
+    iid = [[1, 2], [2, 0], [0, 1]]
+    shift = [360, 120, 240]
+
+    for i, id, s in zip(ii, iid, shift):
+        logi = (df != 0) & (inmx == i)
+        h[logi, 0] = \
+            torch.remainder((60 * (input[logi, id[0]] - input[logi, id[1]]) / df[logi] + s), 360)
+
+    s = torch.zeros(input.shape[0], 1).to(dv)  #
+    # if False: #'xla' not in device.type:
+    #     s.to(device)
+    s[mx != 0, 0] = (df[mx != 0] / mx[mx != 0]) * 100
+
+    v = mx.reshape(input.shape[0], 1) * 100
+
+    output = torch.cat((h / 360., s / 100., v / 100.), dim=1)
+
+    output = output.reshape(sh).transpose(1, 3)
+    return output
+
+
+def hsv_to_rgb(input, dv):
+    input = input.transpose(1, 3)
+    sh = input.shape
+    input = input.reshape(-1, 3)
+
+    hh = input[:, 0]
+    hh = hh * 6
+    ihh = torch.floor(hh).type(torch.int32)
+    ff = (hh - ihh)[:, None];
+    v = input[:, 2][:, None]
+    s = input[:, 1][:, None]
+    p = v * (1.0 - s)
+    q = v * (1.0 - (s * ff))
+    t = v * (1.0 - (s * (1.0 - ff)));
+
+    output = torch.zeros_like(input).to(dv)  # .to(device)
+    # if False: #'xla' not in device.type:
+    #     output.to(device)
+    output[ihh == 0, :] = torch.cat((v[ihh == 0], t[ihh == 0], p[ihh == 0]), dim=1)
+    output[ihh == 1, :] = torch.cat((q[ihh == 1], v[ihh == 1], p[ihh == 1]), dim=1)
+    output[ihh == 2, :] = torch.cat((p[ihh == 2], v[ihh == 2], t[ihh == 2]), dim=1)
+    output[ihh == 3, :] = torch.cat((p[ihh == 3], q[ihh == 3], v[ihh == 3]), dim=1)
+    output[ihh == 4, :] = torch.cat((t[ihh == 4], p[ihh == 4], v[ihh == 4]), dim=1)
+    output[ihh == 5, :] = torch.cat((v[ihh == 5], p[ihh == 5], q[ihh == 5]), dim=1)
+
+    output = output.reshape(sh)
+    output = output.transpose(1, 3)
+    return output
+
 
 class DirectCopyBP(pl.LightningModule):
     def __init__(self, backbone, max_epochs, loss=None, cm_grad=False,
-                 m=0.996, mu=0.5, epsilon=0.3):
+                 m=0.996, mu=0.5, epsilon=0.3, perturb=None):
         super().__init__()
         self.backbone = backbone
         backbone_out_dims = inference_backbone_output_shape(backbone)
@@ -215,6 +336,7 @@ class DirectCopyBP(pl.LightningModule):
         self.mu = mu
         self.epsilon = epsilon
         self.cm_grad = cm_grad
+        self.perturb = perturb
         if not loss:
             self.criterion = HingeNoNegs(normalize=False)
         else:
@@ -263,6 +385,8 @@ class DirectCopyBP(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         (x0, x1), _, _ = batch
+        if self.perturb is not None:
+            x0=deform_data(x0,self.perturb, self.device)
         p0, z1 = self.forward(x0, x1)
         #p1, z0 = self.forward(x1, x0)
         #loss = 0.5 * (self.criterion(z0, p1) + self.criterion(z1, p0))
