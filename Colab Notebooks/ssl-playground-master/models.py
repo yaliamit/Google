@@ -337,6 +337,7 @@ class DirectCopyBP(pl.LightningModule):
         self.epsilon = epsilon
         self.cm_grad = cm_grad
         self.perturb = perturb
+        print('in Drc',device)
         self.device = device
         if not loss:
             self.criterion = HingeNoNegs(normalize=False)
