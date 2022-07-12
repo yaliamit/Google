@@ -338,7 +338,7 @@ class DirectCopyBP(pl.LightningModule):
         self.cm_grad = cm_grad
         self.perturb = perturb
         print('in Drc',device)
-        self.device = device
+        self.dv = device
         if not loss:
             self.criterion = HingeNoNegs(normalize=False)
         else:
@@ -388,7 +388,7 @@ class DirectCopyBP(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         (x0, x1), _, _ = batch
         if self.perturb is not None:
-            x0=deform_data(x0,self.perturb, self.device)
+            x0=deform_data(x0,self.perturb, self.dv)
         p0, z1 = self.forward(x0, x1)
         #p1, z0 = self.forward(x1, x0)
         #loss = 0.5 * (self.criterion(z0, p1) + self.criterion(z1, p0))
