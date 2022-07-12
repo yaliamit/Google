@@ -235,7 +235,8 @@ class DirectCopyBP(pl.LightningModule):
             corr_matrix_batch = torch.einsum('bi,bj->bij', z0, z0).mean(axis=0)
         else:
             with torch.no_grad():
-                corr_matrix_batch = torch.einsum('bi,bj->bij', z0, z0).mean(axis=0)
+                corr_matrix_batch = (z0.T @ z0)/z0.shape[0]
+                #corr_matrix_batch = torch.einsum('bi,bj->bij', z0, z0).mean(axis=0)
         with torch.no_grad():
             for i in z0:
                 self.z0_history[self.cur_idx] = i
@@ -263,8 +264,10 @@ class DirectCopyBP(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         (x0, x1), _, _ = batch
         p0, z1 = self.forward(x0, x1)
-        p1, z0 = self.forward(x1, x0)
-        loss = 0.5 * (self.criterion(z0, p1) + self.criterion(z1, p0))
+        #p1, z0 = self.forward(x1, x0)
+        #loss = 0.5 * (self.criterion(z0, p1) + self.criterion(z1, p0))
+        loss = self.criterion(z1, p0)
+
         return loss
 
     def configure_optimizers(self):
