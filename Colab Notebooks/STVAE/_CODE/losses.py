@@ -63,11 +63,13 @@ class direct_loss(nn.Module):
         self.eye=self.eps*torch.eye(out_dim).to(self.dv)
         self.lamda=lamda
         self.criterion=nn.L1Loss()
+        self.batch_size=batch_size
+
     def forward(self,out0,out1):
 
 
         with torch.no_grad():
-            self.cov=(1-self.alpha)*(out1.T @ out1)+self.alpha*self.cov
+            self.cov=(1-self.alpha)*(out1.T @ out1)/self.batch_size+self.alpha*self.cov
 
         outa=out1 @ (self.cov + self.eye)
         diff=torch.sum(torch.abs(out0-outa),dim=1)
