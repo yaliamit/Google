@@ -145,7 +145,7 @@ class BYOL(pl.LightningModule, _MomentumEncoderMixin):
 
 
 class DirectCopy(pl.LightningModule, _MomentumEncoderMixin):
-    def __init__(self, backbone, max_epochs, device, loss=None, cm_grad=True,
+    def __init__(self, backbone, max_epochs, loss=None, cm_grad=True,
                  m=0.996, mu=0.5, epsilon=0.3):
         super().__init__()
         self.backbone = backbone
@@ -158,7 +158,7 @@ class DirectCopy(pl.LightningModule, _MomentumEncoderMixin):
         self.mu = mu
         self.epsilon = epsilon
         self.cm_grad = cm_grad
-        self.device=device
+
         if not loss:
             self.criterion = NegativeCosineSimilarity()
         else:
@@ -326,7 +326,7 @@ def hsv_to_rgb(input, dv):
 
 
 class DirectCopyBP(pl.LightningModule):
-    def __init__(self, backbone, max_epochs, loss=None, cm_grad=False,
+    def __init__(self, backbone, max_epochs, device, loss=None, cm_grad=False,
                  m=0.996, mu=0.5, epsilon=0.3, perturb=None):
         super().__init__()
         self.backbone = backbone
@@ -337,6 +337,7 @@ class DirectCopyBP(pl.LightningModule):
         self.epsilon = epsilon
         self.cm_grad = cm_grad
         self.perturb = perturb
+        self.device = device
         if not loss:
             self.criterion = HingeNoNegs(normalize=False)
         else:
