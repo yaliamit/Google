@@ -9,6 +9,7 @@ from lightly.models.modules import SimSiamProjectionHead
 from lightly.models.modules.heads import ProjectionHead
 from lightly.models.utils import deactivate_requires_grad
 from torch import nn
+import torch.nn.functional as F
 
 from losses import HingeNoNegs
 
