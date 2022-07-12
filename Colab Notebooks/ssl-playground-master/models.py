@@ -402,7 +402,7 @@ class DirectCopyBP(pl.LightningModule):
         #
         loss = self.criterion(z1, p0)
         if self.symmetric:
-            loss += self.criterion(z1, p0)
+            loss += self.criterion(z0, p1)
             loss*=.5
         return loss
 
