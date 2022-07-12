@@ -94,7 +94,8 @@ def main(args):
     elif args.model == 'directcopy':
         model = DirectCopy(backbone, args.ssl_epochs, loss, args.dc_cm_grad, args.dc_m, args.dc_mu, args.dc_epsilon)
     elif args.model == 'directcopybp':
-        model = DirectCopyBP(backbone, args.ssl_epochs, device, loss, args.dc_cm_grad, args.dc_m, args.dc_mu, args.dc_epsilon, args.perturb)
+        model = DirectCopyBP(backbone, args.ssl_epochs, device, loss, args.dc_cm_grad, args.dc_m, args.dc_mu,
+                             args.dc_epsilon, args.perturb, args.symmetric, args.double_aug)
     else:
         raise ValueError('Model not supported')
 
@@ -172,6 +173,8 @@ if __name__ == "__main__":
     parser.add_argument("--dc_mu", type=float, default=0.5)
     parser.add_argument("--dc_epsilon", type=float, default=0.3)
     parser.add_argument("--dc_cm_grad", action='store_true')
+    parser.add_argument("--symmetric", action='store_true')
+    parser.add_argument("--double_aug", action='store_true')
     parser.add_argument("--save", type=str, default="backbone_weights.pth")
     parser.add_argument("--load", type=str, default=None)
     args = parser.parse_args()

@@ -328,7 +328,7 @@ def hsv_to_rgb(input, dv):
 
 class DirectCopyBP(pl.LightningModule):
     def __init__(self, backbone, max_epochs, device, loss=None, cm_grad=False,
-                 m=0.996, mu=0.5, epsilon=0.3, perturb=None):
+                 m=0.996, mu=0.5, epsilon=0.3, perturb=None, symmetric=True, double_aug=True):
         super().__init__()
         self.backbone = backbone
         backbone_out_dims = inference_backbone_output_shape(backbone)
@@ -340,6 +340,8 @@ class DirectCopyBP(pl.LightningModule):
         self.perturb = perturb
         print('in Drc',device)
         self.dv = device
+        self.symmetric=symmetric
+        self.double_aug=double_aug
         if not loss:
             self.criterion = HingeNoNegs(normalize=False)
         else:
@@ -389,12 +391,19 @@ class DirectCopyBP(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         (x0, x1), _, _ = batch
         if self.perturb is not None:
-            x0=deform_data(x0,self.perturb, self.dv)
-        p0, z1 = self.forward(x0, x1)
-        #p1, z0 = self.forward(x1, x0)
-        #loss = 0.5 * (self.criterion(z0, p1) + self.criterion(z1, p0))
-        loss = self.criterion(z1, p0)
+            with torch.no_grad():
+                x0=deform_data(x0,self.perturb, self.dv)
+                if self.double_aug:
+                    x1 = deform_data(x1, self.perturb, self.dv)
 
+        p0, z1 = self.forward(x0, x1)
+        if self.symmetric:
+            p1, z0 = self.forward(x1, x0)
+        #
+        loss = self.criterion(z1, p0)
+        if self.symmetric:
+            loss += self.criterion(z1, p0)
+            loss*=.5
         return loss
 
     def configure_optimizers(self):
