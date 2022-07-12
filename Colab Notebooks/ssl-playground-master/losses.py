@@ -126,7 +126,7 @@ class HingeFewerNegs(pl.LightningModule):
         else:
             loss = torch.sum(torch.relu(self.delta - OUT))
         return loss
-        
+
 
 class HingeNoNegs(pl.LightningModule):
     def __init__(self, thr=2., delta=1., grad_block=True, normalize=True):
@@ -143,5 +143,6 @@ class HingeNoNegs(pl.LightningModule):
             out0 = torch.nn.functional.normalize(out0, dim=1)
             out1 = torch.nn.functional.normalize(out1, dim=1)
         diff = torch.sum(torch.abs(out0 - out1), dim=1)
-        diff = -diff + self.thr
-        return torch.sum(torch.relu(self.delta - diff))
+        #diff = -diff + self.thr
+        return torch.sum(diff) #torch.relu(self.delta - diff))
+
