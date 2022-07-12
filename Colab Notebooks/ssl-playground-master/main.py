@@ -21,7 +21,7 @@ def main(args):
 
 
     gpus = [args.gpu_id] if torch.cuda.is_available() and args.gpu_id >= 0 else 0
-    s = "cuda:" + gpus[0]
+    s = "cuda:" + str(gpus[0])
     device = torch.device(s)
     if args.deterministic:
         pl.seed_everything(args.seed)
