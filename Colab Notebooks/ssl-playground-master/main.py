@@ -142,7 +142,7 @@ def main(args):
 
     model.eval()
     classifier = LinearProbingClassifier(model.backbone)
-    trainer = pl.Trainer(max_epochs=args.clf_epochs, gpus=gpus)
+    trainer = pl.Trainer(max_epochs=args.clf_epochs, gpus=gpus,callbacks=[TQDMProgressBar(refresh_rate=100)])
     trainer.fit(
         classifier,
         dataloader_clf_train,
