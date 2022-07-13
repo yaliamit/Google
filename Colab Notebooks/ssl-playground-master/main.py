@@ -141,7 +141,7 @@ def main(args):
 
     model.eval()
     classifier = LinearProbingClassifier(model.backbone)
-    trainer = pl.Trainer(max_epochs=args.clf_epochs, gpus=gpus,log_every_n_steps=10)
+    trainer = pl.Trainer(max_epochs=args.clf_epochs, gpus=gpus,log_every_n_steps=1)
     trainer.fit(
         classifier,
         dataloader_clf_train,
