@@ -89,7 +89,7 @@ class DL(DataLoader):
         self.num=num
         self.num_class=num_class
         self.shape=shape
-        self.num_workers=num_workers
+
 
 
     def _get_iterator(self) -> '_BaseDataLoaderIter':
@@ -550,7 +550,7 @@ def get_CIFAR100(batch_size = 500, size=None):
 
     # aa = os.uname()
     # if 'bernie' in aa[1]:
-    numworkers=1
+    numworkers=12
     CIFAR100_train_loader = DL(train,batch_size,num_class,size,shape,num_workers=numworkers)
     CIFAR100_test_loader = DL(test,batch_size,num_class,len(test),shape,num_workers=numworkers)
 
