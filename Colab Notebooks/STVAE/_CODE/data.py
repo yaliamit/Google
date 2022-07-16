@@ -85,7 +85,7 @@ class _SingleProcessDataLoaderIterWithIndices(_SingleProcessDataLoaderIter):
 
 class DL(DataLoader):
     def __init__(self, input, batch_size, num_class, num, shape, num_workers=0, shuffle=False):
-        super(DL, self).__init__(input,batch_size,shuffle)
+        super(DL, self).__init__(input,batch_size,shuffle,num_workers=num_workers)
         self.num=num
         self.num_class=num_class
         self.shape=shape
