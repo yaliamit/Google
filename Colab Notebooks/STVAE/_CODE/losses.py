@@ -74,7 +74,8 @@ class direct_loss(nn.Module):
         diff=torch.sum(torch.abs(out0-outa),dim=1)
         #print(torch.max(diff),torch.min(diff))
         loss= torch.sum(torch.relu(diff)) #torch.sum(torch.abs(outa-out0)) #+self.lamda*(torch.mean(.5-torch.abs(out0)))
-        loss1=torch.tensor([0.])
+        with torch.no_grad():
+            loss1=torch.sum(torch.abs(out0-out1),dim=1)
         # if self.lamda>0:
         #      loss1= torch.sum(torch.relu(torch.sum(torch.abs(out0-out1),dim=1)-1.))
         #      loss+=self.lamda*loss1
