@@ -59,7 +59,7 @@ class direct_loss(nn.Module):
         self.dv = device
         self.eps=eps
         self.alpha=alpha
-        self.cov=torch.eye(out_dim).to(self.dv)
+        self.cc=torch.eye(out_dim).to(self.dv)
         self.eye=self.eps*torch.eye(out_dim).to(self.dv)
         self.lamda=lamda
         self.batch_size=batch_size
@@ -68,8 +68,8 @@ class direct_loss(nn.Module):
 
 
         #with torch.no_grad():
-        self.cov=(1-self.alpha)*(out1.T @ out1)/self.batch_size+self.alpha*self.cov
-
+        self.cov=(1-self.alpha)*(out1.T @ out1)/self.batch_size+self.alpha*self.cc
+        self.cc=self.cov
         outa=out1 @ (self.cov + self.eye)
         diff=torch.sum(torch.abs(out0-outa),dim=1)
         #print(torch.max(diff),torch.min(diff))
