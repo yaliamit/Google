@@ -68,9 +68,9 @@ class direct_loss(nn.Module):
 
 
         #with torch.no_grad():
-        self.cov=(1-self.alpha)*(out1.T @ out1)/self.batch_size+self.alpha*self.cc
-        self.cc=self.cov.detach()
-        outa=out1 @ (self.cov + self.eye)
+        cov=(1-self.alpha)*(out1.T @ out1)/self.batch_size+self.alpha*self.cc
+        self.cc=cov.detach()
+        outa=out1 @ (cov + self.eye)
         diff=torch.sum(torch.abs(out0-outa),dim=1)
         #print(torch.max(diff),torch.min(diff))
         loss= torch.sum(diff) #torch.sum(torch.abs(outa-out0)) #+self.lamda*(torch.mean(.5-torch.abs(out0)))
