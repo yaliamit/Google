@@ -67,8 +67,8 @@ class direct_loss(nn.Module):
     def forward(self,out0,out1):
 
 
-        #with torch.no_grad():
-        cov=(1-self.alpha)*(out1.T @ out1)/self.batch_size+self.alpha*self.cc
+        with torch.no_grad():
+            cov=(1-self.alpha)*(out1.T @ out1)/self.batch_size+self.alpha*self.cc
         self.cc=cov.detach()
         outa=out1 @ (cov + self.eye)
         diff=torch.sum(torch.abs(out0-outa),dim=1)
