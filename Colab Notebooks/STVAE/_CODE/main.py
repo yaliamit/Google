@@ -71,12 +71,9 @@ def main_loc(par_file, device,net=None):
                     py.imshow(w,cmap='gray')
                     py.show()
           models[0].nti=args.nti
-          #LLG=models[0].compute_likelihood(DATA[2][0], 250)
-          #print('LLG:',LLG,file=fout)
-          #make_sample(models[0],args, EX_FILES[0], datadirs=args.datadirs)
           make_images(DATA[2],models[0],EX_FILES[0],args,datadirs=args.datadirs)
           models[0].opt=oldopt
-      elif args.network and (args.embedd or 'ae' in args.type):
+      elif (args.embedd_type is not None or 'ae' in args.type):
           pre_train_new(models[0], args, device, fout, data=DATA)
       elif args.cluster_hidden:
           cluster_hidden(models[0], args, device, DATA, args.datadirs, EX_FILES[0])

@@ -64,7 +64,7 @@ class direct_loss(nn.Module):
         self.lamda=lamda
         self.batch_size=batch_size
 
-    def forward(self,out0,out1):
+    def forward(self,out0,out1, OUT0, OUT1):
 
 
         with torch.no_grad():
@@ -75,7 +75,10 @@ class direct_loss(nn.Module):
         #print(torch.max(diff),torch.min(diff))
         loss= torch.sum(diff) #torch.sum(torch.abs(outa-out0)) #+self.lamda*(torch.mean(.5-torch.abs(out0)))
         with torch.no_grad():
-            loss1=torch.sum(torch.sum(torch.abs(out0-out1),dim=1))
+            if OUT0 is None:
+                loss1=torch.sum(torch.sum(torch.abs(out0-out1),dim=1))
+            else:
+                loss1 = torch.sum(torch.sum(torch.abs(OUT0 - OUT1), dim=1))
         # if self.lamda>0:
         #      loss1= torch.sum(torch.relu(torch.sum(torch.abs(out0-out1),dim=1)-1.))
         #      loss+=self.lamda*loss1

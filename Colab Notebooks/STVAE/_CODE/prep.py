@@ -68,7 +68,7 @@ def get_models(device, fout, sh,ARGS, args):
             args.fout=fout
             model=make_model(args, sh, device, fout)
             models += [model]
-    elif args.network:
+    else:
         # parse the existing network coded in ARGS[0]
         arg = ARGS[0]
         if args.cont_training:  # Parse the new network

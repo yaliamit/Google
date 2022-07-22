@@ -161,7 +161,7 @@ def make_par_file_for_this_layer(args, oldn, i, d, pert, lines, layers_dict, dat
             fout = open(datadirs + 't_par'+args.t_par+'.txt', 'w')
             for l in lines:
                 if 'dense_final' in l and not 'hid' in l:
-                    if args.embedd:
+                    if args.embedd_type is  not None:
                         fout.write(l + ';parent:[' + nn + ']\n')
                         # fout.write('name:drop_f;drop:.5;parent:['+nn+']\n'+l+'\n')
                     else:
@@ -175,7 +175,7 @@ def make_par_file_for_this_layer(args, oldn, i, d, pert, lines, layers_dict, dat
                         if 'name' in l and l.split(':')[1].split(';')[0] == nn:
                             done = True
                             
-            if (args.embedd):
+            if (args.embedd_type is not None):
                 fout.write('--embedd\n' + '--embedd_layer=' + nn + '\n')
             fout.write('--update_layers\n')
             if (skip_name1 in nn or skip_name2 in nn or skip_name4 in nn):
@@ -198,7 +198,7 @@ def make_par_file_for_this_layer(args, oldn, i, d, pert, lines, layers_dict, dat
             if oldn is not None:
                 fout.write('--cont_training\n' + '--model=' + oldn + '\n')
             emb = 'cl'
-            if args.embedd:
+            if args.embedd_type is not None:
                 emb = 'emb'
             outn = 'network_' + nn + '_' + emb
             fout.write('--model_out=' + outn + '\n' + '--out_file=OUT_' + nn + '_' + emb + '.txt\n')

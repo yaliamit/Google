@@ -67,12 +67,12 @@ def initialize_model(args, sh, layers,device, layers_dict=None):
     if args.crop and len(sh) == 3:
         sh = (sh[0], args.crop, args.crop)
         print(sh)
-    if args.embedd_type=='clapp' and args.embedd:
+    if args.embedd_type=='clapp':
         if args.clapp_dim is not None:
             model.add_module('clapp', nn.Conv2d(args.clapp_dim[1], args.clapp_dim[1], 1))
         if args.update_layers is not None:
             args.update_layers.append('clapp')
-    if args.embedd_type=='AE':
+    if args.embedd_type=='AE' or args.embedd_type=='direct':
         atemp.everything=True
 
     if sh is not None:
@@ -81,7 +81,7 @@ def initialize_model(args, sh, layers,device, layers_dict=None):
         atemp.first=1
         atemp.input_shape=None
         bb = model.forward(temp,atemp)
-        if args.embedd_type=='clapp' and args.embedd:
+        if args.embedd_type=='clapp':
             args.clapp_dim=atemp.clapp_dim
 
         atemp.output_shape = bb[0].shape
@@ -132,7 +132,7 @@ def initialize_model(args, sh, layers,device, layers_dict=None):
 
         atemp.first=0
         bsz=args.mb_size
-        if args.embedd:
+        if args.embedd_type is not None:
             if args.embedd_type=='L1dist_hinge':
                 atemp.loss=L1_loss(atemp.dv, bsz, args.future, args.thr, args.delta, WW=1., nostd=True)
             elif args.embedd_type=='clapp':
@@ -500,13 +500,14 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
 
 
 def get_data(data_in, args, dvv, d_type):
-    if args.embedd:
+    if args.embedd_type is not None:
+
         with torch.no_grad():
             if args.crop == 0:
                 data_out = deform_data(data_in, args.perturb, args.transformation, args.s_factor, args.h_factor,
-                                       args.embedd, dvv)
+                                       True, dvv)
                 if args.double_aug:
-                    data_in = deform_data(data_in, args.perturb, args.transformation, args.s_factor, args.h_factor,args.embedd, dvv)
+                    data_in = deform_data(data_in, args.perturb, args.transformation, args.s_factor, args.h_factor,True, dvv)
                 data = [data_in, data_out]
             else:
                 data_p = data_in
@@ -515,7 +516,7 @@ def get_data(data_in, args, dvv, d_type):
         if args.perturb > 0. and d_type == 'train':
             with torch.no_grad():
                 data_in = deform_data(data_in, args.perturb, args.transformation, args.s_factor, args.h_factor,
-                                      args.embedd, dvv)
+                                      False, dvv)
         data = data_in
     return data
 
@@ -532,6 +533,8 @@ def forw(model, args, input, lnum=0):
                 out1=OOUT1[args.compare_layers[1]]
                 data1=OOUT1[args.compare_layers[0]]
                 print(torch.max(torch.abs(data1)),torch.max(torch.abs(out1)))
+        elif args.embedd_type == 'direct':
+            OUT1 = OOUT1[args.embedd_layer]
         with torch.no_grad() if (args.block) else dummy_context_mgr():
             cl = False
             if args.embedd_type == 'clapp':
@@ -542,6 +545,8 @@ def forw(model, args, input, lnum=0):
                 if args.compare_layers is not None:
                     out0 = OOUT0[args.compare_layers[1]]
                     data0 = OOUT0[args.compare_layers[0]]
+            elif args.embedd_type == 'direct':
+                OUT0 = OOUT0[args.embedd_layer]
         out=[out0,out1]
         OUT=[OUT0,OUT1]
         if args.compare_layers is not None:
@@ -557,10 +562,12 @@ def get_loss(aloss, args, out, OUT, target, data=None):
 
         # Embedding training with image and its deformed counterpart
         if type(out) is list:
-            if args.embedd_type != 'AE':
-                loss,acc = aloss(out[0],out[1])
+            if args.embedd_type == 'AE':
+                loss, acc = aloss(out[0], out[1], OUT[0], OUT[1], data[0], data[1])
+            elif args.embedd_type == 'direct':
+                loss, acc = aloss(out[0], out[1], OUT[0], OUT[1])
             else:
-                loss, acc = aloss(out[0], out[1], OUT[0],OUT[1],data[0],data[1])
+                loss, acc = aloss(out[0], out[1])
         else:
 
             pen = 0

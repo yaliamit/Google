@@ -103,7 +103,7 @@ def process_args(parser):
     parser.add_argument('--del_last', action='store_true', help='dont update classifier weights')
     parser.add_argument('--nosep', action='store_true', help='separate optimization in VAE OPT')
     parser.add_argument('--embedd', action='store_true', help='embedding training')
-    parser.add_argument('--embedd_type', default='new', help='embedding cost type')
+    parser.add_argument('--embedd_type', default=None, help='embedding cost type')
     parser.add_argument('--embedd_layer', default=None, help='embedding layer')
     parser.add_argument('--reinit', action='store_true', help='reinitialize part of trained model')
     parser.add_argument('--only_pi', action='store_true', help='only optimize over pi')

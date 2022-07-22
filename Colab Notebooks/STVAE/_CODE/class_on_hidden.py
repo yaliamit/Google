@@ -110,7 +110,7 @@ def pre_train_new(model,args,device,fout, data=None):
 
     if 'ae' in args.type:
         _,[tr,tv,te]=prepare_recons(model,DATA,args,fout)
-    elif args.embedd:
+    elif args.embedd_type is not None:
         if args.optimizer_type=='LG' or args.hid_lr<0:
             res=train_LG(args,model,DATA)
         else:
