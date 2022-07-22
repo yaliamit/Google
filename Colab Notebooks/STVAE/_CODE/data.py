@@ -528,13 +528,19 @@ def get_mnist(PARS):
 
 def get_CIFAR10(batch_size = 500,size=None, double_aug=True):
 
-    s=1
-    color_jitter = transforms.ColorJitter(0.8 * s, 0.8 * s, 0.8 * s, 0.2 * s)
-    transform_CIFAR = transforms.Compose([transforms.RandomResizedCrop(size=32),
-                                          transforms.RandomHorizontalFlip(),
-                                          transforms.RandomApply([color_jitter], p=0.8),
-                                          transforms.RandomGrayscale(p=0.2),
-                                          transforms.ToTensor()])
+    transform_CIFAR = transforms.Compose([
+        transforms.RandomResizedCrop(size=32, scale=(0.08, 1.0)),
+        transforms.RandomHorizontalFlip(p=0.5),
+        transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
+        transforms.RandomGrayscale(p=0.2),
+        transforms.GaussianBlur(kernel_size=0.1 * 32, prob=0.5),
+        transforms.ToTensor(),
+        transforms.Normalize(
+            mean=[0.485, 0.456, 0.406],
+            std=[0.229, 0.224, 0.225]
+        ),
+    ])
+
     transform=ContrastiveLearningViewGenerator(transform_CIFAR, double_aug=double_aug)
     train = datasets.CIFAR10(root = "data",train = True,download = True, transform = transform)
     test = datasets.CIFAR10(root = "data",train = False,download = True, transform = transform)
@@ -551,13 +557,21 @@ def get_CIFAR10(batch_size = 500,size=None, double_aug=True):
     return CIFAR10_train_loader,CIFAR10_test_loader
 
 def get_CIFAR100(batch_size = 500, size=None, double_aug=True):
-    s=1
-    color_jitter = transforms.ColorJitter(0.8 * s, 0.8 * s, 0.8 * s, 0.2 * s)
-    transform_CIFAR = transforms.Compose([transforms.RandomResizedCrop(size=32),
-                                          transforms.RandomHorizontalFlip(),
-                                          transforms.RandomApply([color_jitter], p=0.8),
-                                          transforms.RandomGrayscale(p=0.2),
-                                          transforms.ToTensor()])
+
+
+    transform_CIFAR = transforms.Compose([
+        transforms.RandomResizedCrop(size=32, scale=(0.08, 1.0)),
+        transforms.RandomHorizontalFlip(p=0.5),
+        transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
+        transforms.RandomGrayscale(p=0.2),
+        transforms.GaussianBlur(kernel_size=0.1 * 32, prob=0.5),
+        transforms.ToTensor(),
+        transforms.Normalize(
+            mean=[0.485, 0.456, 0.406],
+            std=[0.229, 0.224, 0.225]
+        ),
+    ])
+    
     transform = ContrastiveLearningViewGenerator(transform_CIFAR, double_aug=double_aug)
     train = datasets.CIFAR100(root = "data",train = True,download = True, transform = transform)
     test = datasets.CIFAR100(root = "data",train = False,download = True, transform = transform)
