@@ -541,9 +541,14 @@ def get_CIFAR10(batch_size = 500,size=None, double_aug=True):
         ),
     ])
 
+    numworkers = 0
+    aa = os.uname()
+    if 'bernie' in aa[1]:
+        numworkers = 12
+
     transform=ContrastiveLearningViewGenerator(transform_CIFAR, double_aug=double_aug)
-    train = datasets.CIFAR10(root = "data",train = True,download = True, transform = transform)
-    test = datasets.CIFAR10(root = "data",train = False,download = True, transform = transform)
+    train = datasets.CIFAR10(root = "data",train = True,download = True, transform = transform,num_workers=numworkers)
+    test = datasets.CIFAR10(root = "data",train = False,download = True, transform = transform,num_workers=numworkers)
 
     num_class = len(train.classes)
 
