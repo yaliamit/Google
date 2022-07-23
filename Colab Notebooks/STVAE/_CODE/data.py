@@ -547,8 +547,8 @@ def get_CIFAR10(batch_size = 500,size=None, double_aug=True):
         numworkers = 12
 
     transform=ContrastiveLearningViewGenerator(transform_CIFAR, double_aug=double_aug)
-    train = datasets.CIFAR10(root = "data",train = True,download = True, transform = transform,num_workers=numworkers)
-    test = datasets.CIFAR10(root = "data",train = False,download = True, transform = transform,num_workers=numworkers)
+    train = datasets.CIFAR10(root = "data",train = True,download = True, transform = transform)
+    test = datasets.CIFAR10(root = "data",train = False,download = True, transform = transform)
 
     num_class = len(train.classes)
 
@@ -558,8 +558,8 @@ def get_CIFAR10(batch_size = 500,size=None, double_aug=True):
         train = Subset(train, random.sample(range(len(train)), size))
     else:
         size=len(train)
-    CIFAR10_train_loader = DL(train,batch_size,num_class,size,shape)
-    CIFAR10_test_loader = DL(test,batch_size,num_class,len(test),shape)
+    CIFAR10_train_loader = DL(train,batch_size,num_class,size,shape,num_workers=numworkers)
+    CIFAR10_test_loader = DL(test,batch_size,num_class,len(test),shape,num_workers=numworkers)
 
     return CIFAR10_train_loader,CIFAR10_test_loader
 
