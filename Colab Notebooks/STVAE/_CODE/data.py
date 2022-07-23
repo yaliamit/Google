@@ -280,7 +280,7 @@ def get_data_pre(args,dataset):
     if args.cl is not None:
         PARS['one_class'] = args.cl
 
-    train, val, test, image_dim = get_data(PARS)
+    train, val, test, image_dim = getf_data(PARS)
     if type(train) is DL or dataset=='stl10':
         return [train,val,test]
 
@@ -546,7 +546,9 @@ def get_CIFAR10(batch_size = 500,size=None, double_aug=True):
     test = datasets.CIFAR10(root = "data",train = False,download = True, transform = transform)
 
     num_class = len(train.classes)
-    shape = train.data.shape[1:]
+
+    shape = list(np.array(train.data.shape[1:])[[2,0,1]])
+
     if size is not None and size <= len(train):
         train = Subset(train, random.sample(range(len(train)), size))
     else:
