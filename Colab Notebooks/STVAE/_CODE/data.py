@@ -280,7 +280,7 @@ def get_data_pre(args,dataset):
     if args.cl is not None:
         PARS['one_class'] = args.cl
 
-    train, val, test, image_dim = getf_data(PARS)
+    train, val, test, image_dim = get_data(PARS)
     if type(train) is DL or dataset=='stl10':
         return [train,val,test]
 
