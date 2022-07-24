@@ -128,7 +128,7 @@ def get_simclr_pipeline_transform(size=32):
             transforms.RandomHorizontalFlip(p=0.5),
             transforms.RandomApply([transforms.ColorJitter(0.8, 0.8, 0.8, 0.2)], p=0.8),
             transforms.RandomGrayscale(p=0.2),
-            transforms.GaussianBlur(prob=0.5),
+            transforms.GaussianBlur(p=0.5),
             transforms.Normalize(
                 mean=[0.485, 0.456, 0.406],
                 std=[0.229, 0.224, 0.225]
@@ -547,7 +547,7 @@ def get_CIFAR10(batch_size = 500,size=None, double_aug=True):
 
 def get_CIFAR100(batch_size = 500, size=None, double_aug=True):
     transform_CIFAR = get_simclr_pipeline_transform()
-    
+
 
     transform = ContrastiveLearningViewGenerator(transform_CIFAR, double_aug=double_aug)
     train = datasets.CIFAR100(root = "data",train = True,download = True, transform = transform)
