@@ -119,31 +119,21 @@ class ContrastiveLearningViewGenerator(object):
             return self.base_transform(x)
 
 
-class ContrastiveLearningDataset:
-    def __init__(self, root_folder):
-        self.root_folder = root_folder
 
-    @staticmethod
-    def get_simclr_pipeline_transform(size, s=1):
-        # """Return a set of data augmentation transformations as described in the SimCLR paper."""
-        # color_jitter = transforms.ColorJitter(0.4 * s, 0.4 * s, 0.4 * s, 0.1 * s)
-        # data_transforms = transforms.Compose([transforms.RandomResizedCrop(size=size),
-        #                                       transforms.RandomHorizontalFlip(),
-        #                                       transforms.RandomApply([color_jitter], p=0.8),
-        #                                       transforms.RandomGrayscale(p=0.2),
-        #                                       transforms.ToTensor()])
+def get_simclr_pipeline_transform(size=32):
+
 
         data_transforms = transforms.Compose([
-            transforms.RandomResizedCrop(size=32, scale=(0.08, 1.0)),
+            transforms.RandomResizedCrop(size=size, scale=(0.08, 1.0)),
             transforms.RandomHorizontalFlip(p=0.5),
-            transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
+            transforms.RandomApply([transforms.ColorJitter(0.8, 0.8, 0.8, 0.2)], p=0.8),
             transforms.RandomGrayscale(p=0.2),
-            transforms.GaussianBlur(kernel_size=0.1 * 32, prob=0.5),
-            transforms.ToTensor(),
+            transforms.GaussianBlur(prob=0.5),
             transforms.Normalize(
                 mean=[0.485, 0.456, 0.406],
                 std=[0.229, 0.224, 0.225]
             ),
+            transforms.ToTensor(),
         ]
         )
 
@@ -160,7 +150,7 @@ def get_stl10_unlabeled(batch_size, size=0, crop=0):
         ])
     else:
         transform=ContrastiveLearningViewGenerator(
-            ContrastiveLearningDataset.get_simclr_pipeline_transform(crop),
+            get_simclr_pipeline_transform(crop),
             2)
         # transform = transforms.Compose([
         #     transforms.ToTensor(),
@@ -528,19 +518,7 @@ def get_mnist(PARS):
 
 def get_CIFAR10(batch_size = 500,size=None, double_aug=True):
 
-    transform_CIFAR = transforms.Compose([
-        transforms.RandomResizedCrop(size=32, scale=(0.08, 1.0)),
-        transforms.RandomHorizontalFlip(p=0.5),
-        transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
-        transforms.RandomGrayscale(p=0.2),
-        transforms.RandomApply([transforms.GaussianBlur(kernel_size=0.1 * 32)], p=0.5),
-        transforms.ToTensor(),
-        transforms.Normalize(
-            mean=[0.485, 0.456, 0.406],
-            std=[0.229, 0.224, 0.225]
-        ),
-    ])
-
+    transform_CIFAR = get_simclr_pipeline_transform()
     numworkers = 0
     aa = os.uname()
     if 'bernie' in aa[1]:
@@ -563,21 +541,13 @@ def get_CIFAR10(batch_size = 500,size=None, double_aug=True):
 
     return CIFAR10_train_loader,CIFAR10_test_loader
 
+
+
+
+
 def get_CIFAR100(batch_size = 500, size=None, double_aug=True):
-
-
-    transform_CIFAR = transforms.Compose([
-        transforms.RandomResizedCrop(size=32, scale=(0.08, 1.0)),
-        transforms.RandomHorizontalFlip(p=0.5),
-        transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
-        transforms.RandomGrayscale(p=0.2),
-        transforms.RandomApply([transforms.GaussianBlur(kernel_size=0.1 * 32)], p=0.5),
-        transforms.ToTensor(),
-        transforms.Normalize(
-            mean=[0.485, 0.456, 0.406],
-            std=[0.229, 0.224, 0.225]
-        ),
-    ])
+    transform_CIFAR = get_simclr_pipeline_transform()
+    
 
     transform = ContrastiveLearningViewGenerator(transform_CIFAR, double_aug=double_aug)
     train = datasets.CIFAR100(root = "data",train = True,download = True, transform = transform)
