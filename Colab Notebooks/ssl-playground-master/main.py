@@ -8,7 +8,7 @@ from lightly.data import LightlyDataset
 from lightly.data.collate import SimCLRCollateFunction, BaseCollateFunction
 from torch import nn
 from pytorch_lightning.callbacks import TQDMProgressBar
-
+from pytorch_lightning.callbacks import RichProgressBar
 from backbones import Conv6, ResNetCifarGenerator
 from collate import SimCLRCollateFunctionWithOriginal
 from dataloaders import get_clf_dataloaders
@@ -177,7 +177,7 @@ def main(args):
 
     model.eval()
     classifier = LinearProbingClassifier(model.backbone, backbone_out_shape)
-    trainer = pl.Trainer(max_epochs=args.clf_epochs, gpus=gpus)
+    trainer = pl.Trainer(max_epochs=args.clf_epochs, gpus=gpus,callbacks=[RichProgressBar()])
     trainer.fit(
         classifier,
         dataloader_clf_train,
