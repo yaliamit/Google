@@ -180,11 +180,12 @@ def get_simclr_pipeline_transform(size=32):
             transforms.RandomApply([transforms.ColorJitter(0.8, 0.8, 0.8, 0.2)], p=0.8),
             transforms.RandomGrayscale(p=0.2),
             GaussianBlur(kernel_size=.1*size),
+            transforms.ToTensor(),
             transforms.Normalize(
                 mean=[0.485, 0.456, 0.406],
                 std=[0.229, 0.224, 0.225]
             ),
-            transforms.ToTensor(),
+
         ]
         )
 
