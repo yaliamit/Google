@@ -170,14 +170,14 @@ def main(args):
             log_dir = f'./ssl_logs/dc_mu_{args.dc_mu}_dc_eps_{args.dc_epsilon}__batchsz_{args.batch_size}'
         else:
             log_dir = f'./ssl_logs/{args.model}__batchsz_{args.batch_size}'
-        trainer=pl.Trainer(default_root_dir=log_dir, max_epochs=args.ssl_epochs, gpus=gpus, callbacks=[RichProgressBar()])
+        trainer=pl.Trainer(default_root_dir=log_dir, max_epochs=args.ssl_epochs, gpus=gpus, callbacks=[RichProgressBar(leave=True)])
         trainer.fit(model=model, train_dataloaders=dataloader_ssl)
         if args.save:
             torch.save(model.backbone.state_dict(), args.save)
 
     model.eval()
     classifier = LinearProbingClassifier(model.backbone, backbone_out_shape)
-    trainer = pl.Trainer(max_epochs=args.clf_epochs, gpus=gpus,callbacks=[RichProgressBar()])
+    trainer = pl.Trainer(max_epochs=args.clf_epochs, gpus=gpus,callbacks=[RichProgressBar(leave=True)])
     trainer.fit(
         classifier,
         dataloader_clf_train,
