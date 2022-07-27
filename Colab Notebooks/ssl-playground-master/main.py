@@ -176,6 +176,8 @@ def main(args):
             #torch.save(model,args.save)
             torch.save({'bb':model.backbone.state_dict(),'pp':model.projection_head.state_dict()}, args.save)
 
+        for tt in dataset_ssl:
+            print(model.training_step(tt))
 
 
     model.eval()
