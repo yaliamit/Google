@@ -174,8 +174,7 @@ def main(args):
         trainer.fit(model=model, train_dataloaders=dataloader_ssl)
         if args.save:
             #torch.save(model,args.save)
-            torch.save(model.backbone.state_dict(), args.save)
-            torch.save(model.projection_head.state_dict(), args.save)
+            torch.save({'bb':model.backbone.state_dict(),'pp':model.projection_head.state_dict()}, args.save)
 
 
 
