@@ -29,12 +29,15 @@ def get_names(args):
         for i, name in enumerate(names):
             sm = torch.load(datadirs+'_output/' + name + '.pt',map_location='cpu')
             SMS += [sm]
+            arg=None
             if ('args' in sm):
                 arg = sm['args']
-            ARGS += [arg]
+            else:
+                arg=args
             strings, ex_file = arg.model_out, arg.out_file #process_strings(args)
             STRINGS += [strings]
             EX_FILES += [ex_file]
+            ARGS += [arg]
     else:
         ARGS.append(args)
         strings, ex_file = args.model_out, args.out_file #process_strings(args)

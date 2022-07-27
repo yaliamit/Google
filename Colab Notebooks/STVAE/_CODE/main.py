@@ -12,8 +12,8 @@ def main_loc(par_file, device,net=None):
   embed_data=None
   args = prep.setups(par_file)
   fout=args.fout
-  if net is None:
-    args.verbose = True
+  #if net is None:
+   # args.verbose = True
 
 
   ARGS, STRINGS, EX_FILES, SMS = prep.get_names(args)
