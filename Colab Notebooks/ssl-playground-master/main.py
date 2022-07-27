@@ -176,9 +176,14 @@ def main(args):
             #torch.save(model,args.save)
             torch.save({'bb':model.backbone.state_dict(),'pp':model.projection_head.state_dict()}, args.save)
 
+        loss=0
+        count=0
         for tt in dataloader_ssl:
             #print(tt)
-            print(model.training_step(tt,0))
+            loss+=model.training_step(tt,0)
+            count+=1
+
+        print('loss',loss/count)
 
 
     model.eval()
