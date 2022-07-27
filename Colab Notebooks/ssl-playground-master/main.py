@@ -176,16 +176,16 @@ def main(args):
             #torch.save(model,args.save)
             torch.save({'bb':model.backbone.state_dict(),'pp':model.projection_head.state_dict()}, args.save)
 
-        loss=0
-        count=0
-        for tt in dataloader_ssl:
-            #print(tt)
-            tloss=model.training_step(tt,0)
-            print(tloss)
-            loss+=tloss
-            count+=1
-
-        print('loss',loss/count)
+        # loss=0
+        # count=0
+        # for tt in dataloader_ssl:
+        #     #print(tt)
+        #     tloss=model.training_step(tt,0)
+        #     print(tloss)
+        #     loss+=tloss
+        #     count+=1
+        #
+        # print('loss',loss/count)
 
 
     model.eval()
