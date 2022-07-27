@@ -180,7 +180,9 @@ def main(args):
         count=0
         for tt in dataloader_ssl:
             #print(tt)
-            loss+=model.training_step(tt,0)
+            tloss=model.training_step(tt,0)
+            print(tloss)
+            loss+=tloss
             count+=1
 
         print('loss',loss/count)
