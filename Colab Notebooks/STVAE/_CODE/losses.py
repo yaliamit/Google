@@ -73,7 +73,7 @@ class direct_loss(nn.Module):
         outa=out1 @ (self.cov + self.eye)
         diff=torch.mean(torch.abs(out0-outa),dim=1)
         #print(torch.max(diff),torch.min(diff))
-        loss= torch.sum(diff) #torch.sum(torch.abs(outa-out0)) #+self.lamda*(torch.mean(.5-torch.abs(out0)))
+        loss= torch.mean(diff) #torch.sum(torch.abs(outa-out0)) #+self.lamda*(torch.mean(.5-torch.abs(out0)))
         with torch.no_grad():
             if OUT0 is None:
                 loss1=torch.sum(torch.mean(torch.abs(out0-out1),dim=1))
