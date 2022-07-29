@@ -27,7 +27,7 @@ def prepare_recons(model, DATA, args,fout):
         if (DATA[k][0] is not None):
             INP = torch.from_numpy(DATA[k][0])
             if k==0:
-                INP = INP[0:args.network_num_train]
+                INP = INP[0:args.hid_num_train]
             RR = []
             HVARS=[]
             for j in np.arange(0, INP.shape[0], 500):
@@ -56,7 +56,7 @@ def prepare_recons(model, DATA, args,fout):
 
 def cluster_hidden(model,args,device,data,datadirs,ex_file):
 
-    args.num_train = args.network_num_train
+    args.num_train = args.hid_num_train
     data[0]=[data[0][0][0:args.num_train],data[0][1][0:args.num_train]]
     exa_file = datadirs + '_output/' + ex_file.split('.')[0]
     if os.path.isfile(exa_file+'.npz'):
@@ -102,7 +102,7 @@ def pre_train_new(model,args,device,fout, data=None):
     if args.hid_layers is None:
         return
 
-    args.num_train = args.network_num_train
+    args.num_train = args.hid_num_train
     datn = args.hid_dataset if args.hid_dataset is not None else args.dataset
     print('getting:' + datn,file=fout)
     DATA = get_data_pre(args, datn)
