@@ -198,7 +198,7 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--ssl_epochs", type=int, default=400)
     parser.add_argument("--clf_epochs", type=int, default=200)
-    parser.add_argument("--ssl_dataset", type=str, default='cifar10', choices=['stl10', 'cifar10', 'cifar100'])
+    parser.add_argument("--ssl_dataset", type=str, default='cifar100', choices=['stl10', 'cifar10', 'cifar100'])
     parser.add_argument("--clf_dataset", type=str, default='cifar10', choices=['stl10', 'cifar10', 'cifar100'])
     parser.add_argument("--model", type=str, default="directcopybp",
                         choices=["simsiam", "simclr", "byol", "directcopy", "directcopybp"])
