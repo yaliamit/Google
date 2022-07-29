@@ -15,7 +15,7 @@ class DL(DataLoader):
 def get_pre():
     aa=os.uname()
     if 'Linux' in aa:
-        if 'bernie' in aa[1]:
+        if 'bernie' in aa[1] or 'aoc' in aa[1]:
             pre='/home/amit/ga/Google/'
         elif 'midway' in aa[1]:
             pre='/home/yaliamit/Google/'

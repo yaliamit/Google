@@ -265,7 +265,7 @@ def get_stl10_labeled(batch_size,size=0,crop=0, jit=0):
 def get_pre():
     aa=os.uname()
     if 'Linux' in aa:
-        if 'bernie' in aa[1]:
+        if 'bernie' in aa[1] or 'aoc' in aa[1]:
             pre='/home/amit/ga/Google/'
         elif 'midway' in aa[1]:
             pre='/home/yaliamit/Google/'
@@ -573,7 +573,7 @@ def get_CIFAR10(batch_size = 500,size=None, double_aug=True):
     transform_CIFAR = get_simclr_pipeline_transform()
     numworkers = 0
     aa = os.uname()
-    if 'bernie' in aa[1]:
+    if 'bernie' in aa[1] or 'aoc' in aa[1]:
         numworkers = 12
 
     transform=ContrastiveLearningViewGenerator(transform_CIFAR, double_aug=double_aug)
@@ -613,7 +613,7 @@ def get_CIFAR100(batch_size = 500, size=None, double_aug=True):
 
     aa = os.uname()
     numworkers=0
-    if 'bernie' in aa[1]:
+    if 'bernie' in aa[1] or 'aoc' in aa[1]:
         numworkers=12
     CIFAR100_train_loader = DL(train,batch_size,num_class,size,shape,num_workers=numworkers)
     CIFAR100_test_loader = DL(test,batch_size,num_class,len(test),shape,num_workers=numworkers)
