@@ -587,7 +587,7 @@ def get_CIFAR10(batch_size = 500,size=None, double_aug=True, ssl=False):
 
     transform=ContrastiveLearningViewGenerator(transform_CIFAR, double_aug=double_aug)
     train = datasets.CIFAR10(root = "data",train = True,download = True, transform = transform)
-    test = datasets.CIFAR10(root = "data",train = False,download = True, transform = transform.ToTensor())
+    test = datasets.CIFAR10(root = "data",train = False,download = True, transform = transforms.ToTensor())
 
     num_class = len(train.classes)
 
