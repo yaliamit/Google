@@ -19,7 +19,7 @@ def get_clf_dataloaders(dataset='cifar10', batch_size=512, num_workers=8):
         input_size = 96
 
     dataset_clf_train = LightlyDataset.from_torch_dataset(torchdataset_train,
-                                                          transform=cifar10_train_classifier_transforms(input_size))
+                                                          transform=cifar10_test_transforms(input_size))
     dataset_clf_test = LightlyDataset.from_torch_dataset(torchdataset_test,
                                                          transform=cifar10_test_transforms(input_size))
 

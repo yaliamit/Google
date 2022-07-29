@@ -140,7 +140,7 @@ def main(args):
     if args.deterministic:
         pl.seed_everything(args.seed)
 
-    dataset_ssl, input_size = get_ssl_dataset(args.dataset)
+    dataset_ssl, input_size = get_ssl_dataset(args.ssl_dataset)
     backbone, backbone_out_shape = get_backbone(args.backbone, input_size)
     loss = get_loss(args.loss, args.model)
     model = get_model(args, backbone, loss, backbone_out_shape)
@@ -157,7 +157,7 @@ def main(args):
     )
 
     # data for linear probing
-    dataloader_clf_train, dataloader_clf_test = get_clf_dataloaders(dataset=args.dataset,
+    dataloader_clf_train, dataloader_clf_test = get_clf_dataloaders(dataset=args.clf_dataset,
                                                                     batch_size=args.clf_batch_size,
                                                                     num_workers=args.num_workers)
 
@@ -173,19 +173,8 @@ def main(args):
         trainer=pl.Trainer(default_root_dir=log_dir, max_epochs=args.ssl_epochs, gpus=gpus, callbacks=[RichProgressBar(leave=True)])
         trainer.fit(model=model, train_dataloaders=dataloader_ssl)
         if args.save:
-            #torch.save(model,args.save)
-            torch.save({'bb':model.backbone.state_dict(),'pp':model.projection_head.state_dict()}, args.save)
-
-        # loss=0
-        # count=0
-        # for tt in dataloader_ssl:
-        #     #print(tt)
-        #     tloss=model.training_step(tt,0)
-        #     print(tloss)
-        #     loss+=tloss
-        #     count+=1
-        #
-        # print('loss',loss/count)
+            torch.save(model,args.save)
+            #torch.save({'bb':model.backbone.state_dict(),'pp':model.projection_head.state_dict()}, args.save)
 
 
     model.eval()
@@ -209,7 +198,8 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--ssl_epochs", type=int, default=400)
     parser.add_argument("--clf_epochs", type=int, default=200)
-    parser.add_argument("--dataset", type=str, default='cifar10', choices=['stl10', 'cifar10', 'cifar100'])
+    parser.add_argument("--ssl_dataset", type=str, default='cifar10', choices=['stl10', 'cifar10', 'cifar100'])
+    parser.add_argument("--clf_dataset", type=str, default='cifar10', choices=['stl10', 'cifar10', 'cifar100'])
     parser.add_argument("--model", type=str, default="directcopybp",
                         choices=["simsiam", "simclr", "byol", "directcopy", "directcopybp"])
     parser.add_argument("--backbone", type=str, default="conv6",
