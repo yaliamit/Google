@@ -59,7 +59,7 @@ else:
     print(par_file)
 
 os.system('grep -v "#" '+par_file+'.txt > junk1')
-os.system('junk1 junk>'+par_file+'_temp.txt')
+os.system('cat junk1 junk>'+par_file+'_temp.txt')
 
 
 
