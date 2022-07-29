@@ -568,9 +568,18 @@ def get_mnist(PARS):
     testl=one_hot(testl)
     return (tr,trl), (val,vall), (test,testl)
 
-def get_CIFAR10(batch_size = 500,size=None, double_aug=True):
+def cifar10_train_classifier_transforms(input_size=32):
+    return transforms.Compose([
+        transforms.RandomCrop(input_size, padding=4),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor()])
 
-    transform_CIFAR = get_simclr_pipeline_transform()
+def get_CIFAR10(batch_size = 500,size=None, double_aug=True, ssl=False):
+
+    if ssl:
+        transform_CIFAR = get_simclr_pipeline_transform()
+    else:
+        transform_CIFAR = cifar10_train_classifier_transforms()
     numworkers = 0
     aa = os.uname()
     if 'bernie' in aa[1] or 'aoc' in aa[1]:
@@ -578,7 +587,7 @@ def get_CIFAR10(batch_size = 500,size=None, double_aug=True):
 
     transform=ContrastiveLearningViewGenerator(transform_CIFAR, double_aug=double_aug)
     train = datasets.CIFAR10(root = "data",train = True,download = True, transform = transform)
-    test = datasets.CIFAR10(root = "data",train = False,download = True, transform = transform)
+    test = datasets.CIFAR10(root = "data",train = False,download = True, transform = transform.ToTensor())
 
     num_class = len(train.classes)
 
