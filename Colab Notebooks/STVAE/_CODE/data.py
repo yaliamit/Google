@@ -85,7 +85,7 @@ class _SingleProcessDataLoaderIterWithIndices(_SingleProcessDataLoaderIter):
 
 class DL(DataLoader):
     def __init__(self, input, batch_size, num_class, num, shape, num_workers=0, shuffle=False):
-        super(DL, self).__init__(input,batch_size,shuffle,num_workers=num_workers)
+        super(DL, self).__init__(input,batch_size,shuffle=shuffle,num_workers=num_workers)
         self.num=num
         self.num_class=num_class
         self.shape=shape
@@ -177,7 +177,7 @@ def get_simclr_pipeline_transform(size=32):
         data_transforms = transforms.Compose([
             transforms.RandomResizedCrop(size=size, scale=(0.08, 1.0)),
             transforms.RandomHorizontalFlip(p=0.5),
-            transforms.RandomApply([transforms.ColorJitter(0.8, 0.8, 0.8, 0.2)], p=0.8),
+            transforms.RandomApply([transforms.ColorJitter(0.5, 0.5, 0.5, 0.2)], p=0.8),
             transforms.RandomGrayscale(p=0.2),
             #GaussianBlur(kernel_size=.1*size),
             transforms.ToTensor(),
