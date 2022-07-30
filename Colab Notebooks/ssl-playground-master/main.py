@@ -164,7 +164,7 @@ def main(args):
     gpus = [args.gpu_id] if torch.cuda.is_available() and args.gpu_id >= 0 else 0
 
     if args.load:
-        model.backbone.load_state_dict(torch.load(args.load))
+        model.backbone.load_state_dict(torch.load(args.load)['bb'])
     else:
         if args.model in ['directcopy', 'directcopybp']:
             log_dir = f'./ssl_logs/dc_mu_{args.dc_mu}_dc_eps_{args.dc_epsilon}__batchsz_{args.batch_size}'
