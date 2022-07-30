@@ -597,7 +597,7 @@ def get_CIFAR10(batch_size = 500,size=None, double_aug=True, ssl=False):
         train = Subset(train, random.sample(range(len(train)), size))
     else:
         size=len(train)
-    CIFAR10_train_loader = DL(train,batch_size,num_class,size,shape,num_workers=numworkers)
+    CIFAR10_train_loader = DL(train,batch_size,num_class,size,shape,num_workers=numworkers,shuffle=True)
     CIFAR10_test_loader = DL(test,batch_size,num_class,len(test),shape,num_workers=numworkers)
 
     return CIFAR10_train_loader,CIFAR10_test_loader
@@ -624,7 +624,7 @@ def get_CIFAR100(batch_size = 500, size=None, double_aug=True):
     numworkers=0
     if 'bernie' in aa[1] or 'aoc' in aa[1]:
         numworkers=12
-    CIFAR100_train_loader = DL(train,batch_size,num_class,size,shape,num_workers=numworkers)
+    CIFAR100_train_loader = DL(train,batch_size,num_class,size,shape,num_workers=numworkers,shuffle=True)
     CIFAR100_test_loader = DL(test,batch_size,num_class,len(test),shape,num_workers=numworkers)
 
     return CIFAR100_train_loader,CIFAR100_test_loader
