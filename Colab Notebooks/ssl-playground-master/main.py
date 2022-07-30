@@ -173,8 +173,7 @@ def main(args):
         trainer=pl.Trainer(default_root_dir=log_dir, max_epochs=args.ssl_epochs, gpus=gpus, callbacks=[RichProgressBar(leave=True)])
         trainer.fit(model=model, train_dataloaders=dataloader_ssl)
         if args.save:
-            torch.save(model,args.save)
-            #torch.save({'bb':model.backbone.state_dict(),'pp':model.projection_head.state_dict()}, args.save)
+            torch.save({'bb':model.backbone.state_dict(),'pp':model.projection_head.state_dict()}, args.save)
 
 
     model.eval()
