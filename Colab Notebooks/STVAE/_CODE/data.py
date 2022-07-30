@@ -574,9 +574,9 @@ def cifar10_train_classifier_transforms(input_size=32):
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor()])
 
-def get_CIFAR10(batch_size = 500,size=None, double_aug=True):
+def get_CIFAR10(batch_size = 500,size=None, double_aug=True, factor=1.):
 
-    transform_CIFAR = get_simclr_pipeline_transform()
+    transform_CIFAR = get_simclr_pipeline_transform(factor=factor)
 
     numworkers = 0
     aa = os.uname()
@@ -710,7 +710,7 @@ def get_cifar_trans(PARS):
     val=None
     ftr = PARS['data_set'].split('_')[1]
     if ftr=='trans10':
-        tr,te=get_CIFAR10(PARS['mb_size'],double_aug=PARS['double_aug'])
+        tr,te=get_CIFAR10(PARS['mb_size'],double_aug=PARS['double_aug'],factor=PARS['h_factor'])
     else:
         tr,te=get_CIFAR100(PARS['mb_size'],double_aug=PARS['double_aug'],factor=PARS['h_factor'])
 
