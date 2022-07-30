@@ -574,19 +574,17 @@ def cifar10_train_classifier_transforms(input_size=32):
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor()])
 
-def get_CIFAR10(batch_size = 500,size=None, double_aug=True, ssl=False):
+def get_CIFAR10(batch_size = 500,size=None, double_aug=True):
 
-    if ssl:
-        transform_CIFAR = get_simclr_pipeline_transform()
-    else:
-        transform_CIFAR = cifar10_train_classifier_transforms()
+    transform_CIFAR = get_simclr_pipeline_transform()
+
     numworkers = 0
     aa = os.uname()
     if 'bernie' in aa[1] or 'aoc' in aa[1]:
         numworkers = 12
 
     transform=ContrastiveLearningViewGenerator(transform_CIFAR, double_aug=double_aug)
-    train = datasets.CIFAR10(root = "data",train = True,download = True, transform = transform)
+    train = datasets.CIFAR10(root = "data",train = True,download = True, transform = transform_CIFAR)
     test = datasets.CIFAR10(root = "data",train = False,download = True, transform = transforms.ToTensor())
 
     num_class = len(train.classes)
