@@ -7,7 +7,7 @@ import network
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 
-ww=torch.load('/home/amit/ga/Googe/Colab\ Notebooks/ssl-playground-master/backbone_weights.pth')
+ww=torch.load('/home/amit/ga/Googe/Colab Notebooks/ssl-playground-master/backbone_weights.pth')
 ww['bb'].update(ww['pp'])
 
 par_file='pars_emb_direct'
@@ -27,4 +27,4 @@ for n,p in dict_params.items():
     print(n)
 
 arg.fout=None
-torch.save({'args': arg,'model.state.dict': model.state_dict()}, '/home/amit/ga/Googe/Colab\ Notebooks/STVAE/_output/dd_new.pt')
+torch.save({'args': arg,'model.state.dict': model.state_dict()}, '/home/amit/ga/Googe/Colab Notebooks/STVAE/_output/dd_new.pt')
