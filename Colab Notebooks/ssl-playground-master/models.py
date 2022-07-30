@@ -270,6 +270,7 @@ class LinearProbingClassifier(pl.LightningModule):
 
     def forward(self, x):
         y_hat = self.backbone(x).flatten(start_dim=1)
+
         y_hat = self.fc(y_hat)
         return y_hat
 
@@ -278,6 +279,7 @@ class LinearProbingClassifier(pl.LightningModule):
         y_hat = self.forward(x)
         loss = self.criterion(y_hat, y)
         self.log("train_loss_fc", loss)
+        print(self.backbone)
         return loss
 
     def validation_step(self, batch, batch_idx):
