@@ -177,7 +177,7 @@ def get_simclr_pipeline_transform(size=32):
         data_transforms = transforms.Compose([
             transforms.RandomResizedCrop(size=size, scale=(0.08, 1.0)),
             transforms.RandomHorizontalFlip(p=0.5),
-            transforms.RandomApply([transforms.ColorJitter(0.5, 0.5, 0.5, 0.2)], p=0.8),
+            transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
             transforms.RandomGrayscale(p=0.2),
             #GaussianBlur(kernel_size=.1*size),
             transforms.ToTensor(),
