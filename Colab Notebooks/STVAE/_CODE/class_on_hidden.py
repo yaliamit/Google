@@ -151,7 +151,7 @@ def embedd(DATA,model,args, to_dl=True):
     trdl[0] = trdl[0].reshape(trdl[0].shape[0], -1)
     if to_dl:
         trdl = DL(list(zip(trdl[0], trdl[1])), batch_size=args.mb_size, num_class=args.num_class,
-              num=trdl[0].shape[0], shape=trdl[0].shape[1:], shuffle=False)
+              num=trdl[0].shape[0], shape=trdl[0].shape[1:], shuffle=True)
     tedl = network.get_embedding(model,args,DATA[2])
     if args.AVG is not None:
         HW = (np.int32(tedl[0].shape[2] / args.AVG), np.int32(tedl[0].shape[3] / args.AVG))

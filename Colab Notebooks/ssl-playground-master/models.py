@@ -279,12 +279,12 @@ class LinearProbingClassifier(pl.LightningModule):
         y_hat = self.forward(x)
         loss = self.criterion(y_hat, y)
         self.log("train_loss_fc", loss)
-        params = self.named_parameters()
-        dict_params = dict(params)
-        for s,t in dict_params.items():
-            print(s)
-            if '4' in s:
-                print(t)
+        # params = self.named_parameters()
+        # dict_params = dict(params)
+        # for s,t in dict_params.items():
+        #     print(s)
+        #     if '4' in s:
+        #         print(t)
         return loss
 
     def validation_step(self, batch, batch_idx):
