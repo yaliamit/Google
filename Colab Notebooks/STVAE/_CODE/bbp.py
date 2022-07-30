@@ -8,7 +8,13 @@ os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 
 ww=torch.load('/home/amit/ga/Google/Colab Notebooks/ssl-playground-master/backbone_weights.pth')
+
+
+for s,t in ww['bb'].items():
+    print(s)
+    print(t)
 ww['bb'].update(ww['pp'])
+
 
 par_file='pars_emb_direct_temp'
 arg = prep.setups(par_file)
