@@ -171,13 +171,13 @@ class GaussianBlur(object):
         # return original image
         return sample
 
-def get_simclr_pipeline_transform(size=32):
+def get_simclr_pipeline_transform(size=32,factor=1.):
 
 
         data_transforms = transforms.Compose([
             transforms.RandomResizedCrop(size=size, scale=(0.08, 1.0)),
             transforms.RandomHorizontalFlip(p=0.5),
-            transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
+            transforms.RandomApply([transforms.ColorJitter(0.8*factor, 0.8*factor, 0.8*factor, 0.2*factor)], p=0.8),
             transforms.RandomGrayscale(p=0.2),
             #GaussianBlur(kernel_size=.1*size),
             transforms.ToTensor(),
@@ -604,8 +604,8 @@ def get_CIFAR10(batch_size = 500,size=None, double_aug=True):
 
 
 
-def get_CIFAR100(batch_size = 500, size=None, double_aug=True):
-    transform_CIFAR = get_simclr_pipeline_transform()
+def get_CIFAR100(batch_size = 500, size=None, double_aug=True, factor=1.):
+    transform_CIFAR = get_simclr_pipeline_transform(factor=factor)
 
 
     transform = ContrastiveLearningViewGenerator(transform_CIFAR, double_aug=double_aug)
@@ -712,7 +712,7 @@ def get_cifar_trans(PARS):
     if ftr=='trans10':
         tr,te=get_CIFAR10(PARS['mb_size'],double_aug=PARS['double_aug'])
     else:
-        tr,te=get_CIFAR100(PARS['mb_size'],double_aug=PARS['double_aug'])
+        tr,te=get_CIFAR100(PARS['mb_size'],double_aug=PARS['double_aug'],factor=PARS['h_factor'])
 
     return tr,val,te
 
