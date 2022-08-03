@@ -468,7 +468,7 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
                         _,s,_=torch.linalg.svd(out[0])
                         s=s/torch.sum(s)
                         ent=-torch.sum(s*torch.log2(s))/6.
-                        _, s, _ = torch.linalg.svd(OUT[0])
+                        _, s, _ = torch.linalg.svd(OUT[0].reshape(out.shape[0],-1))
                         print(s.shape)
                         s = s / torch.sum(s)
                         ENT = -torch.sum(s * torch.log2(s))/13.
