@@ -461,15 +461,19 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
 
             with torch.no_grad() if (d_type!='train') else dummy_context_mgr():
                 out, OUT, data =forw(model,args,data)
-                # with torch.no_grad():
-                #     if args.embedd_type=='direct':
-                #       if j==0 and type(out) is list:
-                #         _,s,_=torch.linalg.svd(out[0])
-                #         s=s/torch.sum(s)
-                #         ent=-torch.sum(s*torch.log(s))
-                #         print('ent',ent.cpu().numpy())
-                #
-                #       out_norm+=torch.mean(torch.norm(out[0],dim=1))
+                if args.embedd_type=='direct' and np.mod(epoch,10) == 0:
+
+                  with torch.no_grad():
+                      if j==0 and type(out) is list:
+                        _,s,_=torch.linalg.svd(out[0])
+                        s=s/torch.sum(s)
+                        ent=-torch.sum(s*torch.log(s))
+                        _, s, _ = torch.linalg.svd(OUT[0])/6
+                        s = s / torch.sum(s)
+                        ENT = -torch.sum(s * torch.log2(s))/13
+                        fout.write('ent {.3F}, ENT {.3F}\n'.format(ent.cpu().numpy(),ENT.cpu().numpy()))
+
+                      #out_norm+=torch.mean(torch.norm(out[0],dim=1))
                 loss, acc = get_loss(lossf,args, out, OUT, target, data)
             if args.randomize_layers is not None and d_type == "train":
                     for i, k in enumerate(args.KEYS):
