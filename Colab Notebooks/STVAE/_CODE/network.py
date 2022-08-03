@@ -467,10 +467,10 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
                       if j==0 and type(out) is list:
                         _,s,_=torch.linalg.svd(out[0])
                         s=s/torch.sum(s)
-                        ent=-torch.sum(s*torch.log(s))
-                        _, s, _ = torch.linalg.svd(OUT[0])/6
+                        ent=-torch.sum(s*torch.log2(s))
+                        _, s, _ = torch.linalg.svd(OUT[0])/6.
                         s = s / torch.sum(s)
-                        ENT = -torch.sum(s * torch.log2(s))/13
+                        ENT = -torch.sum(s * torch.log2(s))/13.
                         fout.write('ent {.3F}, ENT {.3F}\n'.format(ent.cpu().numpy(),ENT.cpu().numpy()))
 
                       #out_norm+=torch.mean(torch.norm(out[0],dim=1))
