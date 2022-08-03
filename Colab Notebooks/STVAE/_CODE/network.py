@@ -471,7 +471,7 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
                         _, s, _ = torch.linalg.svd(OUT[0].reshape(out[0].shape[0],-1))
                         print(s.shape)
                         s = s / torch.sum(s)
-                        ENT = -torch.sum(s * torch.log2(s))/torch.log2(500.)
+                        ENT = -torch.sum(s * torch.log2(s))/torch.log2(torch.float(s.shape))
                         fout.write('\n ent {:.2F}, ENT {:.2F}\n'.format(ent.cpu().numpy(),ENT.cpu().numpy()))
 
                       #out_norm+=torch.mean(torch.norm(out[0],dim=1))
