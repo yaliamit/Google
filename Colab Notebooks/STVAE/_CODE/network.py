@@ -461,6 +461,7 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
 
             with torch.no_grad() if (d_type!='train') else dummy_context_mgr():
                 out, OUT, data =forw(model,args,data)
+
                 if args.embedd_type=='direct' and np.mod(epoch,10) == 0:
 
                   with torch.no_grad():
@@ -469,7 +470,6 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
                         s=s/torch.sum(s)
                         ent=-torch.sum(s*torch.log2(s))/6.
                         _, s, _ = torch.linalg.svd(OUT[0].reshape(out[0].shape[0],-1))
-                        print(s.shape)
                         s = s / torch.sum(s)
                         ENT = -torch.sum(s * torch.log2(s))/torch.log2(torch.tensor(jump,dtype=float))
                         fout.write('\n ent {:.2F}, ENT {:.4F}\n'.format(ent.cpu().numpy(),ENT.cpu().numpy()))
@@ -487,8 +487,12 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
                 if args.grad_clip>0.:
                     nn.utils.clip_grad_value_(model.parameters(),args.grad_clip)
                 optimizer.step()
-
+            # with torch.no_grad():
+            #     outt=model.forward(data[1])[0]
+            # loss_post = lossf.forw(out[0],outt)
+            # print(loss, loss_post)
             full_loss[lnum] += loss.item()
+
             if acc is not None:
                 full_acc[lnum] += acc.item()
             count[lnum]+=1

@@ -85,6 +85,13 @@ class direct_loss(nn.Module):
 
         return loss, loss1
 
+    def forw(self, out0, out1):
+      with torch.no_grad():
+        outa = out1 @ (self.cov + self.eye)
+        diff = torch.mean(torch.abs(out0 - outa), dim=1)
+        # print(torch.max(diff),torch.min(diff))
+        loss = torch.mean(diff)
+      return loss
 
 class barlow_loss(nn.Module):
     def __init__(self, batch_size, dim, device='cpu', lamda=.004, scale=1./32.):
