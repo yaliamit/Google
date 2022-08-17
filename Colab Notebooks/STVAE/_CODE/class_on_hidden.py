@@ -217,7 +217,7 @@ def train_new_new(args,model,DATA,fout,device,net=None):
 
     network.run_epoch(net, args, trdl, 0, d_type='test_tr',fout=fout, freq=1)
 
-    res = network.run_epoch(net, args, tedl, epoch, d_type='Final_test_hidden',fout=fout, freq=1)
+    res = network.run_epoch(net, args, tedl, 0, d_type='Final_test_hidden',fout=fout, freq=1)
 
     save_net_int(net, args.model_out+'_classify', args, predir)
 

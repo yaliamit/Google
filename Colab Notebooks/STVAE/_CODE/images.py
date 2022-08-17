@@ -252,6 +252,7 @@ def erode(do_er,data,extra=None):
 
 
 
+
 def deform_data(x_in,perturb,trans,s_factor,h_factor,embedd,dv):
 
         if perturb==0:
@@ -393,6 +394,7 @@ class Edge(torch.nn.Module):
 
         with torch.no_grad():
             EDGES=[]
+            # Loop through the 3 channels separately.
             for k in range(im.shape[1]):
                 EDGES+=[self.get_edges(im[:,k,:,:])]
 
