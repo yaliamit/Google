@@ -102,6 +102,7 @@ class barlow_loss(nn.Module):
         self.lamda = np.abs(lamda) # 3.9e-3 in the paper
         self.scale = scale # 1/32 in the paper
         self.standardize=standardize
+        self.l1=False
         if lamda<0:
             self.l1=True
     def off_diagonal(self,c):
