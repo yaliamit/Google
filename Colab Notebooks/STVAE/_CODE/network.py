@@ -72,7 +72,7 @@ def initialize_model(args, sh, layers,device, layers_dict=None):
             model.add_module('clapp', nn.Conv2d(args.clapp_dim[1], args.clapp_dim[1], 1))
         if args.update_layers is not None:
             args.update_layers.append('clapp')
-    if args.embedd_type=='AE' or args.embedd_type=='direct':
+    if args.embedd_type=='AE' or args.embedd_type is not None:
         atemp.everything=True
 
     if sh is not None:
@@ -542,7 +542,7 @@ def forw(model, args, input, lnum=0):
                 out1=OOUT1[args.compare_layers[1]]
                 data1=OOUT1[args.compare_layers[0]]
                 print(torch.max(torch.abs(data1)),torch.max(torch.abs(out1)))
-        elif args.embedd_type == 'direct':
+        elif args.embedd_type is not None:
             OUT1 = OOUT1[args.embedd_layer]
         with torch.no_grad() if (args.block) else dummy_context_mgr():
             cl = False
