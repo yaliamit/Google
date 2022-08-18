@@ -554,7 +554,7 @@ def forw(model, args, input, lnum=0):
                 if args.compare_layers is not None:
                     out0 = OOUT0[args.compare_layers[1]]
                     data0 = OOUT0[args.compare_layers[0]]
-            elif args.embedd_type == 'direct':
+            elif args.embedd_type is not None:
                 OUT0 = OOUT0[args.embedd_layer]
         out=[out0,out1]
         OUT=[OUT0,OUT1]
