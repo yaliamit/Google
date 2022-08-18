@@ -101,6 +101,7 @@ class barlow_loss(nn.Module):
         self.lamda = lamda # 3.9e-3 in the paper
         self.scale = scale # 1/32 in the paper
         self.standardize=standardize
+
     def off_diagonal(self,c):
         return c-torch.diag_embed(torch.diagonal(c))
 
