@@ -124,7 +124,7 @@ class barlow_loss(nn.Module):
         else:
             on_diag = torch.diagonal(c).add_(-1).pow_(2).sum().mul(self.scale)
             off_diag = self.off_diagonal(c).pow_(2).sum().mul(self.scale)
-        loss = on_diag + self.lamda * off_diag
+        loss = (1-self.lamda)*on_diag + self.lamda * off_diag
         return loss, off_diag
 
 class simclr_loss(nn.Module):
