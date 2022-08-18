@@ -94,25 +94,26 @@ class direct_loss(nn.Module):
       return loss
 
 class barlow_loss(nn.Module):
-    def __init__(self, batch_size, dim, device='cpu', lamda=.004, scale=1./32.):
+    def __init__(self, batch_size, standardize=True, device='cpu', lamda=.004, scale=1./32.):
         super(barlow_loss, self).__init__()
         self.batch_size = batch_size # 2000 in my experiments
         self.device = device
         self.lamda = lamda # 3.9e-3 in the paper
         self.scale = scale # 1/32 in the paper
-
+        self.standardize=standardize
     def off_diagonal(self,c):
         return c-torch.diag_embed(torch.diagonal(c))
 
     def forward(self, out0, out1):
         # two branches
-        out0a = out0-torch.mean(out0,dim=0,keepdim=True)
-        out1a = out1-torch.mean(out1,dim=0,keepdim=True)
-        out0a = out0a/(torch.sqrt(torch.mean(out0a*out0a,dim=0,keepdim=True))+.0001)
-        out1a = out1a/(torch.sqrt(torch.mean(out1a*out1a,dim=0,keepdim=True))+.0001)
+        if self.standardize:
+            out0 = out0-torch.mean(out0,dim=0,keepdim=True)
+            out1 = out1-torch.mean(out1,dim=0,keepdim=True)
+            out0 = out0/(torch.sqrt(torch.mean(out0*out0,dim=0,keepdim=True))+.0001)
+            out1 = out1/(torch.sqrt(torch.mean(out1*out1,dim=0,keepdim=True))+.0001)
 
         # empirical cross-correlation matrix
-        c = (out0a).T @ (out1a)
+        c = (out0).T @ (out1)
         c.div_(self.batch_size)
 
         on_diag = torch.diagonal(c).add_(-1).pow_(2).sum().mul(self.scale)
