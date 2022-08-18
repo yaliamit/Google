@@ -65,7 +65,9 @@ def test_models(ARGS, SMS, test, models, fout):
             model.bsz=args.mb_size
             if 'vae' in args.type:
                 testMU, testLOGVAR, testPI = model.initialize_mus(test.shape[0], model.final_shape, model.n_mix)
-            model.run_epoch(test, 0, args.nti, testMU, testLOGVAR, testPI, d_type='test', fout=fout)
+                model.run_epoch(test, 0, args.nti, testMU, testLOGVAR, testPI, d_type='test', fout=fout)
+            else:
+                test_acc = run_epoch(model, args, test, 0, d_type='test', fout=fout)
 
 
 
