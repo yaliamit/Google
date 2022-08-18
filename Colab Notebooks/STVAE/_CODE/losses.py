@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import numpy as np
 import time
 def standardize(out, nostd):
 
@@ -98,10 +99,11 @@ class barlow_loss(nn.Module):
         super(barlow_loss, self).__init__()
         self.batch_size = batch_size # 2000 in my experiments
         self.device = device
-        self.lamda = lamda # 3.9e-3 in the paper
+        self.lamda = np.abs(lamda) # 3.9e-3 in the paper
         self.scale = scale # 1/32 in the paper
         self.standardize=standardize
-
+        if lamda<0:
+            self.l1=True
     def off_diagonal(self,c):
         return c-torch.diag_embed(torch.diagonal(c))
 
@@ -116,9 +118,12 @@ class barlow_loss(nn.Module):
         # empirical cross-correlation matrix
         c = (out0).T @ (out1)
         c.div_(self.batch_size)
-
-        on_diag = torch.diagonal(c).add_(-1).pow_(2).sum().mul(self.scale)
-        off_diag = self.off_diagonal(c).pow_(2).sum().mul(self.scale)
+        if self.l1:
+            on_diag = torch.diagonal(c).add_(-1).abs_().sum().mul(self.scale)
+            off_diag = self.off_diagonal(c).abs_().sum().mul(self.scale)
+        else:
+            on_diag = torch.diagonal(c).add_(-1).pow_(2).sum().mul(self.scale)
+            off_diag = self.off_diagonal(c).pow_(2).sum().mul(self.scale)
         loss = on_diag + self.lamda * off_diag
         return loss, off_diag
 
