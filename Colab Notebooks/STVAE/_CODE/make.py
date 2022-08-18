@@ -47,14 +47,17 @@ def test_models(ARGS, SMS, test, models, fout):
             model.load_state_dict(sm['model.state.dict'])
             if 'vae' in args.type:
                 testMU, testLOGVAR, testPI = model.initialize_mus(test.shape[0], model.final_shape, model.n_mix)
-            print(cf)
-            iid, RY, cl_rate, acc = model.run_epoch_classify(test, 'test', fout=fout, num_mu_iter=args.nti, conf_thresh=cf)
-            CL_RATE += [cl_rate]
-            len_conf = len_test - np.sum(iid)
-            print("current number", len_conf)
-            if (len_conf > 0):
-                print(float(cl_rate) / len_conf)
-        print(np.float(np.sum(np.array(CL_RATE))) / len_test)
+            else:
+                test_acc = run_epoch(model, args, test, 0, d_type='test', fout=fout)
+
+        #     print(cf)
+        #     iid, RY, cl_rate, acc = run_epoch_classify(test, 'test', fout=fout, num_mu_iter=args.nti, conf_thresh=cf)
+        #     CL_RATE += [cl_rate]
+        #     len_conf = len_test - np.sum(iid)
+        #     print("current number", len_conf)
+        #     if (len_conf > 0):
+        #         print(float(cl_rate) / len_conf)
+        # print(np.float(np.sum(np.array(CL_RATE))) / len_test)
     else:
         for sm, model, args in zip(SMS, models, ARGS):
             testMU = None;testLOGVAR = None;testPI = None
