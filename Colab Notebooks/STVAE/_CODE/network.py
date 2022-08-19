@@ -473,8 +473,8 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
                         s = s / torch.sum(s)
                         ENT = -torch.sum(s * torch.log2(s))/torch.log2(torch.tensor(jump,dtype=float))
                         fout.write('\n ent {:.2F}, ENT {:.4F}\n'.format(ent.cpu().numpy(),ENT.cpu().numpy()))
-                        l1=torch.sum(torch.mean(torch.abs(out[0]-out[1]),dim=1))
-                        L1 = torch.sum(torch.mean(torch.abs(OUT[0] - OUT[1]), dim=1))
+                        l1=torch.mean(torch.mean(torch.abs(out[0]-out[1]),dim=1))
+                        L1 = torch.mean(torch.mean(torch.abs(OUT[0] - OUT[1]), dim=1))
                         fout.write('\n l1 {:.2F}, L1 {:.4F}\n'.format(l1.cpu().numpy(),L1.cpu().numpy()))
 
                       #out_norm+=torch.mean(torch.norm(out[0],dim=1))
