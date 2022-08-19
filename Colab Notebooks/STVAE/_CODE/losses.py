@@ -55,15 +55,15 @@ class hinge_loss(nn.Module):
         return loss
 
 class direct_loss(nn.Module):
-    def __init__(self, batch_size, out_dim, eps=0.1, alpha=0.9, lamda=0.,device='cpu'):
+    def __init__(self, batch_size, out_dim, eps=0.1, alpha=0.9, device='cpu'):
         super(direct_loss, self).__init__()
         self.dv = device
         self.eps=eps
         self.alpha=alpha
         self.cov=torch.eye(out_dim).to(self.dv)
         self.eye=self.eps*torch.eye(out_dim).to(self.dv)
-        self.lamda=lamda
         self.batch_size=batch_size
+        print('direct, eps',eps,'alpha',alpha)
 
     def forward(self,out0,out1, OUT0, OUT1):
 
@@ -80,9 +80,6 @@ class direct_loss(nn.Module):
                 loss1=torch.sum(torch.mean(torch.abs(out0-out1),dim=1))
             else:
                 loss1 = torch.sum(torch.mean(torch.abs(OUT0 - OUT1), dim=1))
-        # if self.lamda>0:
-        #      loss1= torch.sum(torch.relu(torch.sum(torch.abs(out0-out1),dim=1)-1.))
-        #      loss+=self.lamda*loss1
 
         return loss, loss1
 
@@ -105,6 +102,7 @@ class barlow_loss(nn.Module):
         self.l1=False
         if lamda<0:
             self.l1=True
+        print('In balrow',self.l1,lamda,scale,self.standardize)
     def off_diagonal(self,c):
         return c-torch.diag_embed(torch.diagonal(c))
 
@@ -135,7 +133,7 @@ class simclr_loss(nn.Module):
         self.tau=tau
         self.bsz=bsz
         self.ID=2*torch.eye(bsz).to(dv)-1
-
+        print('In simclr',tau)
     def __call__(self,out0,out1):
 
         # Standardize 64 dim outputs of original and deformed images

@@ -140,7 +140,7 @@ def initialize_model(args, sh, layers,device, layers_dict=None):
             elif args.embedd_type=='binary':
                 atemp.loss=binary_loss(atemp.dv)
             elif args.embedd_type=='direct':
-                atemp.loss=direct_loss(bsz,atemp.output_shape[1],alpha=args.alpha, eps=args.eps, lamda=args.lamda, device=atemp.dv)
+                atemp.loss=direct_loss(bsz,atemp.output_shape[1],alpha=args.alpha, eps=args.eps, device=atemp.dv)
             elif args.embedd_type=='barlow':
                 atemp.loss=barlow_loss(bsz,standardize=not args.no_standardize, device=atemp.dv,lamda=args.lamda)
             elif args.embedd_type=='orig':
