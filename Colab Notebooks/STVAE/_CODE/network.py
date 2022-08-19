@@ -576,8 +576,6 @@ def get_loss(aloss, args, out, OUT, target, data=None):
         if type(out) is list:
             if args.embedd_type == 'AE':
                 loss, acc = aloss(out[0], out[1], OUT[0], OUT[1], data[0], data[1])
-            elif args.embedd_type == 'direct':
-                loss, acc = aloss(out[0], out[1], OUT[0], OUT[1])
             else:
                 loss, acc = aloss(out[0], out[1])
         else:
