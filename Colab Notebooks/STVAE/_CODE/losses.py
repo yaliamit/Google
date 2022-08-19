@@ -65,23 +65,16 @@ class direct_loss(nn.Module):
         self.batch_size=batch_size
         print('direct, eps',eps,'alpha',alpha)
 
-    def forward(self,out0,out1, OUT0, OUT1):
+    def forward(self,out0,out1):
 
 
         with torch.no_grad():
             self.cov=(1-self.alpha)*(out1.T @ out1)/self.batch_size+self.alpha*self.cov
-        #self.cc=cov.detach()
         outa=out1 @ (self.cov + self.eye)
         diff=torch.mean(torch.abs(out0-outa),dim=1)
-        #print(torch.max(diff),torch.min(diff))
         loss= torch.mean(diff) #torch.sum(torch.abs(outa-out0)) #+self.lamda*(torch.mean(.5-torch.abs(out0)))
-        with torch.no_grad():
-            if OUT0 is None:
-                loss1=torch.sum(torch.mean(torch.abs(out0-out1),dim=1))
-            else:
-                loss1 = torch.sum(torch.mean(torch.abs(OUT0 - OUT1), dim=1))
 
-        return loss, loss1
+        return loss, loss
 
     def forw(self, out0, out1):
       with torch.no_grad():
