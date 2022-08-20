@@ -417,6 +417,33 @@ class network(nn.Module):
         return xx
 
 
+def SS_stats(out, OUT, fout):
+    with torch.no_grad():
+            _, s, _ = torch.linalg.svd(out[0])
+            s = s / torch.sum(s)
+            ent = -torch.sum(s * torch.log2(s)) / 6.
+            _, s, _ = torch.linalg.svd(OUT[0].reshape(out[0].shape[0], -1))
+            s = s / torch.sum(s)
+            ENT = -torch.sum(s * torch.log2(s)) / torch.log2(torch.tensor(jump, dtype=float))
+            fout.write('\n ent {:.2F}, ENT {:.4F}\n'.format(ent.cpu().numpy(), ENT.cpu().numpy()))
+            l1 = torch.mean(torch.mean(torch.abs(out[0] - out[1]), dim=1))
+            s1 = torch.mean(torch.std(torch.abs(out[0] - out[1]), dim=1))
+            L1 = torch.mean(torch.mean(torch.abs(OUT[0] - OUT[1]), dim=1))
+            S1 = torch.mean(torch.std(torch.abs(OUT[0] - OUT[1]), dim=1))
+
+            fout.write('\n SAME: l1 {:.2F}, s1 {:.2F}, L1 {:.4F}, S1 {:.4F} \n'.format(
+                l1.cpu().numpy(), s1.cpu().numpy(), L1.cpu().numpy(), S1.cpu().numpy()))
+
+            out1p = out[1][torch.randperm(out[1].size()[0])]
+            OUT1p = OUT[1][torch.randperm(OUT[1].size()[0])]
+
+            l1 = torch.mean(torch.mean(torch.abs(out[1] - out1p), dim=1))
+            s1 = torch.mean(torch.std(torch.abs(out[1] - out1p), dim=1))
+            L1 = torch.mean(torch.mean(torch.abs(OUT[1] - OUT1p), dim=1))
+            S1 = torch.mean(torch.std(torch.abs(OUT[1] - OUT1p), dim=1))
+
+            fout.write('\n DIFFERENT: l1 {:.2F}, s1 {:.2F}, L1 {:.4F}, S1 {:.4F} \n'.format(
+                l1.cpu().numpy(), s1.cpu().numpy(), L1.cpu().numpy(), S1.cpu().numpy()))
 
 def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
 
@@ -425,7 +452,6 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
         else:
             model.eval()
 
-        #if type(train) is DL:
         jump=train.batch_size
         args.n_class=train.num_class
         num_tr=train.num
@@ -440,15 +466,15 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
             optimizer = model.temp.optimizer
             dvv=model.temp.dv
             lossf=model.temp.loss
-        TIME=0
+        # Dataloader iterator
         tra=iter(train)
-        out_norm=0
         for j in np.arange(0, num_tr, jump,dtype=np.int32):
             lnum=0
             if d_type=='train':
                 optimizer.zero_grad()
 
             BB, indlist=next(tra)
+            # AN image and its augmentation is provided by the data loader
             if type(BB[0]) is list:
                 data=[BB[0][0].to(dvv,non_blocking=True),BB[0][1].to(dvv,non_blocking=True)]
             else:
@@ -457,28 +483,15 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
 
             target=BB[1].to(dvv, dtype=torch.long)
 
-
-
             with torch.no_grad() if (d_type!='train') else dummy_context_mgr():
                 out, OUT, data =forw(model,args,data)
 
                 if args.embedd_type is not None and np.mod(epoch,10) == 0:
+                    # Some stats of interest to compute in SS learning
+                    SS_stats(out, OUT, fout)
 
-                  with torch.no_grad():
-                      if j==0 and type(out) is list:
-                        _,s,_=torch.linalg.svd(out[0])
-                        s=s/torch.sum(s)
-                        ent=-torch.sum(s*torch.log2(s))/6.
-                        _, s, _ = torch.linalg.svd(OUT[0].reshape(out[0].shape[0],-1))
-                        s = s / torch.sum(s)
-                        ENT = -torch.sum(s * torch.log2(s))/torch.log2(torch.tensor(jump,dtype=float))
-                        fout.write('\n ent {:.2F}, ENT {:.4F}\n'.format(ent.cpu().numpy(),ENT.cpu().numpy()))
-                        l1=torch.mean(torch.mean(torch.abs(out[0]-out[1]),dim=1))
-                        L1 = torch.mean(torch.mean(torch.abs(OUT[0] - OUT[1]), dim=1))
-                        fout.write('\n l1 {:.2F}, L1 {:.4F}\n'.format(l1.cpu().numpy(),L1.cpu().numpy()))
-
-                      #out_norm+=torch.mean(torch.norm(out[0],dim=1))
                 loss, acc = get_loss(lossf,args, out, OUT, target, data)
+
             if args.randomize_layers is not None and d_type == "train":
                     for i, k in enumerate(args.KEYS):
                         if args.randomize_layers[lnum * 2] not in k and args.randomize_layers[lnum * 2 + 1] not in k:
@@ -502,8 +515,7 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
 
 
         if freq-np.mod(epoch,freq)==1:
-           #fout.write('\n OUT_norm {:.4F} \n'.format(out_norm/count[0]))
-           #print(model.temp.loss.cov)
+
            for l in range(ll):
                 fout.write('\n ====> Ep {}: {} Full loss: {:.7F}, Full acc: {:.6F} \n'.format(d_type,epoch,
                     full_loss[l] /(count[l]), full_acc[l]/(count[l]*jump)))
