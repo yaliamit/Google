@@ -419,19 +419,21 @@ class network(nn.Module):
 
 def SS_stats(out, OUT, fout):
     with torch.no_grad():
+            ls=torch.log2(torch.tensor(out[0].size()[1],dtype=float))
+            LS=torch.log2(torch.tensor(OUT[0].size()[1],dtype=float))
             _, s, _ = torch.linalg.svd(out[0])
             s = s / torch.sum(s)
-            ent = -torch.sum(s * torch.log2(s)) / 6.
+            ent = -torch.sum(s * torch.log2(s)) / ls
             _, s, _ = torch.linalg.svd(OUT[0].reshape(out[0].shape[0], -1))
             s = s / torch.sum(s)
-            ENT = -torch.sum(s * torch.log2(s)) / torch.log2(torch.tensor(jump, dtype=float))
+            ENT = -torch.sum(s * torch.log2(s)) / LS
             fout.write('\n ent {:.2F}, ENT {:.4F}\n'.format(ent.cpu().numpy(), ENT.cpu().numpy()))
             l1 = torch.mean(torch.mean(torch.abs(out[0] - out[1]), dim=1))
             s1 = torch.mean(torch.std(torch.abs(out[0] - out[1]), dim=1))
             L1 = torch.mean(torch.mean(torch.abs(OUT[0] - OUT[1]), dim=1))
             S1 = torch.mean(torch.std(torch.abs(OUT[0] - OUT[1]), dim=1))
 
-            fout.write('\n SAME: l1 {:.2F}, s1 {:.2F}, L1 {:.4F}, S1 {:.4F} \n'.format(
+            fout.write('\n SAME: l1 {:.2F}/s1 {:.2F}, L1 {:.4F}/S1 {:.4F} \n'.format(
                 l1.cpu().numpy(), s1.cpu().numpy(), L1.cpu().numpy(), S1.cpu().numpy()))
 
             out1p = out[1][torch.randperm(out[1].size()[0])]
@@ -442,7 +444,7 @@ def SS_stats(out, OUT, fout):
             L1 = torch.mean(torch.mean(torch.abs(OUT[1] - OUT1p), dim=1))
             S1 = torch.mean(torch.std(torch.abs(OUT[1] - OUT1p), dim=1))
 
-            fout.write('\n DIFFERENT: l1 {:.2F}, s1 {:.2F}, L1 {:.4F}, S1 {:.4F} \n'.format(
+            fout.write('\n DIFFERENT: l1 {:.2F}/s1 {:.2F}, L1 {:.4F}/S1 {:.4F} \n'.format(
                 l1.cpu().numpy(), s1.cpu().numpy(), L1.cpu().numpy(), S1.cpu().numpy()))
 
 def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
