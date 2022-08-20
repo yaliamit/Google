@@ -488,7 +488,7 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
             with torch.no_grad() if (d_type!='train') else dummy_context_mgr():
                 out, OUT, data =forw(model,args,data)
 
-                if args.embedd_type is not None and np.mod(epoch,10) == 0:
+                if args.embedd_type is not None and np.mod(epoch,10) == 0 and j==0:
                     # Some stats of interest to compute in SS learning
                     SS_stats(out, OUT, fout)
 
