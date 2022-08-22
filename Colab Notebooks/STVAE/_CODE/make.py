@@ -179,7 +179,8 @@ def train_model(model, args, ex_file, DATA, fout):
 
     else:
         if test is not None:
-            test_acc=run_epoch(model,args,test, 0, d_type='test', fout=fout)
+             #test_acc=run_epoch(model,args,test, 0, d_type='test', fout=fout)
+            test_acc=run_epoch(model,args,train, 0, d_type='test_stats', fout=fout)
 
     model.results=[np.array(VAL_ACC).transpose().reshape(-1,2)]+[test_acc[0]]
     save_net_int(model, args.model_out, args, predir)
