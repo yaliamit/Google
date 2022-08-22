@@ -433,7 +433,7 @@ def SS_stats(out, OUT, fout):
             L1 = torch.mean(torch.mean(torch.abs(OUT[0] - OUT[1]), dim=1))
             S1 = torch.mean(torch.std(torch.abs(OUT[0] - OUT[1]), dim=1))
 
-            fout.write('\n SAME:l1{:.2F}:s1{:.2F}:L1{:.4F}:S1{:.4F} \n'.format(
+            fout.write('\n SAME:l1:{:.2F}:s1:{:.2F}:L1:{:.4F}:S1:{:.4F} \n'.format(
                 l1.cpu().numpy(), s1.cpu().numpy(), L1.cpu().numpy(), S1.cpu().numpy()))
 
             out1p = out[1][torch.randperm(out[1].size()[0])]
@@ -444,7 +444,7 @@ def SS_stats(out, OUT, fout):
             L1 = torch.mean(torch.mean(torch.abs(OUT[1] - OUT1p), dim=1))
             S1 = torch.mean(torch.std(torch.abs(OUT[1] - OUT1p), dim=1))
 
-            fout.write('\n DIFFERENT:l1{:.2F}:s1{:.2F}:L1{:.4F}:S1{:.4F} \n'.format(
+            fout.write('\n DIFFERENT:l1:{:.2F}:s1:{:.2F}:L1:{:.4F}:S1:{:.4F} \n'.format(
                 l1.cpu().numpy(), s1.cpu().numpy(), L1.cpu().numpy(), S1.cpu().numpy()))
 
 def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
