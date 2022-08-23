@@ -111,7 +111,7 @@ class barlow_loss(nn.Module):
         c = (out0).T @ (out1)
         c.div_(self.batch_size)
         if self.l1:
-            on_diag = torch.diagonal(c).add_(-1).abs_().sum().mul(self.scale)
+            on_diag = torch.sum(torch.mean(torch.abs(out0-out1),dim=1)) #torch.diagonal(c).add_(-1).abs_().sum().mul(self.scale)
             off_diag = self.off_diagonal(c).abs_().sum().mul(self.scale)
         else:
             on_diag = torch.diagonal(c).add_(-1).pow_(2).sum().mul(self.scale)
