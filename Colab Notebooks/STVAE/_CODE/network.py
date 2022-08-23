@@ -427,7 +427,7 @@ def SS_stats(out, OUT, fout):
             _, s, _ = torch.linalg.svd(OUT[0].reshape(out[0].shape[0], -1))
             s = s / torch.sum(s)
             ENT = -torch.sum(s * torch.log2(s)) / LS
-            fout.write('\n ent:{:.2F}:ENT:{:.4F}\n'.format(ent.cpu().numpy(), ENT.cpu().numpy()))
+            fout.write('\n ent,{:.2F},ENT,{:.4F}\n'.format(ent.cpu().numpy(), ENT.cpu().numpy()))
             l1 = torch.mean(torch.mean(torch.abs(out[0] - out[1]), dim=1))
             s1 = torch.mean(torch.std(torch.abs(out[0] - out[1]), dim=1))
             L1 = torch.mean(torch.mean(torch.abs(OUT[0] - OUT[1]), dim=1))
