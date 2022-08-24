@@ -60,7 +60,7 @@ class direct_loss(nn.Module):
         self.dv = device
         self.eps=eps
         self.alpha=alpha
-        self.cov=torch.eye(out_dim).to(self.dv)
+        self.cov=torch.eye(out_dim).to(self.dv)/batch_size
         self.eye=self.eps*torch.eye(out_dim).to(self.dv)
         self.batch_size=batch_size
         print('direct, eps',eps,'alpha',alpha)
