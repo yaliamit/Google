@@ -469,12 +469,12 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
             dvv=model.temp.dv
             lossf=model.temp.loss
         # Dataloader iterator
-        if args.embedd_type=='direct':
-            if epoch==0:
-                lossf.alpha=0.
-            else:
-                lossf.alpha=args.alpha
-            print(lossf.alpha)
+        # if args.embedd_type=='direct':
+        #     if epoch==0:
+        #         lossf.alpha=0.
+        #     else:
+        #         lossf.alpha=args.alpha
+        #     print(lossf.alpha)
         tra=iter(train)
         for j in np.arange(0, num_tr, jump,dtype=np.int32):
             lnum=0
