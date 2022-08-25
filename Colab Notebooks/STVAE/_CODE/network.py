@@ -423,7 +423,6 @@ def SS_stats(out, OUT, fout):
             LS=torch.log2(torch.tensor(OUT[0].size()[1],dtype=float))
             _, s, _ = torch.linalg.svd(out[0])
             s = s / torch.sum(s)
-            print(s)
             ent = -torch.sum(s * torch.log2(s)) / ls
             _, s, _ = torch.linalg.svd(OUT[0].reshape(out[0].shape[0], -1))
             s = s / torch.sum(s)
