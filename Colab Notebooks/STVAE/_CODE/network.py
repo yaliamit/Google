@@ -514,7 +514,7 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
             with torch.no_grad():
                  outt=model.forward(data[1])[0]
                  loss_post = lossf.forw(out[0],outt)
-                 print(loss, loss_post)
+                 print('loss_diff',(loss-loss_post).item())
             full_loss[lnum] += loss.item()
 
             if acc is not None:
