@@ -514,7 +514,7 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
             with torch.no_grad():
                  outt=model.forward(data[1])[0]
                  loss_post = lossf.forw(out[0],outt)
-                 loss_post1 = lossf.forward(out[0],outt)
+                 loss_post1 = lossf.forward(out[0],outt)[0]
                  print('loss_diff',(loss-loss_post).item())
                  print('loss_diff1', (loss - loss_post1).item())
 
