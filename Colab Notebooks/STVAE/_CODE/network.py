@@ -478,6 +478,7 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
         tra=iter(train)
         loss_diff=0.
         loss_diff1=0.
+        loss_diff2=0.
         for j in np.arange(0, num_tr, jump,dtype=np.int32):
             lnum=0
             if d_type=='train':
@@ -515,10 +516,13 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
                 optimizer.step()
             with torch.no_grad():
                  outt=model.forward(data[1])[0]
+                 outt0=model.forward(data[0])[0]
                  loss_post = lossf.forw(out[0],outt)
                  loss_post1 = lossf.forward(out[0],outt)[0]
+                 loss_post2 = lossf.forward(outt0,outt)[0]
                  loss_diff+=(loss-loss_post).item()
                  loss_diff1+=(loss-loss_post1).item()
+                 loss_diff2+=(loss-loss_post2).item()
 
             full_loss[lnum] += loss.item()
 
@@ -526,7 +530,7 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
                 full_acc[lnum] += acc.item()
             count[lnum]+=1
 
-        print('lossdiff',loss_diff,'lossdiff1',loss_diff1)
+        print('\n lossdiff',loss_diff,'lossdiff1',loss_diff1,'lossdiff2',loss_diff2)
         if freq-np.mod(epoch,freq)==1:
 
            for l in range(ll):
