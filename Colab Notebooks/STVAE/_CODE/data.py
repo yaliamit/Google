@@ -710,9 +710,9 @@ def get_cifar_trans(PARS):
     val=None
     ftr = PARS['data_set'].split('_')[1]
     if ftr=='trans10':
-        tr,te=get_CIFAR10(PARS['mb_size'],double_aug=PARS['double_aug'],factor=PARS['h_factor'])
+        tr,te=get_CIFAR10(PARS['mb_size'],size=PARS['num_train'],double_aug=PARS['double_aug'],factor=PARS['h_factor'])
     else:
-        tr,te=get_CIFAR100(PARS['mb_size'],double_aug=PARS['double_aug'],factor=PARS['h_factor'])
+        tr,te=get_CIFAR100(PARS['mb_size'],size=PARS['num_train'],double_aug=PARS['double_aug'],factor=PARS['h_factor'])
 
     return tr,val,te
 

@@ -515,11 +515,16 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
                     nn.utils.clip_grad_value_(model.parameters(),args.grad_clip)
                 optimizer.step()
             with torch.no_grad():
+                 # Run the gradient branch through the updated network.
                  outt=model.forward(data[1])[0]
-                 outt0=model.forward(data[0])[0]
-                 loss_post = lossf.forw(out[0],outt)
+                 # Everything else stays the same.
+                 loss_post = lossf.forw(out[0], outt)
+                 # Non-gradient branch stays the same but covariance is updated.
                  loss_post1 = lossf.forward(out[0],outt)[0]
+                 # Run the non-gradient branch through updated network - this should yield loss like next epoch?
+                 outt0 = model.forward(data[0])[0]
                  loss_post2 = lossf.forward(outt0,outt)[0]
+
                  loss_diff+=(loss-loss_post).item()
                  loss_diff1+=(loss-loss_post1).item()
                  loss_diff2+=(loss-loss_post2).item()
