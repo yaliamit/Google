@@ -479,6 +479,7 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
         loss_diff=0.
         loss_diff1=0.
         loss_diff2=0.
+        loss_diff3=0.
         for j in np.arange(0, num_tr, jump,dtype=np.int32):
             lnum=0
             if d_type=='train':
@@ -516,19 +517,23 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
                 optimizer.step()
             with torch.no_grad():
                  # Run the gradient branch through the updated network.
-                 outt=model.forward(data[1])[0]
+                 outt1=model.forward(data[1])[0]
                  # Everything else stays the same.
-                 loss_post = lossf.forw(out[0], outt)
+                 loss_post = lossf.forw(out[0], outt1)
                  # Non-gradient branch stays the same but covariance is updated.
-                 loss_post1 = lossf.forward(out[0],outt)[0]
+                 loss_post1 = lossf.forward(out[0],outt1)[0]
                  # Run the non-gradient branch through updated network - this should yield loss like next epoch?
                  outt0 = model.forward(data[0])[0]
-                 loss_post2 = lossf.forward(outt0,outt)[0]
+                 loss_post2 = lossf.forward(outt0,outt1)[0]
 
                  loss_diff+=(loss-loss_post).item()
                  loss_diff1+=(loss-loss_post1).item()
                  loss_diff2+=(loss-loss_post2).item()
-
+                 data = get_data(data_in, args, dvv, d_type)
+                 outt1 = model.forward(data[1])[0]
+                 outt0 = model.forward(data[0])[0]
+                 loss_post3 = lossf.forward(outt0, outt1)[0]
+                 loss_diff3 += (loss - loss_post3).item()
             full_loss[lnum] += loss.item()
 
             if acc is not None:
