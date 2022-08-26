@@ -419,8 +419,11 @@ class network(nn.Module):
 
 def SS_stats(out, OUT, fout):
     with torch.no_grad():
-            ls=torch.log2(torch.tensor(out[0].size()[1],dtype=float))
-            LS=torch.log2(torch.tensor(OUT[0].size()[1],dtype=float))
+            aa=out[0].reshape(out[0].shape[0],-1).size()
+            AA = OUT[0].reshape(out[0].shape[0], -1).size()
+            ls=torch.log2(torch.tensor(aa[1],dtype=float))
+            LS=torch.log2(torch.min(torch.tensor(AA[0],dtype=float),
+                                     torch.tensor(AA[1],dtype=float)))
             _, s, _ = torch.linalg.svd(out[0])
             s = s / torch.sum(s)
             ent = -torch.sum(s * torch.log2(s)) / ls
@@ -495,13 +498,14 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
 
             target=BB[1].to(dvv, dtype=torch.long)
 
-            with torch.no_grad() if (d_type!='train') else dummy_context_mgr():
+
+            with torch.no_grad() if (d_type != 'train') else dummy_context_mgr():
+
                 out, OUT, data =forw(model,args,data)
 
                 if args.embedd_type is not None and np.mod(epoch,10) == 0 and (j==0 or d_type=='test_stats'):
                     # Some stats of interest to compute in SS learning
                     SS_stats(out, OUT, fout)
-
                 loss, acc = get_loss(lossf,args, out, OUT, target, data)
 
             if args.randomize_layers is not None and d_type == "train":
@@ -515,7 +519,8 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
                 if args.grad_clip>0.:
                     nn.utils.clip_grad_value_(model.parameters(),args.grad_clip)
                 optimizer.step()
-            with torch.no_grad():
+            if args.embedd_type is not None:
+              with torch.no_grad():
                  # Run the gradient branch through the updated network.
                  outt1=model.forward(data[1])[0]
                  # Everything else stays the same.
