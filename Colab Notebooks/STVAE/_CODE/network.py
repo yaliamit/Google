@@ -544,8 +544,8 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
             if acc is not None:
                 full_acc[lnum] += acc.item()
             count[lnum]+=1
-
-        print('\n lossdiff',loss_diff,'lossdiff1',loss_diff1,'lossdiff2',loss_diff2)
+        if args.embedd_type is not None:
+            print('\n lossdiff',loss_diff,'lossdiff1',loss_diff1,'lossdiff2',loss_diff2)
         if freq-np.mod(epoch,freq)==1:
 
            for l in range(ll):
