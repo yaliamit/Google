@@ -187,8 +187,6 @@ def train_new_new(args,model,DATA,fout,device,net=None):
             sm = torch.load(datadirs + '_output/' + args.model[0]+'_classify' + '.pt', map_location='cpu')
             net.load_state_dict(sm['model.state.dict'])
 
-
-
     freq = 1
     freq_test=1
     t1 = time.time()
