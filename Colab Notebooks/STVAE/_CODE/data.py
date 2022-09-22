@@ -614,8 +614,10 @@ def get_CIFAR10(batch_size = 500,size=None, double_aug=True, factor=1., emb=True
         train = Subset(train, random.sample(range(len(train)), size))
     if val_num>0:
         num_train = len(train)
-        val = Subset(val, range(num_train-val_num,num_train))
-        train=Subset(train, range(num_train-val_num))
+        ii=np.array(range(num_train))
+        np.random.shuffle(ii)
+        val = Subset(val, ii[num_train-val_num:num_train])
+        train=Subset(train, ii[0:num_train-val_num])
         val_loader =DL(
             val,batch_size,num_class,len(val),shape,
             num_workers=numworkers
