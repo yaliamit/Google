@@ -13,7 +13,7 @@ from torch.utils.data import DataLoader, Subset, random_split
 import torch
 import random
 from torch.utils.data.dataloader import _SingleProcessDataLoaderIter, _MultiProcessingDataLoaderIter
-from torch.utils.data import _utils
+from torch.utils.data import _utils, SubsetRandomSampler
 
 class _MultiProcessingDataLoaderIterWithIndices(_MultiProcessingDataLoaderIter):
     def __init__(self,loader):
@@ -574,8 +574,9 @@ def cifar10_train_classifier_transforms(input_size=32):
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor()])
 
-def get_CIFAR10(batch_size = 500,size=None, double_aug=True, factor=1., emb=True):
+def get_CIFAR10(batch_size = 500,size=None, double_aug=True, factor=1., emb=True, val_num=0):
 
+    val_loader=None
     transform_CIFAR = get_simclr_pipeline_transform(factor=factor)
 
     numworkers = 0
@@ -588,6 +589,12 @@ def get_CIFAR10(batch_size = 500,size=None, double_aug=True, factor=1., emb=True
         transform = ContrastiveLearningViewGenerator(transform_CIFAR, n_views=1)
 
     train = datasets.CIFAR10(root = "data",train = True,download = True, transform = transform)
+    if val_num>0:
+        val = datasets.CIFAR10(root="data", train=True, download=True, transform=transforms.Compose([transforms.Normalize(
+                mean=[0.485, 0.456, 0.406],
+                std=[0.229, 0.224, 0.225]
+            ),transforms.ToTensor()]))
+
     test = datasets.CIFAR10(root = "data",train = False,download = True, transform = transforms.ToTensor())
 
     num_class = len(train.classes)
@@ -596,12 +603,20 @@ def get_CIFAR10(batch_size = 500,size=None, double_aug=True, factor=1., emb=True
 
     if size is not None and size <= len(train):
         train = Subset(train, random.sample(range(len(train)), size))
+    if val_num>0:
+        num_train = len(train)
+        val = Subset(val, range(num_train-val_num,num_train))
+        train=Subset(train, range(num_train-val_num))
+        val_loader =DL(
+            val,batch_size,num_class,len(val),shape,
+            num_workers=numworkers
+        )
     else:
         size=len(train)
     CIFAR10_train_loader = DL(train,batch_size,num_class,size,shape,num_workers=numworkers,shuffle=True)
     CIFAR10_test_loader = DL(test,batch_size,num_class,len(test),shape,num_workers=numworkers)
 
-    return CIFAR10_train_loader,CIFAR10_test_loader
+    return CIFAR10_train_loader,val_loader, CIFAR10_test_loader
 
 
 
@@ -715,7 +730,7 @@ def get_cifar_trans(PARS):
     val=None
     ftr = PARS['data_set'].split('_')[1]
     if ftr=='trans10':
-        tr,te=get_CIFAR10(PARS['mb_size'],size=PARS['num_train'],double_aug=PARS['double_aug'],factor=PARS['h_factor'],emb=PARS['emb'])
+        tr,val,te=get_CIFAR10(PARS['mb_size'],size=PARS['num_train'],double_aug=PARS['double_aug'],factor=PARS['h_factor'],emb=PARS['emb'], val_num=PARS['nval'])
     else:
         tr,te=get_CIFAR100(PARS['mb_size'],size=PARS['num_train'],double_aug=PARS['double_aug'],factor=PARS['h_factor'],emb=PARS['emb'])
 
