@@ -318,7 +318,7 @@ def get_data_pre(args,dataset):
     PARS['jit']=args.h_factor
     PARS['thr']=args.threshold
     PARS['double_aug']=args.double_aug
-
+    PARS['emb']= True if args.embedd_type is not None else False
     if args.cl is not None:
         PARS['one_class'] = args.cl
 
@@ -574,7 +574,7 @@ def cifar10_train_classifier_transforms(input_size=32):
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor()])
 
-def get_CIFAR10(batch_size = 500,size=None, double_aug=True, factor=1.):
+def get_CIFAR10(batch_size = 500,size=None, double_aug=True, factor=1., emb=True):
 
     transform_CIFAR = get_simclr_pipeline_transform(factor=factor)
 
@@ -582,8 +582,11 @@ def get_CIFAR10(batch_size = 500,size=None, double_aug=True, factor=1.):
     aa = os.uname()
     if 'bernie' in aa[1] or 'aoc' in aa[1]:
         numworkers = 12
+    if emb:
+        transform=ContrastiveLearningViewGenerator(transform_CIFAR, double_aug=double_aug)
+    else:
+        transform = ContrastiveLearningViewGenerator(transform_CIFAR, n_views=1)
 
-    transform=ContrastiveLearningViewGenerator(transform_CIFAR, double_aug=double_aug)
     train = datasets.CIFAR10(root = "data",train = True,download = True, transform = transform)
     test = datasets.CIFAR10(root = "data",train = False,download = True, transform = transforms.ToTensor())
 
@@ -712,9 +715,9 @@ def get_cifar_trans(PARS):
     val=None
     ftr = PARS['data_set'].split('_')[1]
     if ftr=='trans10':
-        tr,te=get_CIFAR10(PARS['mb_size'],size=PARS['num_train'],double_aug=PARS['double_aug'],factor=PARS['h_factor'])
+        tr,te=get_CIFAR10(PARS['mb_size'],size=PARS['num_train'],double_aug=PARS['double_aug'],factor=PARS['h_factor'],emb=PARS['emb'])
     else:
-        tr,te=get_CIFAR100(PARS['mb_size'],size=PARS['num_train'],double_aug=PARS['double_aug'],factor=PARS['h_factor'])
+        tr,te=get_CIFAR100(PARS['mb_size'],size=PARS['num_train'],double_aug=PARS['double_aug'],factor=PARS['h_factor'],emb=PARS['emb'])
 
     return tr,val,te
 
