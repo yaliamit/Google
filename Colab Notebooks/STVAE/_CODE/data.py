@@ -173,22 +173,27 @@ class GaussianBlur(object):
 
 def get_simclr_pipeline_transform(size=32,factor=1.):
 
-
-        data_transforms = transforms.Compose([
-            transforms.RandomResizedCrop(size=size, scale=(0.08, 1.0)),
-            transforms.RandomHorizontalFlip(p=0.5),
-            transforms.RandomApply([transforms.ColorJitter(0.8*factor, 0.8*factor, 0.8*factor, 0.2*factor)], p=0.8),
-            transforms.RandomGrayscale(p=0.2),
-            #GaussianBlur(kernel_size=.1*size),
-            transforms.ToTensor(),
-            transforms.Normalize(
-                mean=[0.485, 0.456, 0.406],
-                std=[0.229, 0.224, 0.225]
-            ),
-
-        ]
-        )
-
+        if factor>0:
+            data_transforms = transforms.Compose([
+                transforms.RandomResizedCrop(size=size, scale=(0.08, 1.0)),
+                transforms.RandomHorizontalFlip(p=0.5),
+                transforms.RandomApply([transforms.ColorJitter(0.8*factor, 0.8*factor, 0.8*factor, 0.2*factor)], p=0.8),
+                transforms.RandomGrayscale(p=0.2),
+                #GaussianBlur(kernel_size=.1*size),
+                transforms.ToTensor(),
+                transforms.Normalize(
+                    mean=[0.485, 0.456, 0.406],
+                    std=[0.229, 0.224, 0.225]
+                ),
+            ]
+            )
+        else:
+            data_transforms = transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize(
+                    mean=[0.485, 0.456, 0.406],
+                    std=[0.229, 0.224, 0.225]),
+            ])
         return data_transforms
 
 
@@ -586,6 +591,7 @@ def get_CIFAR10(batch_size = 500,size=None, double_aug=True, factor=1., emb=True
     if emb:
         transform=ContrastiveLearningViewGenerator(transform_CIFAR, double_aug=double_aug)
     else:
+
         transform = ContrastiveLearningViewGenerator(transform_CIFAR, n_views=1)
 
     train = datasets.CIFAR10(root = "data",train = True,download = True, transform = transform)
