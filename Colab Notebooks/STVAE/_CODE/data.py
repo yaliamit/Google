@@ -116,7 +116,7 @@ class ContrastiveLearningViewGenerator(object):
             else:
                 return [self.base_transform(x), self.transform(x)]
         else:
-            return self.base_transform(x)
+            return self.transform(x)
 
 
 import numpy as np
@@ -604,11 +604,13 @@ def get_CIFAR10(batch_size = 500,size=None, double_aug=True, factor=1.):
 
 
 
-def get_CIFAR100(batch_size = 500, size=None, double_aug=True, factor=1.):
+def get_CIFAR100(batch_size = 500, size=None, double_aug=True, factor=1., emb=True):
     transform_CIFAR = get_simclr_pipeline_transform(factor=factor)
 
-
-    transform = ContrastiveLearningViewGenerator(transform_CIFAR, double_aug=double_aug)
+    if emb:
+        transform = ContrastiveLearningViewGenerator(transform_CIFAR, double_aug=double_aug)
+    else:
+        transform = ContrastiveLearningViewGenerator(transform_CIFAR, n_views=1)
     train = datasets.CIFAR100(root = "data",train = True,download = True, transform = transform)
     test = datasets.CIFAR100(root = "data",train = False,download = True, transform = transform)
     num_class = len(train.classes)

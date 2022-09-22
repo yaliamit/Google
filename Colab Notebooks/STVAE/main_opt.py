@@ -1,5 +1,6 @@
 import sys
 import os
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 from main import main_loc
 import matplotlib.pyplot as plt
 from data import get_data_pre
