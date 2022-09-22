@@ -590,10 +590,10 @@ def get_CIFAR10(batch_size = 500,size=None, double_aug=True, factor=1., emb=True
 
     train = datasets.CIFAR10(root = "data",train = True,download = True, transform = transform)
     if val_num>0:
-        val = datasets.CIFAR10(root="data", train=True, download=True, transform=transforms.Compose([transforms.Normalize(
+        val = datasets.CIFAR10(root="data", train=True, download=True, transform=transforms.Compose([transforms.ToTensor(),transforms.Normalize(
                 mean=[0.485, 0.456, 0.406],
                 std=[0.229, 0.224, 0.225]
-            ),transforms.ToTensor()]))
+            )]))
 
     test = datasets.CIFAR10(root = "data",train = False,download = True, transform = transforms.ToTensor())
 
@@ -611,9 +611,8 @@ def get_CIFAR10(batch_size = 500,size=None, double_aug=True, factor=1., emb=True
             val,batch_size,num_class,len(val),shape,
             num_workers=numworkers
         )
-    else:
-        size=len(train)
-    CIFAR10_train_loader = DL(train,batch_size,num_class,size,shape,num_workers=numworkers,shuffle=True)
+
+    CIFAR10_train_loader = DL(train,batch_size,num_class,len(train),shape,num_workers=numworkers,shuffle=True)
     CIFAR10_test_loader = DL(test,batch_size,num_class,len(test),shape,num_workers=numworkers)
 
     return CIFAR10_train_loader,val_loader, CIFAR10_test_loader
