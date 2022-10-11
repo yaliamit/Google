@@ -7,6 +7,7 @@ from tps import TPSGridGen
 from encoder_decoder import encoder_mix, decoder_mix
 import contextlib
 from network import temp_args
+from get_net_text import get_network
 import copy
 import time
 
@@ -173,7 +174,8 @@ class STVAE_mix(nn.Module):
         self.final_shape=self.encoder_m.final_shape
         if args.OPT:
             self.encoder_m=None
-
+            temp_layers_dict = get_network(args.dec_layers_top)
+            self.final_shape=[l['num_units'] for l in temp_layers_dict if 'dense_gauss' in l['name']]
 
         self.dec_trans_top=None
         trans_shape=None
@@ -346,8 +348,8 @@ class STVAE_mix(nn.Module):
         if (targ is not None):
             x = x.transpose(0, 1)
             x = x.reshape([x.shape[0], self.n_class, self.n_mix_perclass]+list(x.shape[2:]))
-            mu = mu.reshape(-1, self.n_class, self.n_mix_perclass * self.s_dim)
-            logvar = logvar.reshape(-1, self.n_class, self.n_mix_perclass * self.s_dim)
+            mu = mu.reshape(mu.shape[0], self.n_class, -1)
+            logvar = logvar.reshape(logvar.shape[0], self.n_class, -1)
 
             tot = 0
             recloss = 0

@@ -278,6 +278,8 @@ def get_pre():
             pre = 'ME/MyDrive/'
     else:
         pre = '/Users/amit/Google Drive/'
+        if os.path.isdir(pre+'My Drive'):
+            pre=pre+'My Drive/'
 
     return pre
 
@@ -310,86 +312,7 @@ def enlarge(x_in,new_dim):
     return x_out
 
 
-def get_data_pre(args,dataset):
 
-
-    PARS = {}
-    PARS['data_set'] = dataset
-    PARS['num_train'] = args.num_train // args.mb_size * args.mb_size
-    PARS['nval'] = args.nval
-    PARS['mb_size']=args.mb_size
-    PARS['crop']=args.crop
-    PARS['h_factor']=args.h_factor
-    PARS['jit']=args.h_factor
-    PARS['thr']=args.threshold
-    PARS['double_aug']=args.double_aug
-    PARS['emb']= True if args.embedd_type is not None else False
-    if args.cl is not None:
-        PARS['one_class'] = args.cl
-
-    train, val, test, image_dim = get_data(PARS)
-    if type(train) is DL or dataset=='stl10':
-        return [train,val,test]
-
-    if (False): #args.edges):
-        train=[pre_edges(train[0],dtr=args.edge_dtr).transpose(0,3,1,2),np.argmax(train[1], axis=1)]
-        test=[pre_edges(test[0],dtr=args.edge_dtr).transpose(0,3,1,2),np.argmax(test[1], axis=1)]
-        if val is not None:
-            val = [pre_edges(val[0],dtr=args.edge_dtr).transpose(0, 3, 1, 2), np.argmax(val[1], axis=1)]
-    else:
-        if train[1].ndim>1:
-            trl=np.argmax(train[1], axis=1)
-            tel=np.argmax(test[1],axis=1)
-            if val is not None:
-              vall=np.argmax(val[1],axis=1)
-        else:
-            trl=train[1]
-            tel=test[1]
-            if val is not None:
-                vall=val[1]
-        train = [enlarge(quantize(train[0].transpose(0, 3, 1, 2),args.image_levels),args.new_dim),trl]
-        test = [enlarge(quantize(test[0].transpose(0, 3, 1, 2), args.image_levels),args.new_dim), tel]
-        if val is not None:
-            val = [enlarge(quantize(val[0].transpose(0, 3, 1, 2),args.image_levels),args.new_dim), vall]
-
-    if args.edges:
-        ed = Edge(device, dtr=.03).to(device)
-        edges=[]
-        jump=10000
-        for j in np.arange(0,train[0].shape[0],jump):
-            tr=torch.from_numpy(train[0][j:j+jump]).to(device)
-            edges+=[ed(tr).cpu().numpy()]
-        train=[np.concatenate(edges,axis=0),train[1]]
-        edges_te=[]
-        for j in np.arange(0,test[0].shape[0],jump):
-            tr=torch.from_numpy(test[0][j:j+jump]).to(device)
-            edges_te+=[ed(tr).cpu().numpy()]
-        test=[np.concatenate(edges_te,axis=0),test[1]]
-        if val is not None:
-            edges_va = []
-            for j in np.arange(0, test[0].shape[0], jump):
-                tr = torch.from_numpy(val[0][j:j + jump]).to(device)
-                edges_va += [ed(tr).cpu().numpy()]
-            val = [np.concatenate(edges_va,axis=0), val[1]]
-    if (args.num_test>0):
-        ntest=test[0].shape[0]
-        ii=np.arange(0, ntest, 1)
-        np.random.shuffle(ii)
-        test=[test[0][ii[0:args.num_test]], test[1][ii[0:args.num_test]]]
-    elif (args.num_test<0):
-        test=[train[0][0:10000],train[1][0:10000]]
-    print('In get_data_pre: num_train', train[0].shape[0])
-    print('Num test:',test[0].shape[0])
-    num_class=np.max(train[1])+1
-    train=DL(list(zip(train[0],train[1])),batch_size=args.mb_size, num_class=num_class,
-             num=train[0].shape[0], shape=train[0].shape[1:],shuffle=True)
-    if val is not None:
-        val=DL(list(zip(val[0],val[1])),batch_size=args.mb_size, num_class=num_class,
-             num=val[0].shape[0], shape=val[0].shape[1:],shuffle=True)
-    test = DL(list(zip(test[0], test[1])), batch_size=args.mb_size, num_class=num_class,
-               num=test[0].shape[0], shape=test[0].shape[1:],shuffle=False)
-    #test=DataLoader(list(zip(test[0],test[1])),batch_size=args.mb_size)
-    return [train, val, test]
 
 
 
@@ -746,8 +669,25 @@ def get_cifar_trans(PARS):
 
     return tr,val,te
 
+from scipy.ndimage import gaussian_filter
+
+def get_synth(PARS):
 
 
+    dat=np.random.randn(PARS['num_train']+PARS['nval']+PARS['num_train'],32,32).astype(np.float32)
+
+    for i in range(len(dat)):
+        dat[i]=gaussian_filter(dat[i],sigma=8,mode='wrap')
+    dat=dat.reshape(-1,32,32,1)
+    #dat=dat/np.max(dat)
+    train=(dat[0:PARS['num_train']],np.zeros(PARS['num_train']))
+    if PARS['nval']>0:
+        val=(dat[PARS['num_train']:PARS['num_train']+PARS['nval']],np.zeros(PARS['nval']))
+    else:
+        val=None
+    test=(dat[PARS['num_train']+PARS['nval']:PARS['num_train']+PARS['num_train']+PARS['nval']],np.zeros(PARS['num_train']))
+    print("hello")
+    return train,val,test
 
 
 def get_data(PARS):
@@ -763,6 +703,8 @@ def get_data(PARS):
             return train, val, test, train.shape[0]
     elif ('cifar' in PARS['data_set']):
             train, val, test=get_cifar(PARS)
+    elif 'synth' in PARS['data_set']:
+        train,val,test=get_synth(PARS)
     else:
         train, val, test = get_letters(PARS)
     num_train = np.minimum(PARS['num_train'], train[0].shape[0])
@@ -776,4 +718,83 @@ def get_data(PARS):
 
 
 
+def get_data_pre(args,dataset):
 
+
+    PARS = {}
+    PARS['data_set'] = dataset
+    PARS['num_train'] = args.num_train // args.mb_size * args.mb_size
+    PARS['nval'] = args.nval
+    PARS['mb_size']=args.mb_size
+    PARS['crop']=args.crop
+    PARS['h_factor']=args.h_factor
+    PARS['jit']=args.h_factor
+    PARS['thr']=args.threshold
+    PARS['double_aug']=args.double_aug
+    PARS['emb']= True if args.embedd_type is not None else False
+    if args.cl is not None:
+        PARS['one_class'] = args.cl
+
+    train, val, test, image_dim = get_data(PARS)
+    if type(train) is DL or dataset=='stl10':
+        return [train,val,test]
+
+    if (False): #args.edges):
+        train=[pre_edges(train[0],dtr=args.edge_dtr).transpose(0,3,1,2),np.argmax(train[1], axis=1)]
+        test=[pre_edges(test[0],dtr=args.edge_dtr).transpose(0,3,1,2),np.argmax(test[1], axis=1)]
+        if val is not None:
+            val = [pre_edges(val[0],dtr=args.edge_dtr).transpose(0, 3, 1, 2), np.argmax(val[1], axis=1)]
+    else:
+        if train[1].ndim>1:
+            trl=np.argmax(train[1], axis=1)
+            tel=np.argmax(test[1],axis=1)
+            if val is not None:
+              vall=np.argmax(val[1],axis=1)
+        else:
+            trl=train[1]
+            tel=test[1]
+            if val is not None:
+                vall=val[1]
+        train = [enlarge(quantize(train[0].transpose(0, 3, 1, 2),args.image_levels),args.new_dim),trl]
+        test = [enlarge(quantize(test[0].transpose(0, 3, 1, 2), args.image_levels),args.new_dim), tel]
+        if val is not None:
+            val = [enlarge(quantize(val[0].transpose(0, 3, 1, 2),args.image_levels),args.new_dim), vall]
+
+    if args.edges:
+        ed = Edge(device, dtr=.03).to(device)
+        edges=[]
+        jump=10000
+        for j in np.arange(0,train[0].shape[0],jump):
+            tr=torch.from_numpy(train[0][j:j+jump]).to(device)
+            edges+=[ed(tr).cpu().numpy()]
+        train=[np.concatenate(edges,axis=0),train[1]]
+        edges_te=[]
+        for j in np.arange(0,test[0].shape[0],jump):
+            tr=torch.from_numpy(test[0][j:j+jump]).to(device)
+            edges_te+=[ed(tr).cpu().numpy()]
+        test=[np.concatenate(edges_te,axis=0),test[1]]
+        if val is not None:
+            edges_va = []
+            for j in np.arange(0, test[0].shape[0], jump):
+                tr = torch.from_numpy(val[0][j:j + jump]).to(device)
+                edges_va += [ed(tr).cpu().numpy()]
+            val = [np.concatenate(edges_va,axis=0), val[1]]
+    if (args.num_test>0):
+        ntest=test[0].shape[0]
+        ii=np.arange(0, ntest, 1)
+        np.random.shuffle(ii)
+        test=[test[0][ii[0:args.num_test]], test[1][ii[0:args.num_test]]]
+    elif (args.num_test<0):
+        test=[train[0][0:10000],train[1][0:10000]]
+    print('In get_data_pre: num_train', train[0].shape[0])
+    print('Num test:',test[0].shape[0])
+    num_class=np.max(train[1])+1
+    train=DL(list(zip(train[0],train[1])),batch_size=args.mb_size, num_class=num_class,
+             num=train[0].shape[0], shape=train[0].shape[1:],shuffle=True)
+    if val is not None:
+        val=DL(list(zip(val[0],val[1])),batch_size=args.mb_size, num_class=num_class,
+             num=val[0].shape[0], shape=val[0].shape[1:],shuffle=True)
+    test = DL(list(zip(test[0], test[1])), batch_size=args.mb_size, num_class=num_class,
+               num=test[0].shape[0], shape=test[0].shape[1:],shuffle=False)
+    #test=DataLoader(list(zip(test[0],test[1])),batch_size=args.mb_size)
+    return [train, val, test]

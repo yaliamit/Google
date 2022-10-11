@@ -120,7 +120,7 @@ class STVAE_mix_by_class(STVAE_mix):
         fout.write('====> Epoch {}: Accuracy: {:.4f}\n'.format(d_type,acc))
         return(iid,RY,cl_rate,acc)
 
-    def update_s(self, muu, mus, logvar, pi, mu_lr, prop=None, both=True):
+    def update_ss(self, muu, mus, logvar, pi, mu_lr, prop=None, both=True):
 
         var = {}
 
