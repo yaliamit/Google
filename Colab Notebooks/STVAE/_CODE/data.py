@@ -739,6 +739,7 @@ def get_data_pre(args,dataset):
     if type(train) is DL or dataset=='stl10':
         return [train,val,test]
 
+
     if (False): #args.edges):
         train=[pre_edges(train[0],dtr=args.edge_dtr).transpose(0,3,1,2),np.argmax(train[1], axis=1)]
         test=[pre_edges(test[0],dtr=args.edge_dtr).transpose(0,3,1,2),np.argmax(test[1], axis=1)]
