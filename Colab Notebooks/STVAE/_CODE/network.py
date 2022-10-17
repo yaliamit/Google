@@ -231,7 +231,9 @@ class network(nn.Module):
                 if ('edge' in ll['name']):
                     if atemp.first:
                         self.layers.add_module(ll['name'],Edge(atemp.dv))
-                    out=getattr(self.layers,ll['name'])(out)
+                        out = getattr(self.layers, ll['name'])(out, torch.device('cpu'))
+                    else:
+                        out=getattr(self.layers,ll['name'])(out)
                     if everything:
                         OUTS[ll['name']]=out
                 if ('conv' in ll['name']):

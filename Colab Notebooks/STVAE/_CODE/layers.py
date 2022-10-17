@@ -301,26 +301,28 @@ class Edge(torch.nn.Module):
         y=torch.sigmoid(x*self.slope)
         return y
 
-    def forward(self, x):
-        x = self.pre_edges(x) #.to(self.dv)
+    def forward(self, x, dv=None):
+        x = self.pre_edges(x,dv) #.to(self.dv)
         return x
 
 
-    def pre_edges(self, im):
+    def pre_edges(self, im, dv=None):
 
-        ED=self.get_edges(im)
+        ED=self.get_edges(im,dv)
             # Loop through the 3 channels separately.
 
         return ED
 
-    def get_edges(self,im):
+    def get_edges(self,im, dv=None):
 
+        if dv is None:
+            dv=self.dv
         sh=im.shape
         delta=self.delta
-        pad1=torch.zeros(sh[0],sh[1],sh[2],delta)
+        pad1=torch.zeros(sh[0],sh[1],sh[2],delta).to(self.dv)
 
         im_a=torch.cat([pad1,im,pad1],dim=3)
-        pad2=torch.zeros(sh[0],sh[1],delta,im_a.shape[3])
+        pad2=torch.zeros(sh[0],sh[1],delta,im_a.shape[3]).to(self.dv)
         im_b=torch.cat([pad2,im_a,pad2],dim=2)
 
 
@@ -388,7 +390,7 @@ class Edge(torch.nn.Module):
 
         marg=self.marg
 
-        edges=torch.zeros(sh[0],sh[1],8,sh[2],sh[3],dtype=torch.float)#.to(self.dv)
+        edges=torch.zeros(sh[0],sh[1],8,sh[2],sh[3],dtype=torch.float).to(self.dv)
         edges[:,:,0,marg:sh[2]-marg,marg:sh[3]-marg]=e10[:,:,delta+marg:delta+sh[2]-marg,delta+marg:delta+sh[3]-marg]
         edges[:,:,1,marg:sh[2]-marg,marg:sh[3]-marg]=e10n[:,:,delta+marg:delta+sh[2]-marg,delta+marg:delta+sh[3]-marg]
         edges[:,:,2,marg:sh[2]-marg,marg:sh[3]-marg]=e01[:,:,delta+marg:delta+sh[2]-marg,delta+marg:delta+sh[3]-marg]
