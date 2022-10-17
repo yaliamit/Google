@@ -11,6 +11,7 @@ import matplotlib.colors as col
 from torchvision import transforms, datasets
 from torch.utils.data import DataLoader, Subset, random_split
 import torch
+from images import Edge
 import random
 from torch.utils.data.dataloader import _SingleProcessDataLoaderIter, _MultiProcessingDataLoaderIter
 from torch.utils.data import _utils, SubsetRandomSampler
@@ -718,7 +719,7 @@ def get_data(PARS):
 
 
 
-def get_data_pre(args,dataset):
+def get_data_pre(args,dataset,device):
 
 
     PARS = {}
@@ -740,26 +741,21 @@ def get_data_pre(args,dataset):
         return [train,val,test]
 
 
-    if (False): #args.edges):
-        train=[pre_edges(train[0],dtr=args.edge_dtr).transpose(0,3,1,2),np.argmax(train[1], axis=1)]
-        test=[pre_edges(test[0],dtr=args.edge_dtr).transpose(0,3,1,2),np.argmax(test[1], axis=1)]
+
+    if train[1].ndim>1:
+        trl=np.argmax(train[1], axis=1)
+        tel=np.argmax(test[1],axis=1)
         if val is not None:
-            val = [pre_edges(val[0],dtr=args.edge_dtr).transpose(0, 3, 1, 2), np.argmax(val[1], axis=1)]
+          vall=np.argmax(val[1],axis=1)
     else:
-        if train[1].ndim>1:
-            trl=np.argmax(train[1], axis=1)
-            tel=np.argmax(test[1],axis=1)
-            if val is not None:
-              vall=np.argmax(val[1],axis=1)
-        else:
-            trl=train[1]
-            tel=test[1]
-            if val is not None:
-                vall=val[1]
-        train = [enlarge(quantize(train[0].transpose(0, 3, 1, 2),args.image_levels),args.new_dim),trl]
-        test = [enlarge(quantize(test[0].transpose(0, 3, 1, 2), args.image_levels),args.new_dim), tel]
+        trl=train[1]
+        tel=test[1]
         if val is not None:
-            val = [enlarge(quantize(val[0].transpose(0, 3, 1, 2),args.image_levels),args.new_dim), vall]
+            vall=val[1]
+    train = [enlarge(quantize(train[0].transpose(0, 3, 1, 2),args.image_levels),args.new_dim),trl]
+    test = [enlarge(quantize(test[0].transpose(0, 3, 1, 2), args.image_levels),args.new_dim), tel]
+    if val is not None:
+        val = [enlarge(quantize(val[0].transpose(0, 3, 1, 2),args.image_levels),args.new_dim), vall]
 
     if args.edges:
         ed = Edge(device, dtr=.03).to(device)

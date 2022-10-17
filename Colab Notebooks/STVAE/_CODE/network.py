@@ -228,6 +228,12 @@ class network(nn.Module):
                      out=getattr(self.layers,ll['name'])(out)
                      if everything:
                          OUTS[ll['name']] = out
+                if ('edge' in ll['name']):
+                    if atemp.first:
+                        self.layers.add_module(ll['name'],Edge(atemp.dv))
+                    out=getattr(self.layers,ll['name'])(out)
+                    if everything:
+                        OUTS[ll['name']]=out
                 if ('conv' in ll['name']):
                     if everything:
                         out = OUTS[inp_ind]
@@ -383,6 +389,8 @@ class network(nn.Module):
                     inp_feats = ll['num_filters']
                 if ('shifts' in ll['name']):
                      inp_feats=out.shape[1]
+                if ('edge' in ll['name']):
+                    inp_feats=out.shape[1]
 
                 prev_shape=out.shape
 

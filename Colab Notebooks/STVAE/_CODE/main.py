@@ -19,7 +19,7 @@ def main_loc(par_file, device,net=None):
   ARGS, STRINGS, EX_FILES, SMS = prep.get_names(args)
 
   # Get data
-  DATA=get_data_pre(args,args.dataset)
+  DATA=get_data_pre(args,args.dataset,device)
   sh=DATA[0].shape
   args.num_class=DATA[0].num_class
   ARGS[0].num_class=args.num_class

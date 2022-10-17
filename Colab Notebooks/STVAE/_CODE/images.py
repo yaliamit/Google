@@ -4,25 +4,25 @@ import os
 import torch.nn.functional as F
 from imageio import imsave
 from scipy import ndimage
-from data import get_stl10_unlabeled
+#from data import get_stl10_unlabeled
 import time
 
-def extract_sub_images(numtr,pr):
-
-    DATA=get_stl10_unlabeled(batch_size=1000, size=numtr)
-    II=[]
-    size=32
-    for bb in enumerate(DATA[0]):
-
-        ii=np.random.randint(size/2,size/2+size,[DATA[0].batch_size,pr,2])
-        for k,b in enumerate(bb[1][0]):
-            for j in range(pr):
-                II+=[np.expand_dims(b[:,ii[k][j,0]:ii[k][j,0]+size,ii[k][j,1]:ii[k][j,1]+size].numpy(),axis=0)]
-
-    print(len(II))
-    III=np.concatenate(II)
-
-    np.save('stl_unlabeled_sub',III)
+# def extract_sub_images(numtr,pr):
+#
+#     DATA=get_stl10_unlabeled(batch_size=1000, size=numtr)
+#     II=[]
+#     size=32
+#     for bb in enumerate(DATA[0]):
+#
+#         ii=np.random.randint(size/2,size/2+size,[DATA[0].batch_size,pr,2])
+#         for k,b in enumerate(bb[1][0]):
+#             for j in range(pr):
+#                 II+=[np.expand_dims(b[:,ii[k][j,0]:ii[k][j,0]+size,ii[k][j,1]:ii[k][j,1]+size].numpy(),axis=0)]
+#
+#     print(len(II))
+#     III=np.concatenate(II)
+#
+#     np.save('stl_unlabeled_sub',III)
 
 
 
