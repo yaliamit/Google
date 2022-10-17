@@ -284,7 +284,7 @@ class diag(nn.Module):
 
 
 class Edge(torch.nn.Module):
-    def __init__(self, device, ntr=4, dtr=0):
+    def __init__(self, device, ntr=4, dtr=0, slope=10):
         super(Edge, self).__init__()
         self.ntr = ntr
         self.dtr = dtr
