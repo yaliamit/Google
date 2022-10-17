@@ -57,6 +57,7 @@ def initialize_model(args, sh, layers,device, layers_dict=None):
     atemp.everything = False
     atemp.bn=args.bn
     atemp.fout=args.fout
+    atemp.slope=args.slope
     atemp.fa=args.fa
     atemp.embedd_type=args.embedd_type
     atemp.randomize_layers=args.randomize_layers
@@ -230,7 +231,7 @@ class network(nn.Module):
                          OUTS[ll['name']] = out
                 if ('edge' in ll['name']):
                     if atemp.first:
-                        self.layers.add_module(ll['name'],Edge(atemp.dv,slope=args.slope))
+                        self.layers.add_module(ll['name'],Edge(atemp.dv,slope=atemp.slope))
                         out = getattr(self.layers, ll['name'])(out, torch.device('cpu'))
                     else:
                         out=getattr(self.layers,ll['name'])(out)
