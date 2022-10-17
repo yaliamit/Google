@@ -317,12 +317,14 @@ class Edge(torch.nn.Module):
 
         if dv is None:
             dv=self.dv
+
         sh=im.shape
         delta=self.delta
-        pad1=torch.zeros(sh[0],sh[1],sh[2],delta).to(self.dv)
+
+        pad1=torch.zeros(sh[0],sh[1],sh[2],delta).to(dv)
 
         im_a=torch.cat([pad1,im,pad1],dim=3)
-        pad2=torch.zeros(sh[0],sh[1],delta,im_a.shape[3]).to(self.dv)
+        pad2=torch.zeros(sh[0],sh[1],delta,im_a.shape[3]).to(dv)
         im_b=torch.cat([pad2,im_a,pad2],dim=2)
 
 
@@ -390,7 +392,7 @@ class Edge(torch.nn.Module):
 
         marg=self.marg
 
-        edges=torch.zeros(sh[0],sh[1],8,sh[2],sh[3],dtype=torch.float).to(self.dv)
+        edges=torch.zeros(sh[0],sh[1],8,sh[2],sh[3],dtype=torch.float).to(dv)
         edges[:,:,0,marg:sh[2]-marg,marg:sh[3]-marg]=e10[:,:,delta+marg:delta+sh[2]-marg,delta+marg:delta+sh[3]-marg]
         edges[:,:,1,marg:sh[2]-marg,marg:sh[3]-marg]=e10n[:,:,delta+marg:delta+sh[2]-marg,delta+marg:delta+sh[3]-marg]
         edges[:,:,2,marg:sh[2]-marg,marg:sh[3]-marg]=e01[:,:,delta+marg:delta+sh[2]-marg,delta+marg:delta+sh[3]-marg]
