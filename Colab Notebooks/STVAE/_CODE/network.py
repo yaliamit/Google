@@ -230,7 +230,7 @@ class network(nn.Module):
                          OUTS[ll['name']] = out
                 if ('edge' in ll['name']):
                     if atemp.first:
-                        self.layers.add_module(ll['name'],Edge(atemp.dv))
+                        self.layers.add_module(ll['name'],Edge(atemp.dv,slope=args.slope))
                         out = getattr(self.layers, ll['name'])(out, torch.device('cpu'))
                     else:
                         out=getattr(self.layers,ll['name'])(out)
