@@ -386,7 +386,7 @@ class Edge(torch.nn.Module):
 
         marg=self.marg
 
-        edges=torch.zeros(sh[0],sh[1],8,sh[2],sh[3],dtype=torch.float).to(self.dv)
+        edges=torch.zeros(sh[0],sh[1],8,sh[2],sh[3],dtype=torch.float)#.to(self.dv)
         edges[:,:,0,marg:sh[2]-marg,marg:sh[3]-marg]=e10[:,:,delta+marg:delta+sh[2]-marg,delta+marg:delta+sh[3]-marg]
         edges[:,:,1,marg:sh[2]-marg,marg:sh[3]-marg]=e10n[:,:,delta+marg:delta+sh[2]-marg,delta+marg:delta+sh[3]-marg]
         edges[:,:,2,marg:sh[2]-marg,marg:sh[3]-marg]=e01[:,:,delta+marg:delta+sh[2]-marg,delta+marg:delta+sh[3]-marg]
