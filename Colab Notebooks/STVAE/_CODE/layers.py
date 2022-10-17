@@ -292,7 +292,7 @@ class Edge(torch.nn.Module):
         self.marg=2
         self.delta=3
         self.dirs=[(1,1),(-1,-1),(0,1),(0,-1),(1,0),(-1,0),(-1,1),(1,-1)]
-        self.slope=10
+        self.slope=slope
 
 
     def gt(self,x):
