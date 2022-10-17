@@ -317,9 +317,11 @@ class Edge(torch.nn.Module):
 
         sh=im.shape
         delta=self.delta
+        pad1=torch.zeros(sh[0],sh[1],sh[2],delta)
 
-        im_a=torch.cat([torch.zeros(sh[0],sh[1],sh[2],delta),im,torch.zeros(sh[0],sh[1],sh[2],delta)],dim=3)
-        im_b=torch.cat([torch.zeros(sh[0],sh[1],delta,im_a.shape[3]),im_a,torch.zeros(sh[0],sh[1],delta,im_a.shape[3])],dim=2)
+        im_a=torch.cat([pad1,im,pad1],dim=3)
+        pad2=torch.zeros(sh[0],sh[1],delta,im_a.shape[3])
+        im_b=torch.cat([pad2,im_a,pad2],dim=2)
 
 
 
