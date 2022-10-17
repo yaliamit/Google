@@ -302,7 +302,7 @@ class Edge(torch.nn.Module):
         return y
 
     def forward(self, x):
-        x = self.pre_edges(x).to(self.dv)
+        x = self.pre_edges(x) #.to(self.dv)
         return x
 
 
