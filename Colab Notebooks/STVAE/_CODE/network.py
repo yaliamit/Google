@@ -229,7 +229,6 @@ class network(nn.Module):
                      if everything:
                          OUTS[ll['name']] = out
                 if ('edge' in ll['name']):
-                    print('In Edge',out.is_cuda)
                     if atemp.first:
                         self.layers.add_module(ll['name'],Edge(atemp.dv))
                         out = getattr(self.layers, ll['name'])(out, torch.device('cpu'))
