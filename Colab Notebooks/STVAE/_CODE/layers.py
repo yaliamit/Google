@@ -344,6 +344,7 @@ class Edge(torch.nn.Module):
 
         thresh=self.ntr
         dtr=self.dtr
+
         ad_10=torch.abs(diff_10)
         ad_10=ad_10*self.gt(ad_10-dtr).float()
         e10a=self.gt(ad_10-torch.abs(diff_01)).type(torch.float)\
@@ -364,8 +365,6 @@ class Edge(torch.nn.Module):
         e01 = self.gt(e01a + e01b-thresh) * self.gt(diff_01)
         e01n = self.gt(e01a + e01b-thresh) * self.gt(diff_01)
 
-
-
         ad_11 = torch.abs(diff_11)
         ad_11 = ad_11*self.gt(ad_11-dtr).float()
         e11a = self.gt(ad_11-torch.abs(diff_n11)).type(torch.float) \
@@ -379,16 +378,13 @@ class Edge(torch.nn.Module):
 
         ad_n11 = torch.abs(diff_n11)
         ad_n11 = ad_n11 * (ad_n11 > dtr).float()
-
         en11a= self.gt(ad_n11-torch.abs(diff_11)).type(torch.float) \
                + self.gt(ad_n11-torch.abs(diff_1n1)).type(torch.float) + self.gt(ad_n11-torch.abs(diff_nn11)).type(torch.float)
         en11b = self.gt(ad_n11-torch.abs(torch.roll(diff_11, (-1, 1), dims=(1, 2)))).type(torch.float) + \
                self.gt(ad_n11-torch.abs(torch.roll(diff_n11, (-1, 1), dims=(1, 2)))).type(torch.float) + \
                self.gt(ad_n11-torch.abs(torch.roll(diff_n11, (-1, 1), dims=(1, 2)))).type(torch.float)
         en11 = self.gt(en11a + en11b-thresh) * self.gt(diff_n11)
-        en11=en11.type(torch.float)
         en11n = self.gt(en11a + en11b-thresh) * self.gt(-diff_n11)
-        en11n=en11n.type(torch.float)
 
         marg=self.marg
 
