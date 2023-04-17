@@ -1,16 +1,7 @@
 import sys
 import os
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
-from main import main_loc
-import matplotlib.pyplot as plt
-from data import get_data_pre
-import argparse
-import aux as aux
-import pylab as py
-import torch
-import prep as mprep
-import numpy as np
-from aux_colab import copy_to_content, seq, train_net, run_net, save_net
+from aux_colab import seq, run_net, save_net
 from data import get_pre
 from layers import *
 
@@ -29,7 +20,7 @@ import os
 #     predir='/Users/amit/Google Drive/'
 
 
-datadirs=predir+'Colab Notebooks/STVAE/'
+datadirs=os.path.join(predir,'Colab Notebooks/STVAE/')
 sys.path.insert(1, datadirs)
 sys.path.insert(1, datadirs+'_CODE')
 
@@ -44,11 +35,12 @@ else:
     device=torch.device(s)
 print(device)
 
-os.system('rm junk')
+
 count_non=0
-for a in sys.argv:
+with open('junk','w') as f:
+  for a in sys.argv:
     if '--' in a:
-        os.system('echo \"'+a+'\">> junk')
+        pass
     else:
         count_non+=1
 
@@ -59,8 +51,21 @@ else:
     par_file=sys.argv[2]
     print(par_file)
 
-os.system('grep -v "#" '+par_file+'.txt > junk1')
-os.system('cat junk1 junk>'+par_file+'_temp.txt')
+aa=[]
+with open(par_file+'.txt','r') as f:
+    aap=f.readlines()
+    for ap in aap:
+        if '#' not in ap:
+            aa.append(ap)
+
+with open(par_file+'_temp.txt','w') as f:
+    for a in aa:
+        f.write(a)
+    f.write('\n')
+    for a in sys.argv:
+        if '--' in a:
+            f.write(a+'\n')
+
 
 
 
@@ -78,7 +83,6 @@ else:
     seq(temp_file,predir, device, tlay=tlay, toldn=toldn)
 
 
-os.system('rm junk')
 
 print("hello")
 

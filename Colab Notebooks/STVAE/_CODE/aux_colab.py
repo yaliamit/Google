@@ -1,10 +1,10 @@
 import argparse
-from aux import process_args
+from ax import process_args
 from main import main_loc
 import torch
 import matplotlib.pyplot as plt
 import numpy as np
-import aux
+import ax as aux
 import argparse
 import prep
 import os
@@ -101,8 +101,8 @@ def save_net(net,par_file,predir,args=None):
         description='Variational Autoencoder with Spatial Transformation')
 
     parser=process_args(parser)
-    datadirs = predir + 'Colab Notebooks/STVAE/'
-    f = open(datadirs+par_file + '.txt', 'r')
+    datadirs = os.path.join(predir,'Colab Notebooks','STVAE')
+    f = open(os.path.join(datadirs,par_file + '.txt'), 'r')
     bb = f.read().split()
     aa = [ll for ll in bb if '#' not in ll]
     args=parser.parse_args(aa)
@@ -115,10 +115,10 @@ def save_net(net,par_file,predir,args=None):
   model.to('cpu')
   if 'Users/amit' in predir:
       torch.save({'args': args,
-                  'model.state.dict': model.state_dict()}, predir + 'Colab Notebooks/STVAE/_output/' + ss)
+                  'model.state.dict': model.state_dict()},os.path.join(predir,'Colab Notebooks','STVAE','_output',ss))
   else:
     torch.save({'args': args,
-        'model.state.dict': model.state_dict()}, predir+'Colab Notebooks/STVAE/_output/'+ss,_use_new_zipfile_serialization=False)
+        'model.state.dict': model.state_dict()}, os.path.join(predir,'Colab Notebooks','STVAE','_output',ss),_use_new_zipfile_serialization=False)
 
 
 

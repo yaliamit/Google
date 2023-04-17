@@ -105,7 +105,7 @@ def pre_train_new(model,args,device,fout, data=None):
     args.num_train = args.hid_num_train
     datn = args.hid_dataset if args.hid_dataset is not None else args.dataset
     print('getting:' + datn,file=fout)
-    DATA = get_data_pre(args, datn)
+    DATA = get_data_pre(args, datn, device)
     args.num_class = DATA[0].num_class
 
     if 'ae' in args.type:

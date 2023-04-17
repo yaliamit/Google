@@ -6,6 +6,7 @@ from losses import *
 import sys
 from layers import *
 from get_net_text import get_network
+import platform
 import time
 from data import DL
 
@@ -19,7 +20,7 @@ def dummy_context_mgr():
 
 pre=get_pre()
 
-osu=os.uname()
+osu=platform.system()
 
 
 class temp_args(nn.Module):
@@ -534,7 +535,7 @@ def run_epoch(model, args, train, epoch, d_type='train', fout='OUT',freq=1):
                 if args.grad_clip>0.:
                     nn.utils.clip_grad_value_(model.parameters(),args.grad_clip)
                 optimizer.step()
-            if args.embedd_type is not None:
+            if args.embedd_type == 'direct':
               with torch.no_grad():
                  # Run the gradient branch through the updated network.
                  outt1=model.forward(data[1])[0]

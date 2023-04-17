@@ -102,8 +102,8 @@ def dens_apply(rho,s_mu,s_logvar, lpi,pi):
         KD_dens=-0.5 * torch.sum((1 + s_logvar - s_mu ** 2 - var), dim=list(range(2,lensh)))# +KL(N(\mu,\si)| N(0,1))
         KD_disc=lpi - F.log_softmax(rho,dim=0)#torch.log(torch.tensor(n_mix,dtype=torch.float)) # +KL(\pi,unif(1/n_mix))
         KD = torch.sum(pi * (KD_dens + KD_disc), dim=1)
-        ENT=torch.sum(F.softmax(rho,dim=0)*F.log_softmax(rho,dim=0))
-        tot=torch.sum(KD)+ENT
+        #ENT=torch.sum(F.softmax(rho,dim=0)*F.log_softmax(rho,dim=0))
+        tot=torch.sum(KD) #+ENT
 
         return tot, KD, KD_dens
 
@@ -175,7 +175,7 @@ class STVAE_mix(nn.Module):
         if args.OPT:
             self.encoder_m=None
             temp_layers_dict = get_network(args.dec_layers_top)
-            self.final_shape=[l['num_units'] for l in temp_layers_dict if 'dense_gauss' in l['name']]
+            self.final_shape=[l['num_units'] for l in temp_layers_dict if 'dense_gaus' in l['name']]
 
         self.dec_trans_top=None
         trans_shape=None
@@ -190,7 +190,7 @@ class STVAE_mix(nn.Module):
         if self.n_class>1:
             self.rho=nn.Parameter(torch.zeros(self.n_class,self.n_mix//self.n_class))
         else:
-            self.rho = nn.Parameter(torch.zeros(self.n_mix))
+            self.rho = nn.Parameter(torch.zeros(self.n_mix),requires_grad=False)
         self.scheduler=None
         if (not args.nosep and opt_setup):
             setup_optimizer(self,args)
@@ -264,25 +264,6 @@ class STVAE_mix(nn.Module):
             z = torch.ones(var['mu'].shape[0],dim).to(self.dv)
         return z
 
-
-
-    def dens_apply_samp(self,s,s_mu, s_logvar,lpi,pi):
-
-        s_lv=torch.sum(s_logvar.reshape(-1,self.n_mix,self.s_dim),dim=2)
-        ll=torch.zeros(s.shape[1],s.shape[0]).to(self.dv)
-        logds=torch.zeros(self.n_mix).to(self.dv)
-        for k,zz in enumerate(self.decoder_m.z2z):
-            e=torch.matmul(s[k,:,:]-zz.lin.bias,zz.lin.weight)
-            e=e.squeeze()
-            logds[k]=zz.logd #torch.logdet(torch.mm(zz.lin.weight.t(),zz.lin.weight))
-            ll[:,k]= .5*torch.sum(e*e,dim=1)
-        ll=ll-.5*s_lv-.5*self.n_mix
-        KD_disc=lpi - F.log_softmax(self.rho, dim=0)
-        tot = torch.sum(pi*(KD_disc+ll))
-        ENT = torch.sum(F.softmax(self.rho, dim=0) * F.log_softmax(self.rho, dim=0))
-        tot=tot+ENT-.5*torch.sum(pi*logds)
-        return tot, KD_disc, ENT
-
     def mixed_loss_pre(self,x,data):
         b = []
         ninp=data.shape[0]
@@ -330,7 +311,7 @@ class STVAE_mix(nn.Module):
             pi=torch.softmax(pi, dim=1)
         lpi = torch.log(pi)
         n_mix = self.n_mix
-        if (targ is None and self.n_class > 0):
+        if (targ is None and self.n_class > 1):
             n_mix = self.n_mix_perclass
         if (self.type != 'ae'):
             s = self.sample(var, mu.shape[1])
@@ -467,7 +448,7 @@ class STVAE_mix(nn.Module):
             #    data=add_clutter(data)
             data_d = data.detach()
             target=None
-            if (self.n_class>0):
+            if (self.n_class>1):
                 target = BB[1].to(self.dv)
             if self.opt:
                 var=self.update_s(mu[indlist, :], logvar[indlist, :], pi[indlist], self.mu_lr[0],both=self.nosep)

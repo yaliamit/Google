@@ -1,4 +1,5 @@
 import torch
+import platform
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Function
@@ -87,7 +88,7 @@ class BatchNorm1d(_BatchNorm):
 pre=get_pre()
 
 datadirs=pre+'Colab Notebooks/STVAE/_CODE/'
-osu=os.uname()
+osu=platform.system()
 
 #if 'Linux' in osu[0] and not 'ga' in pre:
 #    cudnn_convolution = load(name="cudnn_convolution", sources=[datadirs + "cudnn_convolution.cpp"], verbose=True)

@@ -23,10 +23,10 @@ def save_net_int(model,model_out,args,predir):
 
   if 'Users/amit' in predir:
       torch.save({'args': args_temp,
-          'model.state.dict': model.state_dict()}, predir + 'Colab Notebooks/STVAE/_output/' + ss)
+          'model.state.dict': model.state_dict()}, os.path.join(predir,'Colab Notebooks','STVAE','_output/',ss))
   else:
     torch.save({'args': args_temp,
-        'model.state.dict': model.state_dict()}, predir+'Colab Notebooks/STVAE/_output/'+ss,_use_new_zipfile_serialization=False)
+        'model.state.dict': model.state_dict()}, os.path.join(predir,'Colab Notebooks','STVAE','_output',ss),_use_new_zipfile_serialization=False)
 
   args.fout=fout
 
@@ -75,7 +75,7 @@ def train_model(model, args, ex_file, DATA, fout):
 
 
     predir=get_pre()
-    datadirs = predir + 'Colab Notebooks/STVAE/'
+    datadirs = os.path.join(predir,'Colab Notebooks/STVAE/')
 
 
     train=DATA[0]; val=DATA[1]; test=DATA[2]

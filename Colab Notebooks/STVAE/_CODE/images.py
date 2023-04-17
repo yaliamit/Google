@@ -64,9 +64,9 @@ def make_images(test,model,ex_file,args, datadirs=""):
 
     if (True):
 
-        if not os.path.isdir(datadirs+'_Images'):
-            os.makedirs(datadirs+'_Images', exist_ok=True)
-        ex_f=datadirs+'_Images/'+args.out_file.split('.')[0]
+        if not os.path.isdir(os.path.join(datadirs,'_Images')):
+            os.makedirs(os.path.join(datadirs,'_Images'), exist_ok=True)
+        ex_f=os.path.join(datadirs,'_Images/',args.out_file.split('.')[0])
         #old_bsz=model.bsz
         #model.bsz = 100
         num_mu_iter=None
@@ -74,7 +74,7 @@ def make_images(test,model,ex_file,args, datadirs=""):
         np.random.seed(args.seed)
         CC,_=next(iter(test))
         BB=[CC[0].numpy(),CC[1].numpy()]
-        if (args.n_class):
+        if (args.n_class>1):
             for c in range(model.n_class):
                 ind=(BB[1]==c)
                 show_reconstructed_images(BB[0][ind],model,ex_f,args,c,extra=BB[0])

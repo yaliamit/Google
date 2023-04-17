@@ -3,18 +3,20 @@ from __future__ import print_function
 
 import sys
 import os
+import platform
 import numpy as np
 import h5py
 import scipy.ndimage
 import pylab as py
 import matplotlib.colors as col
 from torchvision import transforms, datasets
-from torch.utils.data import DataLoader, Subset, random_split
+from torch.utils.data import DataLoader, Subset, random_split, Dataset
 import torch
 from images import Edge
 import random
 from torch.utils.data.dataloader import _SingleProcessDataLoaderIter, _MultiProcessingDataLoaderIter
 from torch.utils.data import _utils, SubsetRandomSampler
+import PIL
 
 class _MultiProcessingDataLoaderIterWithIndices(_MultiProcessingDataLoaderIter):
     def __init__(self,loader):
@@ -214,7 +216,7 @@ def get_stl10_unlabeled(batch_size, size=0, crop=0):
         #     transforms.ToTensor(),
         #     transforms.RandomCrop(crop)])
 
-    train = datasets.STL10(get_pre()+'LSDA_data/STL', split='unlabeled', transform=transform, download=True)
+    train = datasets.STL10(os.path.join(get_pre(),'LSDA_data','STL'), split='unlabeled', transform=transform, download=True)
     num_class=len(train.classes)
     shape=train.data.shape[1:]
     if crop>0:
@@ -248,12 +250,12 @@ def get_stl10_labeled(batch_size,size=0,crop=0, jit=0):
         test_transform = transforms.Compose([
             transforms.ToTensor()])
 
-    train = datasets.STL10(get_pre()+'LSDA_data/STL', split='train', transform=train_transform, download=True)
+    train = datasets.STL10(os.path.join(get_pre(),'LSDA_data','STL'), split='train', transform=train_transform, download=True)
     num_class = len(train.classes)
     shape = train.data.shape[1:]
     if crop>0:
         shape=[train.data.shape[1],crop,crop]
-    test = datasets.STL10(get_pre()+'LSDA_data/STL', split='test', transform=test_transform, download=True)
+    test = datasets.STL10(os.path.join(get_pre(),'LSDA_data','STL'), split='test', transform=test_transform, download=True)
 
     size=min(size,len(train)) if size>0 else len(train)
     numtr=size
@@ -269,18 +271,19 @@ def get_stl10_labeled(batch_size,size=0,crop=0, jit=0):
     return train_loader, None, test_loader
 
 def get_pre():
-    aa=os.uname()
+    aa=platform.system()
+    bb=platform.node()
     if 'Linux' in aa:
-        if 'bernie' in aa[1] or 'aoc' in aa[1]:
-            pre='/home/amit/ga/Google/'
-        elif 'midway' in aa[1]:
-            pre='/home/yaliamit/Google/'
+        if 'bernie' in bb or 'aoc' in bb:
+            pre=os.path.join('/home','amit','ga','Google')
         else:
-            pre = 'ME/MyDrive/'
+            pre = os.path.join('ME','MyDrive')
+    elif 'Windows' in aa:
+        pre=os.path.join('C:\\','Users','amit','My Drive')
     else:
-        pre = '/Users/amit/Google Drive/'
-        if os.path.isdir(pre+'My Drive'):
-            pre=pre+'My Drive/'
+        pre = os.path.join('/Users','amit','Google Drive')
+        if os.path.isdir(os.path.join(pre,'My Drive')):
+            pre=os.path.join(pre,'My Drive')
 
     return pre
 
@@ -450,15 +453,15 @@ def load_dataset(pad=0,nval=10000, F=False):
         # The labels are vectors of integers now, that's exactly what we want.
         return data
 
-    pre=get_pre()+'LSDA_data/'
+    pre=os.path.join(get_pre(),'LSDA_data')
     # We can now download and read the training and test set images and labels.
 
-    fold='mnist/'
+    fold='mnist'
     
-    X_train = load_mnist_images(pre+fold+'train-images-idx3-ubyte.gz')
-    y_train = load_mnist_labels(pre+fold+'train-labels-idx1-ubyte.gz')
-    X_test = load_mnist_images(pre+fold+'t10k-images-idx3-ubyte.gz')
-    y_test = load_mnist_labels(pre+fold+'t10k-labels-idx1-ubyte.gz')
+    X_train = load_mnist_images(os.path.join(pre,fold,'train-images-idx3-ubyte.gz'))
+    y_train = load_mnist_labels(os.path.join(pre,fold,'train-labels-idx1-ubyte.gz'))
+    X_test = load_mnist_images(os.path.join(pre,fold,'t10k-images-idx3-ubyte.gz'))
+    y_test = load_mnist_labels(os.path.join(pre,fold,'t10k-labels-idx1-ubyte.gz'))
 
     # We reserve the last 10000 training examples for validation.
     if (nval>0):
@@ -503,9 +506,40 @@ def cifar10_train_classifier_transforms(input_size=32):
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor()])
 
-def get_CIFAR10(batch_size = 500,size=None, double_aug=True, factor=1., emb=True, val_num=0):
+class SimpleDataset(Dataset):
+    """Face Landmarks dataset."""
+
+    def __init__(self, input, transform=None):
+        """
+        Args:
+            csv_file (string): Path to the csv file with annotations.
+            root_dir (string): Directory with all the images.
+            transform (callable, optional): Optional transform to be applied
+                on a sample.
+        """
+        self.data = input[0]
+        self.labels=input[1]
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+
+        sample =  PIL.Image.fromarray(np.uint8(255*self.data[idx]),mode="RGB")
+        lab = self.labels[idx]
+
+        if self.transform:
+            sample = self.transform(sample)
+
+        return (sample, lab)
+def get_CIFAR10(PARS, batch_size = 500,size=None, double_aug=True, factor=1., emb=True, val_num=0):
 
     val_loader=None
+    PARS['data_set']='cifar'+PARS['data_set'].split('_')[1][5:]
+    tr, vl, ts =get_cifar(PARS)
     transform_CIFAR = get_simclr_pipeline_transform(factor=factor)
 
     numworkers = 0
@@ -515,23 +549,24 @@ def get_CIFAR10(batch_size = 500,size=None, double_aug=True, factor=1., emb=True
     if emb:
         transform=ContrastiveLearningViewGenerator(transform_CIFAR, double_aug=double_aug)
     else:
-
         transform = ContrastiveLearningViewGenerator(transform_CIFAR, n_views=1)
 
-    train = datasets.CIFAR10(root = "data",train = True,download = True, transform = transform)
+    train = SimpleDataset(tr, transform = transform)
+    #train = datasets.CIFAR10(root="data", train=True, download=True, transform=transform)
+    #test = datasets.CIFAR10(root="data", train=False, download=True, transform=transform)
     if val_num>0:
         val = datasets.CIFAR10(root="data", train=True, download=True, transform=transforms.Compose([transforms.ToTensor(),transforms.Normalize(
                 mean=[0.485, 0.456, 0.406],
                 std=[0.229, 0.224, 0.225]
             )]))
 
-    test = datasets.CIFAR10(root = "data",train = False,download = True, transform=transforms.Compose([transforms.ToTensor(),transforms.Normalize(
-                mean=[0.485, 0.456, 0.406],
-                std=[0.229, 0.224, 0.225]
-            )]))
+    test = SimpleDataset(ts, transform=transforms.Compose([transforms.ToTensor(),transforms.Normalize(
+                 mean=[0.485, 0.456, 0.406],
+                 std=[0.229, 0.224, 0.225]
+             )]))
 
-    num_class = len(train.classes)
-
+    #num_class = len(train.classes)#len(np.unique(tr[1]))
+    num_class = len(np.unique(tr[1]))
     shape = list(np.array(train.data.shape[1:])[[2,0,1]])
 
     if size is not None and size <= len(train):
@@ -556,21 +591,31 @@ def get_CIFAR10(batch_size = 500,size=None, double_aug=True, factor=1., emb=True
 
 
 
-def get_CIFAR100(batch_size = 500, size=None, double_aug=True, factor=1., emb=True):
+def get_CIFAR100(PARS, batch_size = 500, size=None, double_aug=True, factor=1., emb=True):
     transform_CIFAR = get_simclr_pipeline_transform(factor=factor)
+    # PARS['data_set']="cifar100"
+    # train, val, test = get_cifar(PARS)
+    # tel = np.argmax(test[1], axis=1)
+    # test=list(zip(test[0].transpose(0, 3, 1, 2),tel))
+    # shape = list(np.array(train[0].shape[1:])[[2, 0, 1]])
+    # num_class = len(np.unique(train[1]))
 
     if emb:
         transform = ContrastiveLearningViewGenerator(transform_CIFAR, double_aug=double_aug)
     else:
         transform = ContrastiveLearningViewGenerator(transform_CIFAR, n_views=1)
-    train = datasets.CIFAR100(root = "data",train = True,download = True, transform = transform)
-    test = datasets.CIFAR100(root = "data",train = False,download = True, transform = transform)
-    num_class = len(train.classes)
+    train = datasets.CIFAR100(root="data", train=True, download=True, transform=transform)
+    test = datasets.CIFAR100(root="data", train=False, download=True, transform=transform)
     shape = list(np.array(train.data.shape[1:])[[2,0,1]])
-    if size is not None and size <= len(train):
-        train = Subset(train, random.sample(range(len(train)), size))
-    else:
-        size = len(train)
+    # if size is not None and size <= len(train[0]):
+    #     ii=random.sample(range(len(train[0])),size)
+    #     trl = np.argmax(train[1], axis=1)
+    #     train=list(zip(train[0][ii].transpose(0, 3, 1, 2),trl[ii]))
+    #     #train = Subset(zip(train), random.sample(range(len(train[0])), size))
+    # else:
+    #      size = len(train[0])
+    #      trl = np.argmax(train[1], axis=1)
+    #      train=list(zip(train[0],trl[1]))
 
     aa = os.uname()
     numworkers=0
@@ -585,9 +630,9 @@ def get_CIFAR100(batch_size = 500, size=None, double_aug=True, factor=1., emb=Tr
 def get_cifar(PARS):
 
     data_set=PARS['data_set']
-    pre=get_pre()+'LSDA_data/CIFAR/'
+    pre=os.path.join(get_pre(),'LSDA_data','CIFAR')
     ftr=data_set.split('_')[0]
-    filename = pre+ftr+'_train.hdf5'
+    filename = os.path.join(pre,ftr+'_train.hdf5')
     print(filename)
     f = h5py.File(filename, 'r')
     key = list(f.keys())[0]
@@ -598,36 +643,36 @@ def get_cifar(PARS):
     tr_lb=f[key]
     ntr=len(tr)-PARS['nval']
     train_data=np.float32(tr[0:ntr])/255.
-    train_labels=one_hot(np.int32(tr_lb[0:ntr]),PARS)
+    train_labels=tr_lb[0:ntr] #one_hot(np.int32(tr_lb[0:ntr]),PARS)
     val=None
     if PARS['nval']:
         val_data=np.float32(tr[ntr:])/255.
-        val_labels=one_hot(np.int32(tr_lb[ntr:]),PARS)
+        val_labels=tr_lv[ntr:] #one_hot(np.int32(tr_lb[ntr:]),PARS)
         val=(val_data,val_labels)
     if 'def' in data_set:
-        file_name=pre+data_set+'_data.npy'
+        file_name=os.path.join(pre,data_set,'_data.npy')
         test_data = np.load(file_name)
-        file_name = pre + data_set + '_labels.npy'
+        file_name = os.path.join(pre,data_set + '_labels.npy')
         test_labels=np.load(file_name)
-        test_labels=one_hot(test_labels)
+        #test_labels=one_hot(test_labels)
     else:
-        filename = pre+data_set+'_test.hdf5'
+        filename = os.path.join(pre,data_set+'_test.hdf5')
         f = h5py.File(filename, 'r')
         key = list(f.keys())[0]
         # Get the data
         test_data = np.float32(f[key])/255.
         key = list(f.keys())[1]
-        test_labels=one_hot(np.int32(f[key]),PARS)
+        test_labels=f[key] #one_hot(np.int32(f[key]),PARS)
     return (train_data, train_labels), val , (test_data, test_labels)
 
 def get_letters(PARS):
 
     data_set=PARS['data_set']
-    pre=get_pre()+'LSDA_data/mnist/'
+    pre=os.path.join(get_pre(),'LSDA_data','mnist')
 
     filename = data_set+'.npy'
     print(filename)
-    train_data=np.load(pre+data_set+'_data.npy')
+    train_data=np.load(os.path.join(pre,data_set+'_data.npy'))
     train_data=np.float32(train_data.reshape((-1,28,28,1)))
     print(train_data.shape)
     if 'binarized' not in data_set:
@@ -635,7 +680,7 @@ def get_letters(PARS):
         if PARS['thr'] is not None:
             train_data=np.float32(train_data>PARS['thr'])
 
-    train_labels=np.load(pre+data_set+'_labels.npy')
+    train_labels=np.load(os.path.join(pre,data_set+'_labels.npy'))
     test_data=train_data[-10000:]
     train_data=train_data[:-10000]
     test_labels=train_labels[-10000:]
@@ -664,9 +709,9 @@ def get_cifar_trans(PARS):
     val=None
     ftr = PARS['data_set'].split('_')[1]
     if ftr=='trans10':
-        tr,val,te=get_CIFAR10(PARS['mb_size'],size=PARS['num_train'],double_aug=PARS['double_aug'],factor=PARS['h_factor'],emb=PARS['emb'], val_num=PARS['nval'])
+        tr,val,te=get_CIFAR10(PARS, PARS['mb_size'],size=PARS['num_train'],double_aug=PARS['double_aug'],factor=PARS['h_factor'],emb=PARS['emb'], val_num=PARS['nval'])
     else:
-        tr,te=get_CIFAR100(PARS['mb_size'],size=PARS['num_train'],double_aug=PARS['double_aug'],factor=PARS['h_factor'],emb=PARS['emb'])
+        tr,te=get_CIFAR100(PARS, PARS['mb_size'],size=PARS['num_train'],double_aug=PARS['double_aug'],factor=PARS['h_factor'],emb=PARS['emb'])
 
     return tr,val,te
 

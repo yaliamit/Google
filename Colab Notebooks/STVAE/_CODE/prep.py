@@ -1,5 +1,5 @@
 import torch
-
+import os
 import numpy as np
 import sys
 from mix import STVAE_mix
@@ -8,7 +8,7 @@ import pprint
 from get_net_text import get_network
 import network
 import argparse
-import aux
+import ax as aux
 from data import get_pre
 
 
@@ -17,7 +17,7 @@ def get_names(args):
 
     predir=get_pre()
 
-    datadirs = predir + 'Colab Notebooks/STVAE/'
+    datadirs = os.path.join(predir,'Colab Notebooks/STVAE/')
     fout=args.fout
     ARGS = []
     STRINGS = []
@@ -27,7 +27,7 @@ def get_names(args):
         # This overides model file name
         names = args.model
         for i, name in enumerate(names):
-            sm = torch.load(datadirs+'_output/' + name + '.pt',map_location='cpu')
+            sm = torch.load(os.path.join(datadirs,'_output/' + name + '.pt'),map_location='cpu')
             SMS += [sm]
             arg=None
             if ('args' in sm):
@@ -101,13 +101,13 @@ def setups(par_file):
 
 
     predir = get_pre()
-    datadirs = predir + 'Colab Notebooks/STVAE/'
+    datadirs = os.path.join(predir,'Colab Notebooks','STVAE')
 
     parser = argparse.ArgumentParser(fromfile_prefix_chars='@',
                                      description='VAEs, classification and embedding networks')
 
     parser = aux.process_args(parser)
-    f = open(datadirs+par_file + '.txt', 'r')
+    f = open(os.path.join(datadirs,par_file + '.txt'), 'r')
     bb=f.read().split()
     aa = [ll for ll in bb if '#' not in ll]
 
