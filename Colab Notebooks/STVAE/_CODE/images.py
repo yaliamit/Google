@@ -83,7 +83,7 @@ def make_images(test,model,ex_file,args, datadirs=""):
 
         if model.n_mix>1:
             print('RHO\n')
-            pi=torch.softmax(self.rho)
+            pi=torch.softmax(model.rho.cpu().numpy())
             for i in range(pi.shape[0]):
                 print(i,pi[i])
 
