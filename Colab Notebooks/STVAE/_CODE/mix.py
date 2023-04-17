@@ -468,7 +468,9 @@ class STVAE_mix(nn.Module):
 
             tr_recon_loss += recon_loss
             tr_full_loss += loss
-
+            for i,b in enumerate(BB[1]):
+                if np.mod(epoch,100)==0:
+                    print(b.data.cpu().numpy(),np.argmax(pi[indlist[i]].numpy()))
 
         if (True): #(np.mod(epoch, 10) == 9 or epoch == 0):
             fout.write('\n====> Epoch {}: {} Reconstruction loss: {:.4f}, Full loss: {:.4F}\n'.format(d_type,
