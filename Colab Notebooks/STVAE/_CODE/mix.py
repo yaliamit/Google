@@ -190,7 +190,7 @@ class STVAE_mix(nn.Module):
         if self.n_class>1:
             self.rho=nn.Parameter(torch.zeros(self.n_class,self.n_mix//self.n_class))
         else:
-            self.rho = nn.Parameter(torch.zeros(self.n_mix),requires_grad=False)
+            self.rho = nn.Parameter(torch.zeros(self.n_mix))
         self.scheduler=None
         if (not args.nosep and opt_setup):
             setup_optimizer(self,args)
