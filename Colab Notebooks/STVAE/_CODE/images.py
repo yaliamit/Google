@@ -82,6 +82,7 @@ def make_images(test,model,ex_file,args, datadirs=""):
             show_reconstructed_images(BB[0],model,ex_f,args,None)
 
         if model.n_mix>1:
+            print('RHO',model.rho)
             for clust in range(args.n_mix):
                 show_sampled_images(model,ex_f,args, clust=clust, lower=args.lower_decoder)
         else:
