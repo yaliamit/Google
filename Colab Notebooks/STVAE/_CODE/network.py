@@ -320,7 +320,7 @@ class network(nn.Module):
                                 self.layers.add_module(ll['name'],FALinear(in_dim,out_dim,bias=bis, fa=atemp.fa))
                         else:
                             if 'Lin' in ll:
-                                self.layers.add_module(ll['name'],Linear(in_dim,out_dim, scale=0, iden=True))
+                                self.layers.add_module(ll['name'],Linear(in_dim,out_dim, scale=0, iden=False))
                             else:
                                 self.layers.add_module(ll['name'],nn.Linear(in_dim,out_dim,bias=bis))
                         if 'zero' in ll:
