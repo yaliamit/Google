@@ -475,7 +475,9 @@ class STVAE_mix(nn.Module):
         if (True): #(np.mod(epoch, 10) == 9 or epoch == 0):
             fout.write('\n====> Epoch {}: {} Reconstruction loss: {:.4f}, Full loss: {:.4F}\n'.format(d_type,
         epoch, tr_recon_loss / train.num, tr_full_loss/train.num))
-
+            fout.write('RHO:')
+            for r in torch.softmax(self.rho,0).detach().cpu().numpy():
+                fout.write('{:.3f} '.format(r))
         return mu, logvar, pi, [tr_full_loss/train.num, tr_recon_loss / train.num]
 
     def recon(self,args, input,num_mu_iter=None, lower=False,back_ground=None):
