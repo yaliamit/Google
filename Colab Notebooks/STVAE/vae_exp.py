@@ -2,8 +2,8 @@ import os
 
 sdims=['5','10','20']
 n_mixs=['1','2']
-files=['pars_tvae_orig','pars_vae_mnist']
-num_trains=['1000'] #,'10000','50000']
+files=['pars_vae_mnist1','pars_vae_mnist']
+num_trains=['1000','10000','50000']
 
 for file in files:
   for sdim in sdims:
