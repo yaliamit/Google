@@ -26,10 +26,10 @@ def run_classify(args,train,model,device, fout, type):
         ex_file = args.model_out+'_'+str(cl)
         model.load_state_dict(torch.load(os.path.join(datadir,ex_file + '.pt'), map_location=device)['model.state.dict'])
         V=run_epoch_classify(args, model,train,device, args.nti,fout)
-        VV+=[V]
+        VV+=[V.cpu()]
         fout.write('classify: {0} in {1:5.3f} seconds\n'.format(cl,time.time()-t1))
 
-    VVV=np.stack(VV.detach().cpu().numpy(),axis=1)
+    VVV=np.stack(VV,axis=1)
     hy=np.argmin(VVV,axis=1)
 
     acc=np.mean(np.equal(hy,y))
