@@ -696,14 +696,7 @@ def get_letters(PARS):
         train_labels=train_labels[:-PARS['nval']]
 
 
-    if ('one_class' in PARS):
-        train_data=train_data[train_labels==PARS['one_class']]
-        train_labels=train_labels[train_labels==PARS['one_class']]
-        test_data = test_data[test_labels == PARS['one_class']]
-        test_labels = test_labels[test_labels == PARS['one_class']]
-        if (PARS['nval']>0):
-            val_data = val_data[val_labels == PARS['one_class']]
-            val_labels = val_labels[val_labels == PARS['one_class']]
+
     if PARS['nval']>0:
         val = (val_data, val_labels)
     return (train_data, train_labels), val, (test_data, test_labels)
@@ -758,6 +751,17 @@ def get_data(PARS):
         train, val, test = get_letters(PARS)
     num_train = np.minimum(PARS['num_train'], train[0].shape[0])
     train = (train[0][0:num_train], train[1][0:num_train])
+    if ('one_class' in PARS):
+        tr=train[0][train[1]==PARS['one_class']]
+        trl=train[1][train[1]==PARS['one_class']]
+        train=(tr,trl)
+        te = test[0][test[1] == PARS['one_class']]
+        tel= test[1][test[1] == PARS['one_class']]
+        test=(te,tel)
+        if (PARS['nval']>0):
+            va= val[0][val[1] == PARS['one_class']]
+            val = val[1][val[1] == PARS['one_class']]
+            val=(va,val)
     dim = train[0].shape[1]
     PARS['nchannels'] = train[0].shape[3]
     PARS['n_classes'] = np.max(train[1])+1
