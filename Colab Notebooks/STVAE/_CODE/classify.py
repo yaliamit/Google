@@ -29,7 +29,7 @@ def run_classify(args,train,model,device, fout, type):
         VV+=[V]
         fout.write('classify: {0} in {1:5.3f} seconds\n'.format(cl,time.time()-t1))
 
-    VVV=np.stack(VV,axis=1)
+    VVV=np.stack(VV.detach().cpu().numpy(),axis=1)
     hy=np.argmin(VVV,axis=1)
 
     acc=np.mean(np.equal(hy,y))
