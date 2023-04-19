@@ -15,3 +15,4 @@ for file in files:
                 comm='python3 main_opt.py 0 '+argss +' --n_class=10 --by_class > junk'
                 os.system(comm)
                 comm='python3 main_opt.py 0 '+argss +' --n_class=1 --classify=10 | grep Accuracy >> ACC'
+                os.system(comm)
