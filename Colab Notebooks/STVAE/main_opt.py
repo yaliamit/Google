@@ -61,10 +61,12 @@ with open(par_file+'.txt','r') as f:
 with open(par_file+'_temp.txt','w') as f:
     for a in aa:
         f.write(a)
+        print(a)
     f.write('\n')
     for a in sys.argv:
         if '--' in a:
             f.write(a+'\n')
+            print(a+'\n')
 
 
 
@@ -72,8 +74,8 @@ with open(par_file+'_temp.txt','w') as f:
 temp_file=par_file+'_temp'
 if count_non<4:
     net,_,args=run_net(temp_file, device)
-    if not args.run_existing:
-        save_net(net,temp_file,predir)
+    #if not args.run_existing:
+    #    save_net(net,temp_file,predir)
 else:
     tlay=None
     toldn=None

@@ -577,10 +577,13 @@ def get_CIFAR10(PARS, batch_size = 500,size=None, double_aug=True, factor=1., em
         np.random.shuffle(ii)
         val = Subset(val, ii[num_train-val_num:num_train])
         train=Subset(train, ii[0:num_train-val_num])
-        val_loader =DL(
-            val,batch_size,num_class,len(val),shape,
-            num_workers=numworkers
-        )
+
+    if 'one_class' in PARS:
+        train=Subset(train, [i for i, (x, y) in enumerate(train) if y == PARS['one_class']])
+        if val_num>0:
+            train=Subset(train, [i for i, (x, y) in enumerate(train) if y == PARS['one_class']])
+    if val_num>0:
+        val_loader = DL(val, batch_size, num_class, len(val), shape,num_workers = numworkers)
 
     CIFAR10_train_loader = DL(train,batch_size,num_class,len(train),shape,num_workers=numworkers,shuffle=True)
     CIFAR10_test_loader = DL(test,batch_size,num_class,len(test),shape,num_workers=numworkers)

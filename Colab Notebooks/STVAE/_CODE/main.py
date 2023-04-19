@@ -1,20 +1,51 @@
 from make import train_model, test_models
 from class_on_hidden import pre_train_new, cluster_hidden
 import prep
+from classify import classify_by_likelihood
 from data import get_data_pre
 from images import make_images, show_examples_of_deformed_images, get_embs, deform_data
 import pylab as py
 import numpy as np
 import sys
 
-def main_loc(par_file, device,net=None):
+
+def make_deformed_images(args, DATA):
+    OUT = []
+    LL = []
+    done = False
+    for bb in enumerate(DATA[2]):
+        if not done:
+            show_examples_of_deformed_images(bb[1], args)
+            done = True
+        out = deform_data(bb[1][0], args.perturb, args.transformation, args.s_factor, args.h_factor, False)
+        OUT += [out.numpy()]
+        LL += [bb[1][1].numpy()]
+    LLA = np.concatenate(LL)
+    OUTA = np.concatenate(OUT, axis=0).transpose(0, 2, 3, 1)
+    np.save('cifar10_def_data', OUTA)
+    np.save('cifar10_def_labels', LLA)
+    sys.exit()
+
+def main_loc(par_file, device, net=None):
+
+    args = prep.setups(par_file)
+    fout=args.fout
+    if args.by_class:
+        num_class=args.n_class
+        args.n_class=1
+        model_out=args.model_out
+        for cl in range(num_class):
+            args.model_out=model_out+'_'+str(cl)
+            args.cl=cl
+            model, embed_data, args = main_loc_post(args, device, fout, net)
+    else:
+        model, embed_data, args= main_loc_post(args, device, fout, net)
+
+    return model_out, embed_data, args
+
+def main_loc_post(args, device, fout, net=None):
 
   embed_data=None
-  args = prep.setups(par_file)
-  fout=args.fout
-  #if net is None:
-   # args.verbose = True
-
 
   ARGS, STRINGS, EX_FILES, SMS = prep.get_names(args)
 
@@ -28,24 +59,14 @@ def main_loc(par_file, device,net=None):
 
   models=prep.get_models(device, fout, sh, ARGS, args)
   if args.deform:
-      OUT=[]
-      LL=[]
-      done=False
-      for bb in enumerate(DATA[2]):
-          if not done:
-            show_examples_of_deformed_images(bb[1],args)
-            done=True
-          out = deform_data(bb[1][0], args.perturb, args.transformation, args.s_factor, args.h_factor, False)
-          OUT+=[out.numpy()]
-          LL+=[bb[1][1].numpy()]
-      LLA=np.concatenate(LL)
-      OUTA = np.concatenate(OUT, axis=0).transpose(0,2,3,1)
-      np.save('cifar10_def_data',OUTA)
-      np.save('cifar10_def_labels',LLA)
-      sys.exit()
+      make_deformed_images(args,DATA)
+
 
   fout.flush()
   model_out=models[0]
+  if (args.classify is not None):
+      classify_by_likelihood(args,models[0],DATA, device, fout)
+      exit()
 
   if args.cont_training and not args.run_existing:
       prep.copy_from_old_to_new(models[0], args, fout, SMS[0], device, sh)

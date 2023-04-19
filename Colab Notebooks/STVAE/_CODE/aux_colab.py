@@ -124,9 +124,11 @@ def save_net(net,par_file,predir,args=None):
 
 
 def train_net(par_file,predir, RESULTS, device):
+
   net, _, _=main_loc(par_file,device)
-  RESULTS+=[net.results]
-  save_net(net,par_file,predir)
+  if not args.by_class:
+    RESULTS+=[net.results]
+    save_net(net,par_file,predir)
 
 
 def run_net(par_file, device, net=None):

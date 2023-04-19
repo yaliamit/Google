@@ -286,6 +286,10 @@ class STVAE_mix(nn.Module):
     def weighted_sum_of_likelihoods(self,lpi,b):
         return(-torch.logsumexp(lpi-b,dim=1))
 
+    def mixed_loss_inter(self,x,data,pi):
+        b = self.mixed_loss_pre(x, data)
+        recloss = torch.sum(pi * b,axis=1)
+        return recloss
     def mixed_loss(self,x,data,pi):
 
         b=self.mixed_loss_pre(x,data)
@@ -425,7 +429,7 @@ class STVAE_mix(nn.Module):
     def get_logdets(self):
             return
 
-    def run_epoch(self, args, train, epoch,num_mu_iter, mu, logvar, pi, d_type='test',fout=None):
+    def run_epoch(self, args, train, epoch,num_mu_iter, mu, logvar, pi, d_type='test',fout=None, cl=None):
 
 
         if (d_type=='train'):
@@ -547,9 +551,9 @@ class STVAE_mix(nn.Module):
                 recon_batch = self.decoder_and_trans(ss_mu)
                 #if pmix is not None:
                 #    recon_batch *= (pmix>.5)
-                recloss = self.mixed_loss(recon_batch, inp, var['pi'])
+                recloss = self.mixed_loss_inter(recon_batch, inp, var['pi'])
                 if back_ground is None and self.type != 'ae' and not self.opt:
-                    totloss = dens_apply(self.rho,var['mu'], var['logvar'],  lpi, var['pi'])[0]
+                    totloss = dens_apply(self.rho,var['mu'], var['logvar'],  lpi, var['pi'])
                 #else:
                 #    totloss=torch.sum(ss_mu*ss_mu)
             if  'prop' in var:
@@ -558,8 +562,8 @@ class STVAE_mix(nn.Module):
             recon=recon.reshape(self.n_mix*num_inp,-1)
 
             rr=recon[kk]
-            print('recloss',recloss/num_inp,'totloss',totloss/num_inp)
-            return rr, var,[recloss,totloss], enc_out, recon_batch, recon_batch_both
+            print('recloss',torch.sum(recloss)/num_inp,'totloss',totloss[0]/num_inp)
+            return rr, var,[recloss,totloss[1]], enc_out, recon_batch, recon_batch_both
 
 
 

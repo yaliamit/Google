@@ -1,10 +1,10 @@
 --type=vae
---num_train=10000
---nepoch=20
+--num_train=1000
+--nepoch=2
 --new_dim=0
 --binary_thresh=0
 --sdim=20
---n_class=1
+--n_class=10
 #--transformation=None
 --mb_size=1000
 --dataset=MNIST

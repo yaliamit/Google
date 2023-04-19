@@ -86,10 +86,10 @@ def get_models(device, fout, sh,ARGS, args):
 
 
 def  make_model(args, sh, device, fout):
-        if args.n_class > 1:
-           model=STVAE_mix_by_class(sh,device,args).to(device)
-        else:
-            model = STVAE_mix(sh, device, args).to(device)
+        # if args.n_class > 1:
+        #    model=STVAE_mix_by_class(sh,device,args).to(device)
+        # else:
+        model = STVAE_mix(sh, device, args).to(device)
         tot_pars = 0
         for keys, vals in model.state_dict().items():
             fout.write(keys + ',' + str(np.array(vals.shape)) + '\n')
