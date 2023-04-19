@@ -10,7 +10,8 @@ for file in files:
     for n_mix in n_mixs:
         for num_train in num_trains:
                 argss=file+' --sdim='+sdim+' --n_mix='+n_mix+' --num_train='+num_train
-                print(argss)
+                with open('ACC','w') as f:
+                    f.write(argss+'\n')
                 comm='python3 main_opt.py 0 '+argss +' --n_class=10 --by_class > junk'
                 os.system(comm)
-                comm='python3 main_opt.py 0 '+argss +' --n_class=1 --classify=10 | grep Accuracy'
+                comm='python3 main_opt.py 0 '+argss +' --n_class=1 --classify=10 | grep Accuracy >> ACC'
