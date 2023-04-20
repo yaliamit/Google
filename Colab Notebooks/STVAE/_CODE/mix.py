@@ -521,7 +521,7 @@ class STVAE_mix(nn.Module):
                 #torch.autograd.set_detect_anomaly(True)
                 for it in range(num_mu_iter):
                     rls, ls, _, pmix = self.compute_loss_and_grad(var, inp_d,inp, None, 'test', self.optimizer_s, opt='mu', back_ground=back_ground)
-                    print(rls/num_inp,ls/num_inp,(ls-rls)/num_inp)
+
 
             else:
 
@@ -552,7 +552,7 @@ class STVAE_mix(nn.Module):
                 #if pmix is not None:
                 #    recon_batch *= (pmix>.5)
                 recloss = self.mixed_loss_inter(recon_batch, inp, var['pi'])
-                if back_ground is None and self.type != 'ae' and not self.opt:
+                if back_ground is None and self.type != 'ae':
                     totloss = dens_apply(self.rho,var['mu'], var['logvar'],  lpi, var['pi'])
                 #else:
                 #    totloss=torch.sum(ss_mu*ss_mu)
