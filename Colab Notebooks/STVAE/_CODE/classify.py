@@ -57,7 +57,7 @@ def run_epoch_classify(args, model, train, device, num_mu_iter,fout):
         for j in np.arange(0, train.num, train.batch_size):
                 BB, indlist = next(tra)
                 data_in = BB[0].to(device)
-                _, _, [recloss, totloss], _, _, _ = model.recon(args, data_in)
+                _, _, [recloss, totloss], _, _, _ = model.recon(args, data_in,num_mu_iter=100)
                 like+=[recloss+totloss]
         like=torch.cat(like)
         return like
