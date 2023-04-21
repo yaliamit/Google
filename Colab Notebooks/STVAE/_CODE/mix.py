@@ -459,6 +459,10 @@ class STVAE_mix(nn.Module):
                 if np.mod(epoch, self.opt_jump) == 0:
                   for it in range(num_mu_iter):
                     recon_loss,loss, _, _  = self.compute_loss_and_grad(var, data_in, data_d, target, d_type, self.optimizer_s, opt='mu')
+                ppi=torch.softmax(var['pi'],axis=1)
+                cll=torch.argmax(ppi,axis=1)
+                ccc=torch.unique(cll,return_counts=True)
+                print('h',ccc)
             else:
                 var={}
             if not self.opt or not self.nosep:

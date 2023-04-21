@@ -137,8 +137,11 @@ def show_sampled_images(model,ex_file, args, clust=None, lower=False):
     theta = torch.zeros(bsz, model.u_dim)
     X=model.sample_from_z_prior(args, bsz, theta=theta,clust=clust,lower=lower)
     XX=X.detach().cpu().numpy()
+    cl=''
+    if args.cl is not None:
+        cl='_'+str(args.cl)
     if clust is not None:
-        ex_file=ex_file+'_'+str(clust)
+        ex_file=ex_file+cl+'_'+str(clust)
     create_image(XX, model, ex_file)
 
 
