@@ -41,7 +41,7 @@ def main_loc(par_file, device, net=None):
     else:
         model, embed_data, args= main_loc_post(args, device, fout, net)
 
-    return model_out, embed_data, args
+    return model, embed_data, args
 
 def main_loc_post(args, device, fout, net=None):
 
