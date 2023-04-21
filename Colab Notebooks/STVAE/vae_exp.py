@@ -13,6 +13,8 @@ for file in files:
                 with open('ACC','a') as f:
                     f.write(argss+'\n')
                 comm='python3 main_opt.py 0 '+argss +' --n_class=10 --by_class > junk'
+                print(comm)
                 os.system(comm)
                 comm='python3 main_opt.py 0 '+argss +' --n_class=1 --classify=10 | grep Accuracy >> ACC'
+                print(comm)
                 os.system(comm)
