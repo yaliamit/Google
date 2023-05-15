@@ -312,12 +312,17 @@ class network(nn.Module):
                         OUTS[ll['name']] = out
 
                 if 'nfl' in ll['name']:
-                    nu=ll['num_units']
-                    param_map = nf.nets.MLP([1, nu, nu, 2], init_zeros=True)
-                    # Add flow layer
-                    self.layers.add_module(ll['name'],nf.flows.AffineCouplingBlock(param_map))
-                    # Swap dimensions
-                    self.layers.add_module(ll['name']+'perm',nf.flows.Permute(2, mode='swap'))
+                    if atemp.first:
+                        nu=ll['num_units']
+                        ni=ll['num_inputs']
+                        param_map = nf.nets.MLP([ni, nu, nu, 2], init_zeros=True)
+                        # Add flow layer
+                        self.layers.add_module(ll['name'],nf.flows.AffineCouplingBlock(param_map))
+                        # Swap dimensions
+                        self.layers.add_module(ll['name']+'perm',nf.flows.Permute(2, mode='swap'))
+                    out,_ = getattr(self.layers, ll['name'])(out)
+                    if everything:
+                        OUTS[ll['name']] = out
                 if ('dense' in ll['name']):
                     if atemp.first:
                         out_dim=ll['num_units']
