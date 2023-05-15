@@ -5,6 +5,7 @@ from images import deform_data
 from losses import *
 import sys
 from layers import *
+import normflows as nf
 from get_net_text import get_network
 import platform
 import time
@@ -310,6 +311,13 @@ class network(nn.Module):
                     if everything:
                         OUTS[ll['name']] = out
 
+                if 'nfl' in ll['name']:
+                    nu=ll['num_units']
+                    param_map = nf.nets.MLP([1, nu, nu, 2], init_zeros=True)
+                    # Add flow layer
+                    self.layers.add_module(ll['name'],nf.flows.AffineCouplingBlock(param_map))
+                    # Swap dimensions
+                    self.layers.add_module(ll['name']+'perm',nf.flows.Permute(2, mode='swap'))
                 if ('dense' in ll['name']):
                     if atemp.first:
                         out_dim=ll['num_units']

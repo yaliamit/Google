@@ -94,6 +94,7 @@ def  make_model(args, sh, device, fout):
         for keys, vals in model.state_dict().items():
             fout.write(keys + ',' + str(np.array(vals.shape)) + '\n')
             tot_pars += np.prod(np.array(vals.shape))
+            print(tot_pars)
         fout.write('tot_pars,' + str(tot_pars) + '\n')
         return model
 
