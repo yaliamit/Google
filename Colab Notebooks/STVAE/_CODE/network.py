@@ -315,7 +315,7 @@ class network(nn.Module):
                     if atemp.first:
                         nu=ll['num_units']
                         ni=ll['num_inputs']
-                        param_map = nf.nets.MLP([ni, nu, nu, 2], init_zeros=True)
+                        param_map = nf.nets.MLP([ni, nu, nu, 2*ni], init_zeros=True)
                         # Add flow layer
                         self.layers.add_module(ll['name'],nf.flows.AffineCouplingBlock(param_map))
                         # Swap dimensions
