@@ -39,7 +39,7 @@ name:dense_var;num_units:20;parent:[pool2]
 #name:dense_gauss_tr;num_units:6
 --dec_layers_top
 name:input
-name:dense_gauss;num_units:20
+#name:dense_gauss;num_units:20
 name:nfl1;num_units:64;num_inputs:10
 name:name:non_linearity_nfl;type:relu
 name:nfl2;num_units:64;num_inputs:10
