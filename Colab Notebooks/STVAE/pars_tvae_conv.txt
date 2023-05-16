@@ -32,8 +32,10 @@ name:pool2;pool_size:2
 name:dens1;num_units:256
 name:non_linearity3;type:relu
 name:dense_mu;num_units:20
+name:nfl_mu1;num_units:64;num_inputs:10
 name:dense_pi;num_units:1;parent:[pool2]
 name:dense_var;num_units:20;parent:[pool2]
+name:nfl_var1;num_units:64;num_inputs:10
 #--dec_trans_top
 #name:input
 #name:dense_gauss_tr;num_units:6
@@ -41,8 +43,10 @@ name:dense_var;num_units:20;parent:[pool2]
 name:input
 #name:dense_gauss;num_units:20
 name:nfl1;num_units:64;num_inputs:10
-name:name:non_linearity_nfl;type:relu
+name:non_linearity_nfl1;type:relu
 name:nfl2;num_units:64;num_inputs:10
+#name:non_linearity_nfl1;type:relu
+#name:nfl3;num_units:64;num_inputs:10
 name:dense1;num_units:1568
 name:non_linearity0;type:relu
 --dec_layers_bot
