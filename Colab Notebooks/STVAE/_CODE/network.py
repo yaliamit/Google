@@ -386,7 +386,11 @@ class network(nn.Module):
                             else:
                                 self.layers.add_module(ll['name'],nn.BatchNorm1d(OUTS[old_name].shape[1], affine=False))
                         elif atemp.bn=='layerwise':
-                                self.layers.add_module(ll['name'],nn.LayerNorm(OUTS[old_name].shape[2:4]))
+                            ss=OUTS[old_name].shape
+                            if len(ss)==2:
+                                self.layers.add_module(ll['name'],nn.LayerNorm(ss[1]))
+                            else:
+                                self.layers.add_module(ll['name'],nn.LayerNorm(ss[1:]))
                         elif atemp.bn=='instance':
                             self.layers.add_module(ll['name'], nn.InstanceNorm2d(OUTS[old_name].shape[1],affine=True))
                         elif atemp.bn=='simple':

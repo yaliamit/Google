@@ -14,6 +14,7 @@
 --nval=0
 --nti=100
 --CONS
+--bn=layerwise
 #--output_cont=0.
 --opt_jump=1
 --optimizer=Adam
@@ -45,10 +46,13 @@ name:dense_var;num_units:20
 name:input
 #name:dense_gauss;num_units:20
 name:nfl1;num_units:64;num_inputs:10
+name:norm1
 name:non_linearity_1;type:relu
 name:nfl2;num_units:64;num_inputs:10
+name:norm2
 name:non_linearity_2;type:relu
 name:nfl3;num_units:64;num_inputs:10
+name:norm3
 name:non_linearity_3;type:relu
 name:dense1;num_units:1568
 name:non_linearity0;type:relu
