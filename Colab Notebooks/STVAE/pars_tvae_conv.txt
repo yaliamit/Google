@@ -14,7 +14,7 @@
 --nval=0
 --nti=100
 --CONS
---bn=layerwise
+--bn=full
 #--output_cont=0.
 --opt_jump=1
 --optimizer=Adam
