@@ -56,7 +56,7 @@ name:non_linearity_2;type:relu
 name:nfl3;num_units:64;num_inputs:10
 name:norm3
 name:non_linearity_3;type:relu
-name:dens_pre;num_units:256
+name:dense_pre;num_units:256
 name:dense1;num_units:1568
 name:normd1
 name:non_linearity0;type:relu
