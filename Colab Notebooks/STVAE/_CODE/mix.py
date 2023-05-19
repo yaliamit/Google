@@ -630,7 +630,7 @@ class STVAE_mix(nn.Module):
        for j in np.arange(0, num_inp, Input.batch_size):
 
             input = next(tra)
-            input=input[0][0]
+            input=input[0][0].to(self.dv)
             EE=torch.randn(num_samples, bsz, self.n_mix, self.s_dim).to(self.dv)
 
 
