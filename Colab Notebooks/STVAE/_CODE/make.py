@@ -157,14 +157,14 @@ def train_model(model, args, ex_file, DATA, fout):
         make_images(test, model, ex_file, args, datadirs=datadirs)
         #make_sample(model,args, ex_file, datadirs=datadirs)
 
-        if (args.n_class):
+        if (args.n_class>1):
             #model.run_epoch_classify(train, 'train', fout=fout, num_mu_iter=args.nti)
             #model.run_epoch_classify(test, 'test', fout=fout, num_mu_iter=args.nti)
             pass
         elif args.cl is None:
             #if not args.OPT:
-                #LLG=model.compute_likelihood(test[0],250)
-                #print('LLG', LLG, file=fout)
+            LLG=model.compute_likelihood(test,10,args)
+            print('LLG', LLG, file=fout)
             rho=model.rho.detach().cpu().numpy()
             print('rho',np.exp(rho)/np.sum(np.exp(rho)),file=fout)
             if args.hid_layers is None:

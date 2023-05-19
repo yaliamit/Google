@@ -616,61 +616,61 @@ class STVAE_mix(nn.Module):
     def compute_likelihood(self,Input,num_samples,args):
 
        self.eval()
-       Input = torch.from_numpy(Input)
+
        num_inp = Input.shape[0]
 
        bsz=Input.batch_size
        print(bsz)
-       LLG=0
+       LGS=[]
+       LGG=0
        EEE = torch.randn(num_samples, num_inp, self.n_mix, self.s_dim).to(self.dv)
        lsfrho=torch.log_softmax(self.rho, 0)
        lns=np.log(num_samples)
        tra=iter(Input)
        for j in np.arange(0, num_inp, Input.batch_size):
 
-            input = next(tra)[0]
+            input = next(tra)
+            input=input[0][0]
+            EE=torch.randn(num_samples, bsz, self.n_mix, self.s_dim).to(self.dv)
 
 
             if self.opt:
-                mu, logvar, ppi = self.initialize_mus(Input.batch_size, True)
-
-
-
-            if self.opt:
+                mu, logvar, ppi= self.initialize_mus(Input.batch_size, True)
                 inp_d = input.detach()
-                self.update_s(mu, logvar, ppi, self.mu_lr[0],both=self.nosep)
+                var=self.update_s(mu, logvar, ppi, self.mu_lr[0],both=self.nosep)
                 #self.get_logdets()
                 for it in range(self.nti):
-                    self.compute_loss_and_grad(inp_d,input, None, 'test', self.optimizer_s, opt='mu')
-                s_mu = self.mu
-                s_var = self.logvar
-                pi = torch.softmax(self.pi, dim=1)
+                    self.compute_loss_and_grad(var, inp_d,input, None, 'test', self.optimizer_s, opt='mu')
             else:
                 with torch.no_grad():
-                    s_mu, s_var, pi, _ = self.encoder_mix(input,args)
+                    var, _ = self.encoder_mix(input)
 
-            EE=EEE[:,j:j+bsz,:,:].to(self.dv)
-            s_var=s_var.reshape(1,bsz,self.n_mix,self.s_dim)
+            s_var=var['logvar'].reshape(1,bsz,self.n_mix,self.s_dim)
             tsd=torch.exp(s_var/2)
-            tmu=s_mu.reshape(1,bsz,self.n_mix,self.s_dim)
+            tmu=var['mu'].reshape(1,bsz,self.n_mix,self.s_dim)
             S =tmu +tsd*EE
 
             with torch.no_grad():
-
                 recon_batch=self.decoder_and_trans(S.reshape(-1, self.n_mix, self.s_dim).transpose(0, 1))
                 inp=input.repeat(num_samples,1,1,1)
                 recon_loss = -self.mixed_loss_pre(recon_batch, inp).reshape(num_samples,bsz,self.n_mix)
 
             logq = -torch.sum((S - tmu) * (S - tmu) / (2 * tsd*tsd),dim=3)\
-                   - torch.sum(s_var,dim=3)/2 #+ torch.log(pi.unsqueeze(0))
+                   - torch.sum(s_var,dim=2)/2 #+ torch.log(pi.unsqueeze(0))
             logp = -.5*torch.sum(S*S,dim=3)
-            LG = torch.logsumexp(recon_loss + logp - logq,0)
-            LLG -= torch.sum(torch.logsumexp(LG+lsfrho,1))/num_inp
+            pim = torch.softmax(var['pi'].repeat(num_samples, 1), 1)
+            lpim = torch.log_softmax(var['pi'].repeat(num_samples, 1), 1).reshape(num_samples,bsz,self.n_mix)
+            lsfrho = torch.log_softmax(self.rho, 0).repeat(num_samples * bsz, 1).reshape(num_samples, bsz, self.n_mix)
+            LG = torch.logsumexp(recon_loss + logp - logq + lsfrho - lpim,0)
+            LG = torch.sum(LG * pim[0:bsz,:], 1)
+            LG -= lns
+            LGS += [LG]
+            LGG -= torch.sum(LG) / num_inp
 
-       LLG += lns
-       print('LLL',LLG)
 
-       return(LLG)
+       print('LLL',LGG)
+
+       return(LGG)
 
     def get_scheduler(self,args):
         self.scheduler=None
