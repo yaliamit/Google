@@ -489,7 +489,7 @@ class STVAE_mix(nn.Module):
                     print("CLUST:",b.data.cpu().numpy(),np.argmax(pi[indlist[i]].numpy()))
 
         if (True): #(np.mod(epoch, 10) == 9 or epoch == 0):
-            fout.write('\n====> Epoch {}: {} Reconstruction loss: {:.4f}, Full loss: {:.4F}\n'.format(d_type,
+            fout.write('\n====> Epoch {}: {} loss: {:.4f}, kl: {:.4F}\n'.format(d_type,
         epoch, tr_loss / train.num, tr_kl/train.num))
             fout.write('RHO:')
             for r in torch.softmax(self.rho,0).detach().cpu().numpy():
