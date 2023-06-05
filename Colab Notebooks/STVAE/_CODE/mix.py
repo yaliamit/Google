@@ -445,7 +445,7 @@ class STVAE_mix(nn.Module):
         else:
             self.eval()
 
-        tr_recon_loss = 0;tr_full_loss = 0
+        tr_loss = 0;tr_kl = 0
         self.epoch=epoch
 
         tra=iter(train)
@@ -466,7 +466,7 @@ class STVAE_mix(nn.Module):
                 var=self.update_s(mu[indlist, :], logvar[indlist, :], pi[indlist], self.mu_lr[0],both=self.nosep)
                 if np.mod(epoch, self.opt_jump) == 0:
                   for it in range(num_mu_iter):
-                    recon_loss,loss, _, _  = self.compute_loss_and_grad(var, data_in, data_d, target, d_type, self.optimizer_s, opt='mu')
+                    loss,kl, _, _  = self.compute_loss_and_grad(var, data_in, data_d, target, d_type, self.optimizer_s, opt='mu')
                 ppi=torch.softmax(var['pi'],axis=1)
                 cll=torch.argmax(ppi,axis=1)
                 ccc=torch.unique(cll,return_counts=True)
@@ -475,26 +475,26 @@ class STVAE_mix(nn.Module):
                 var={}
             if not self.opt or not self.nosep:
               with torch.no_grad() if (d_type != 'train') else dummy_context_mgr():
-                    recon_loss, loss, _, _ =self.compute_loss_and_grad(var, data_in, data, target,d_type,self.temp.optimizer)
+                    loss, kl, _, _ =self.compute_loss_and_grad(var, data_in, data, target,d_type,self.temp.optimizer)
 
             if self.opt:
                 mu[indlist] = var['mu'].data.cpu()
                 logvar[indlist] = var['logvar'].data.cpu()
                 pi[indlist] = var['pi'].data.cpu()
 
-            tr_recon_loss += recon_loss
-            tr_full_loss += loss
+            tr_loss += loss
+            tr_kl += kl
             if d_type=='test':
                 for i,b in enumerate(BB[1]):
                     print("CLUST:",b.data.cpu().numpy(),np.argmax(pi[indlist[i]].numpy()))
 
         if (True): #(np.mod(epoch, 10) == 9 or epoch == 0):
             fout.write('\n====> Epoch {}: {} Reconstruction loss: {:.4f}, Full loss: {:.4F}\n'.format(d_type,
-        epoch, tr_recon_loss / train.num, tr_full_loss/train.num))
+        epoch, tr_loss / train.num, tr_kl/train.num))
             fout.write('RHO:')
             for r in torch.softmax(self.rho,0).detach().cpu().numpy():
                 fout.write('{:.3f} '.format(r))
-        return mu, logvar, pi, [tr_full_loss/train.num, tr_recon_loss / train.num]
+        return mu, logvar, pi, [tr_loss/train.num, tr_kl / train.num]
 
     def recon(self,args, input,num_mu_iter=None, lower=False,back_ground=None):
 
