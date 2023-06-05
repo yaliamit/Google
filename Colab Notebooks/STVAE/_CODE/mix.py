@@ -711,4 +711,7 @@ class STVAE_mix(nn.Module):
             self.scheduler = torch.optim.lr_scheduler.LambdaLR(self.temp.optimizer, lr_lambda=l2)
         elif args.sched==2.:
             self.scheduler=torch.optim.lr_scheduler.ReduceLROnPlateau(self.temp.optimizer,verbose=True)
+        elif args.sched==3:
+            self.scheduler=torch.optim.lr_scheduler.MultiStepLR(self.temp.optimizer,milestones=[10,20], gamma=.5)
+
 

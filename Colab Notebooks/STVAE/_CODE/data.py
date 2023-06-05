@@ -650,11 +650,6 @@ def get_cifar(PARS):
     train_data=np.float32(tr[0:ntr])/255.
     tr = train_data[0:100]
     tr = tr.transpose(0, 3, 1, 2)
-    img = create_img(tr, tr[0].shape)
-    py.imshow(img)
-    py.show()
-    py.imshow(tr[10].transpose(1,2,0))
-    py.show()
     train_labels=tr_lb[0:ntr] #one_hot(np.int32(tr_lb[0:ntr]),PARS)
     val=None
     if PARS['nval']:

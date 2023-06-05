@@ -4,6 +4,7 @@
 --new_dim=0
 --binary_thresh=0.001
 --sdim=49
+--sched=(-1,0)
 #--transformation=shift
 --mb_size=500
 --dataset=cifar10
