@@ -708,7 +708,7 @@ def get_scheduler(args,optimizer):
             #l2 = lambda epoch: pow((1. - 1. * epoch / args.nepoch), args.sched)
             #scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lr_lambda=l2)
         elif args.sched[0]==-1:
-            scheduler=torch.optim.lr_scheduler.MultiStepLR(optimizer,milestones=[10,20], gamma=.5)
+            scheduler=torch.optim.lr_scheduler.MultiStepLR(optimizer,milestones=[30,60], gamma=.5)
 
 
 
