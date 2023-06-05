@@ -12,11 +12,13 @@ import matplotlib.colors as col
 from torchvision import transforms, datasets
 from torch.utils.data import DataLoader, Subset, random_split, Dataset
 import torch
-from images import Edge
+from images import Edge, create_img
+from imageio import imsave
 import random
 from torch.utils.data.dataloader import _SingleProcessDataLoaderIter, _MultiProcessingDataLoaderIter
 from torch.utils.data import _utils, SubsetRandomSampler
 import PIL
+import pylab as py
 
 class _MultiProcessingDataLoaderIterWithIndices(_MultiProcessingDataLoaderIter):
     def __init__(self,loader):
@@ -646,11 +648,18 @@ def get_cifar(PARS):
     tr_lb=f[key]
     ntr=len(tr)-PARS['nval']
     train_data=np.float32(tr[0:ntr])/255.
+    tr = train_data[0:100]
+    tr = tr.transpose(0, 3, 1, 2)
+    img = create_img(tr, tr[0].shape)
+    py.imshow(img)
+    py.show()
+    py.imshow(tr[10].transpose(1,2,0))
+    py.show()
     train_labels=tr_lb[0:ntr] #one_hot(np.int32(tr_lb[0:ntr]),PARS)
     val=None
     if PARS['nval']:
         val_data=np.float32(tr[ntr:])/255.
-        val_labels=tr_lv[ntr:] #one_hot(np.int32(tr_lb[ntr:]),PARS)
+        val_labels=tr_lb[ntr:] #one_hot(np.int32(tr_lb[ntr:]),PARS)
         val=(val_data,val_labels)
     if 'def' in data_set:
         file_name=os.path.join(pre,data_set,'_data.npy')

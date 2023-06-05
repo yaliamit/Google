@@ -74,6 +74,7 @@ def make_images(test,model,ex_file,args, datadirs=""):
         np.random.seed(args.seed)
         CC,_=next(iter(test))
         BB=[CC[0].numpy(),CC[1].numpy()]
+
         if (args.n_class>1):
             for c in range(model.n_class):
                 ind=(BB[1]==c)
@@ -119,9 +120,10 @@ def create_img(XX,sh,ri=10,rj=10,sep=0):
     manifold = np.concatenate(mat, axis=1)
     if (c==1):
         img = np.concatenate([manifold, manifold, manifold], axis=2)
+        img=1-img
     else:
         img=manifold
-    img=1-img
+
     return img
 
 def create_image(XX, model, ex_file):
@@ -168,6 +170,7 @@ def get_embs(xin, patch_size):
 def show_reconstructed_images(test,model,ex_file, args, cl=None, extra=None):
 
     np.random.shuffle(test[0])
+
     inp=torch.from_numpy(erode(args.erode,test[0:100],extra=extra))
 
     if args.perturb>0:

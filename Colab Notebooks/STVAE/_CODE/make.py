@@ -30,6 +30,24 @@ def save_net_int(model,model_out,args,predir):
 
   args.fout=fout
 
+def fid(X,Y):
+
+  X=X.detach().cpu().numpy()
+  Y=Y.detach().cpu().numpy()
+  muX=np.mean(X,0).reshape(X.shape[1],1)
+  muY=np.mean(Y,0).reshape(Y.shape[1],1)
+  CX=np.cov(X.transpose(),bias=True)
+  CY=np.cov(Y.transpose(),bias=True)
+  E,V=np.linalg.eigh(CX)
+  E=np.clip(E,a_min=0,a_max=None)
+  CXh = np.matmul(np.matmul(V,np.diag(np.sqrt(E))),V.transpose())
+  U = np.matmul(np.matmul(CXh,CY),CXh)
+  E,V=np.linalg.eigh(U)
+  E=np.clip(E,a_min=0,a_max=None)
+  Uh = np.matmul(np.matmul(V,np.diag(np.sqrt(E))),V.transpose())
+  fidout=np.sum((muX-muY)*(muX-muY)) +np.sum(np.diag(CX)) + np.sum(np.diag(CY)) - 2*np.sum(np.diag(Uh))
+  print('fid',fidout)
+  return fidout
 
 def test_models(ARGS, SMS, test, models, fout):
 
@@ -163,10 +181,16 @@ def train_model(model, args, ex_file, DATA, fout):
             pass
         elif args.cl is None:
             #if not args.OPT:
-            LLG=model.compute_likelihood(test,10,args)
+            LLG=model.compute_likelihood_for_dataset(test,10)
             print('LLG', LLG, file=fout)
             rho=model.rho.detach().cpu().numpy()
             print('rho',np.exp(rho)/np.sum(np.exp(rho)),file=fout)
+            X = model.sample_from_z_prior(args, 2000)
+            print(X.shape)
+            image_batches = [batch[0][0] for batch in train]
+            image_batches=torch.cat(image_batches).reshape(-1,X.shape[1])
+            fid(X,image_batches)
+
             if args.hid_layers is None:
                 testMU, testLOGVAR, testPI = initialize_mus(num_train, model.final_shape, model.n_mix)
                 print('args.nti',args.nti,args.mu_lr,file=fout)

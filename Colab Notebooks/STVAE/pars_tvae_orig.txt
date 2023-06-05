@@ -9,7 +9,7 @@
 --mb_size=1000
 --dataset=MNIST
 --num_mu_iter=10
---n_mix=10
+--n_mix=1
 --lr=.001
 --nval=0
 --nti=100

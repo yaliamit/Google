@@ -5,6 +5,7 @@ import numpy as np
 from layers import Linear, ident, NONLIN
 import network
 from get_net_text import get_network
+import normflows as nf
 
 
 
@@ -43,17 +44,52 @@ class encoder_mix(nn.Module):
 
         return var, [h,h1]
 
+class flow_mix(nn.Module):
 
+    def  __init__(self, z_dim, final_shape,dv, args):
+        super(flow_mix,self).__init__()
+
+        self.z_dim=z_dim
+        temp=nn.ModuleList([network.initialize_model(args, final_shape,args.flow_net, dv)for i in range(args.n_mix) ])
+
+        self.flows=nn.ModuleList([nf.NormalizingFlow(nf.distributions.DiagGaussian(z_dim),temp[i].layers) for i in range(args.n_mix)])
+
+    def forward(self,x):
+
+        xx=[]
+        for i, fl in enumerate(self.flows):
+            x=fl(x[i])
+            xx+=[x]
+
+        xx = torch.stack(xx, dim=0)
+
+        return xx
+
+    def inv_and_logdet(self,x):
+
+        zz=[]
+        lp=[]
+        for i,fl in enumerate(self.flows):
+            z,p=fl.inverse_and_log_det(x[i].squeeze())
+            zz+=[z]
+            lp+=[p]
+
+        zz=torch.stack(zz)
+        lp=torch.stack(lp)
+
+        return zz,lp
 class decoder_mix(nn.Module):
     def __init__(self,u_dim, z_dim,trans_shape, final_shape, dv, args):
         super(decoder_mix,self).__init__()
         self.u_dim=u_dim
         self.z_dim=z_dim
+        self.flow_prior=args.flow_prior
         if u_dim>0:
             self.dec_trans_top=nn.ModuleList([network.initialize_model(args, trans_shape, args.dec_trans_top, dv) for i in range(args.n_mix)])
 
         self.dec_conv_top=nn.ModuleList([network.initialize_model(args, final_shape,args.dec_layers_top, dv)for i in range(args.n_mix) ])
         f_shape=np.array(self.dec_conv_top[0].temp.output_shape)[1:]
+
         self.dec_conv_bot=network.initialize_model(args, f_shape, args.dec_layers_bot, dv)
 
         if hasattr(self.dec_conv_bot.layers, 'inject'):
@@ -77,6 +113,7 @@ class decoder_mix(nn.Module):
                 uu+=[pu]
             else:
                 z=inp
+
             x=self.dec_conv_top[i](z)[0]
             x=self.dec_conv_bot(x)[0]
             xx+=[x]

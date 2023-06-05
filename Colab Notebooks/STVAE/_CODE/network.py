@@ -319,7 +319,7 @@ class network(nn.Module):
                         # Add flow layer
                         self.layers.add_module(ll['name'],nf.flows.AffineCouplingBlock(param_map))
                         # Swap dimensions
-                        self.layers.add_module(ll['name']+'perm',nf.flows.Permute(2, mode='swap'))
+                        self.layers.add_module(ll['name']+'perm',nf.flows.Permute(2*ni, mode='shuffle'))
                     out,_ = getattr(self.layers, ll['name'])(out)
                     if everything:
                         OUTS[ll['name']] = out
