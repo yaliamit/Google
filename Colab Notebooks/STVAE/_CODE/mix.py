@@ -133,7 +133,7 @@ def setup_optimizer(sel,args):
 
             args.fout.write('tot_pars,' + str(totpars) + '\n')
             if (args.optimizer_type=='Adam'):
-                sel.temp.optimizer = optim.Adam(pp)
+                sel.temp.optimizer = optim.Adam(pp, weight_decay=.00002)
             else:
                 sel.temp.optimizer = optim.SGD(pp,lr=args.lr)
 
