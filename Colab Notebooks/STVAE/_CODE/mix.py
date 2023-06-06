@@ -636,8 +636,8 @@ class STVAE_mix(nn.Module):
            input = next(tra)
            input = input[0][0]
 
-           for j in range(0,int(input.shape[0]),bsz):
-                loc_input=input[j:j+bsz].to(self.dv)
+           for jj in range(0,int(input.shape[0]),bsz):
+                loc_input=input[jj:jj+bsz].to(self.dv)
                 print(loc_input.shape)
                 LG, _ =self.compute_likelihood_for_batch(loc_input,num_samples)
                 LGG -= LG / num_inp
