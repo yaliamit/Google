@@ -7,6 +7,7 @@ from mix_by_class import STVAE_mix_by_class
 import pprint
 from get_net_text import get_network
 import network
+from network_aux import initialize_model
 import argparse
 import ax as aux
 from data import get_pre
@@ -81,7 +82,7 @@ def get_models(device, fout, sh,ARGS, args):
         if arg.layers is not None:
             #layers_dict = get_network(arg.layers, nf=sh[0])
             # Initialize the network
-            models=[network.initialize_model(arg,sh,args.layers,device)]
+            models=[initialize_model(arg,sh,args.layers,device)]
     return models
 
 
@@ -152,7 +153,7 @@ def copy_from_old_to_new(model, args, fout, SMS,device, sh):
     else:
         print('LOADING OLD MODEL')
         SMS['args'].fout=fout
-        model_old=network.initialize_model(SMS['args'], sh, SMS['args'].layers, device)
+        model_old=initialize_model(SMS['args'], sh, SMS['args'].layers, device)
 
     model_old.load_state_dict(SMS['model.state.dict'])
     model_old.bn=args.bn

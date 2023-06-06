@@ -3,6 +3,7 @@ import torch
 import os
 import prep
 import network
+from network_aux import initialize_model
 
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
@@ -20,7 +21,7 @@ par_file='pars_emb_direct_temp'
 arg = prep.setups(par_file)
 sh=[3,32,32]
 device='cpu'
-model=network.initialize_model(arg,sh,arg.layers,device)
+model=initialize_model(arg,sh,arg.layers,device)
 params = model.named_parameters()
 dict_params = dict(params)
 

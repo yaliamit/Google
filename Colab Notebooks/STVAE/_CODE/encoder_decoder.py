@@ -3,7 +3,7 @@ import torch.nn.functional as F
 from torch import nn, optim
 import numpy as np
 from layers import Linear, ident, NONLIN
-import network
+from network_aux import initialize_model
 from get_net_text import get_network
 import normflows as nf
 
@@ -25,7 +25,7 @@ class encoder_mix(nn.Module):
                 l['num_units'] =args.n_mix
 
         #self.model = network.network()
-        self.model=network.initialize_model(args, sh, args.enc_layers, dv, layers_dict=layers_dict)
+        self.model=initialize_model(args, sh, args.enc_layers, dv, layers_dict=layers_dict)
 
         self.final_shape=np.array(self.model.temp.output_shape[1:], dtype=int)
         self.final_shape[0]/=args.n_mix
@@ -50,7 +50,7 @@ class flow_mix(nn.Module):
         super(flow_mix,self).__init__()
 
         self.z_dim=z_dim
-        temp=nn.ModuleList([network.initialize_model(args, final_shape,args.flow_net, dv)for i in range(args.n_mix) ])
+        temp=nn.ModuleList([initialize_model(args, final_shape,args.flow_net, dv)for i in range(args.n_mix) ])
 
         self.flows=nn.ModuleList([nf.NormalizingFlow(nf.distributions.DiagGaussian(z_dim),temp[i].layers) for i in range(args.n_mix)])
 
@@ -85,12 +85,12 @@ class decoder_mix(nn.Module):
         self.z_dim=z_dim
         self.flow_prior=args.flow_prior
         if u_dim>0:
-            self.dec_trans_top=nn.ModuleList([network.initialize_model(args, trans_shape, args.dec_trans_top, dv) for i in range(args.n_mix)])
+            self.dec_trans_top=nn.ModuleList([initialize_model(args, trans_shape, args.dec_trans_top, dv) for i in range(args.n_mix)])
 
-        self.dec_conv_top=nn.ModuleList([network.initialize_model(args, final_shape,args.dec_layers_top, dv)for i in range(args.n_mix) ])
+        self.dec_conv_top=nn.ModuleList([initialize_model(args, final_shape,args.dec_layers_top, dv)for i in range(args.n_mix) ])
         f_shape=np.array(self.dec_conv_top[0].temp.output_shape)[1:]
 
-        self.dec_conv_bot=network.initialize_model(args, f_shape, args.dec_layers_bot, dv)
+        self.dec_conv_bot=initialize_model(args, f_shape, args.dec_layers_bot, dv)
 
         if hasattr(self.dec_conv_bot.layers, 'inject'):
            self.in_feats=self.dec_conv_bot.layers.inject.feats

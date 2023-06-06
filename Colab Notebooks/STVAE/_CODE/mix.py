@@ -6,7 +6,7 @@ import numpy as np
 from tps import TPSGridGen
 from encoder_decoder import encoder_mix, decoder_mix, flow_mix
 import contextlib
-from network import temp_args
+from network_aux import temp_args
 from get_net_text import get_network
 import copy
 import time

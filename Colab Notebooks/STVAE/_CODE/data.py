@@ -648,8 +648,7 @@ def get_cifar(PARS):
     tr_lb=f[key]
     ntr=len(tr)-PARS['nval']
     train_data=np.float32(tr[0:ntr])/255.
-    tr = train_data[0:100]
-    tr = tr.transpose(0, 3, 1, 2)
+
     train_labels=tr_lb[0:ntr] #one_hot(np.int32(tr_lb[0:ntr]),PARS)
     val=None
     if PARS['nval']:

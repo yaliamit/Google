@@ -6,7 +6,7 @@ from losses import *
 import sys
 from layers import *
 import normflows as nf
-from get_net_text import get_network
+
 import platform
 import time
 from data import DL
@@ -23,151 +23,14 @@ pre=get_pre()
 
 osu=platform.system()
 
-
-class temp_args(nn.Module):
-    def  __init__(self):
-        super(temp_args,self).__init__()
-        self.back=None
-        self.first=0
-        self.everything=False
-        self.layer_text = None
-        self.dv = None
-        self.optimizer=None
-        self.embedd_layer=None
-        KEYS=None
-    
-
-def initialize_model(args, sh, layers,device, layers_dict=None):
-
-    model=network()
-    #if not read_model:
-    if layers_dict==None:
-            layers_dict=get_network(layers)
-    # else:
-    #     print('LOADING OLD MODEL')
-    #     sm = torch.load(datadirs + '_output/' + args.model + '.pt', map_location='cpu')
-    #     args=sm['args']
-    #     # model_old = network.network()
-    for l in layers_dict:
-        if 'dense_gaus' in l['name']:
-            if sh is not None:
-                l['num_units']=sh[0]
-
-    atemp = temp_args()
-    atemp.layer_text = layers_dict
-    atemp.dv = device
-    atemp.everything = False
-    atemp.bn=args.bn
-    atemp.fout=args.fout
-    atemp.slope=args.slope
-    atemp.fa=args.fa
-    atemp.embedd_type=args.embedd_type
-    atemp.randomize_layers=args.randomize_layers
-    atemp.penalize_activations=args.penalize_activations
-    if args.hinge:
-        atemp.loss = hinge_loss(num_class=args.num_class)
-    else:
-        atemp.loss = nn.CrossEntropyLoss()
-
-    if args.crop and len(sh) == 3:
-        sh = (sh[0], args.crop, args.crop)
-        print(sh)
-    if args.embedd_type=='clapp':
-        if args.clapp_dim is not None:
-            model.add_module('clapp', nn.Conv2d(args.clapp_dim[1], args.clapp_dim[1], 1))
-        if args.update_layers is not None:
-            args.update_layers.append('clapp')
-    if args.embedd_type=='AE' or args.embedd_type is not None:
-        atemp.everything=True
-
-    if sh is not None:
-        temp = torch.zeros([1] + list(sh))  # .to(device)
-        # Run the network once on dummy data to get the correct dimensions.
-        atemp.first=1
-        atemp.input_shape=None
-        bb = model.forward(temp,atemp)
-        if args.embedd_type=='clapp':
-            args.clapp_dim=atemp.clapp_dim
-
-        atemp.output_shape = bb[0].shape
-        if atemp.input_shape is None:
-            atemp.input_shape = sh
-
-        if 'ae' not in args.type:
-            #print(self.layers, file=self.fout)
-            tot_pars = 0
-            KEYS=[]
-            for keys, vals in model.named_parameters():
-                if 'running' not in keys and 'tracked' not in keys:
-                    KEYS+=[keys]
-                #tot_pars += np.prod(np.array(vals.shape))
-
-            # TEMPORARY
-            if True:
-                pp=[]
-                atemp.KEYS=KEYS
-                for k,p in zip(KEYS,model.parameters()):
-                    if (args.update_layers is None):
-                        if atemp.first==1:
-                            atemp.fout.write('TO optimizer '+k+ str(np.array(p.shape))+'\n')
-                        tot_pars += np.prod(np.array(p.shape))
-                        pp+=[p]
-                    else:
-                        found = False
-                        for u in args.update_layers:
-                            if u == k.split('.')[1] or u==k.split('.')[0]:
-                                found=True
-                                if atemp.first==1:
-                                    atemp.fout.write('TO optimizer '+k+ str(np.array(p.shape))+'\n')
-                                tot_pars += np.prod(np.array(p.shape))
-                                pp+=[p]
-                        if not found:
-                            p.requires_grad=False
-                if atemp.first==1:
-                    atemp.fout.write('tot_pars,' + str(tot_pars)+'\n')
-                if 'ae' not in args.type:
-                    if (args.optimizer_type == 'Adam'):
-                            if atemp.first==1:
-                                atemp.fout.write('Optimizer Adam '+str(args.lr)+'\n')
-                            atemp.optimizer = optim.Adam(pp, lr=args.lr,weight_decay=args.wd)
-                    else:
-                            if atemp.first==1:
-                                atemp.fout.write('Optimizer SGD '+str(args.lr))
-                            atemp.optimizer = optim.SGD(pp, lr=args.lr,weight_decay=args.wd)
-
-        atemp.first=0
-        bsz=args.mb_size
-        if args.embedd_type is not None:
-            if args.embedd_type=='L1dist_hinge':
-                atemp.loss=L1_loss(atemp.dv, bsz, args.future, args.thr, args.delta, WW=1., nostd=True)
-            elif args.embedd_type=='clapp':
-                atemp.loss=clapp_loss(atemp.dv)
-            elif args.embedd_type=='binary':
-                atemp.loss=binary_loss(atemp.dv)
-            elif args.embedd_type=='direct':
-                atemp.loss=direct_loss(bsz,atemp.output_shape[1],alpha=args.alpha, eps=args.eps, device=atemp.dv)
-            elif args.embedd_type=='barlow':
-                atemp.loss=barlow_loss(bsz,standardize=not args.no_standardize, device=atemp.dv,lamda=args.lamda)
-            elif args.embedd_type=='orig':
-                atemp.loss=simclr_loss(atemp.dv,bsz)
-            elif args.embedd_type=='AE':
-                atemp.loss=AE_loss(lamda=args.lamda, l1=args.L1)
-        model.add_module('temp',atemp)
-        if args.use_multiple_gpus is not None:
-            bsz=bsz//args.use_multiple_gpus
-        model=model.to(atemp.dv)
-        return model
-
-
 def get_acc_and_loss(aloss, out, targ):
-            v, mx = torch.max(out, 1)
-            # Non-space characters
-            # Total loss
-            loss = aloss(out, targ)
-            # total accuracy        out = input
-            acc = torch.sum(mx.eq(targ))
-            return loss, acc
-
+    v, mx = torch.max(out, 1)
+    # Non-space characters
+    # Total loss
+    loss = aloss(out, targ)
+    # total accuracy        out = input
+    acc = torch.sum(mx.eq(targ))
+    return loss, acc
 
 
 # Network module
@@ -175,7 +38,79 @@ class network(nn.Module):
     def __init__(self):
         super(network, self).__init__()
 
+    def process_nfl(self, ll):
+        nu = ll['num_units']
+        ni = ll['num_inputs']
+        param_map = nf.nets.MLP([ni, nu, nu, 2 * ni], init_zeros=True)
+        # Add flow layer
+        self.layers.add_module(ll['name'], nf.flows.AffineCouplingBlock(param_map))
+        # Swap dimensions
+        self.layers.add_module(ll['name'] + 'perm', nf.flows.Permute(2 * ni, mode='shuffle'))
 
+    def process_dense(self, in_dim, ll):
+        out_dim = ll['num_units']
+        bis = True
+        if ('nb' in ll):
+            bis = False
+        if 'fa' in ll['name']:
+            self.layers.add_module(ll['name'], FALinear(in_dim, out_dim, bias=bis, fa=atemp.fa))
+        else:
+            if 'Lin' in ll:
+                scale = 0
+                if 'scale' in ll:
+                    scale = ll['scale']
+                self.layers.add_module(ll['name'], Linear(in_dim, out_dim, scale=scale, iden=False))
+            else:
+                self.layers.add_module(ll['name'], nn.Linear(in_dim, out_dim, bias=bis))
+        if 'zero' in ll:
+            temp = getattr(self.layers, ll['name'])
+            nn.init.xavier_normal_(temp.weight)
+            nn.init.zeros_(temp.bias)
+
+    def process_norm(self, ll, bn, ss):
+        if bn == 'full':
+            if len(ss) == 4:
+                self.layers.add_module(ll['name'], nn.BatchNorm2d(ss[1]))
+            else:
+                self.layers.add_module(ll['name'], nn.BatchNorm1d(ss[1]))
+        elif bn == 'half_full':
+            if len(ss) == 4:
+                self.layers.add_module(ll['name'], nn.BatchNorm2d(ss[1], affine=False))
+            else:
+                self.layers.add_module(ll['name'], nn.BatchNorm1d(ss[1], affine=False))
+        elif bn == 'layerwise':
+            if len(ss) == 2:
+                self.layers.add_module(ll['name'], nn.LayerNorm(ss[1]))
+            else:
+                self.layers.add_module(ll['name'], nn.LayerNorm(ss[1:]))
+        elif bn == 'instance':
+            self.layers.add_module(ll['name'], nn.InstanceNorm2d(ss[1], affine=True))
+        elif bn == 'simple':
+            self.layers.add_module(ll['name'], diag2d(ss[1]))
+        else:
+            self.layers.add_module(ll['name'], Iden())
+
+    def process_conv(self, ll, inp_feats):
+        bis = True
+        if ('nb' in ll):
+            bis = False
+        stride = 1;
+        if 'stride' in ll:
+            stride = ll['stride']
+        pd = (ll['filter_size'] // stride) // 2
+        if 'fa' in ll['name'] and not 'ga' in pre and 'Darwin' not in os.uname():
+            self.layers.add_module(ll['name'],
+                                   FAConv2d(inp_feats, ll['num_filters'], ll['filter_size'], stride=stride, fa=atemp.fa,
+                                            padding=pd, bias=bis))
+            # nn.init.zeros_(p.bias)
+        else:
+            self.layers.add_module(ll['name'],
+                                   nn.Conv2d(inp_feats, ll['num_filters'], ll['filter_size'], stride=stride, padding=pd,
+                                             bias=bis))
+        if 'zero' in ll:
+            temp = getattr(self.layers, ll['name'])
+            nn.init.xavier_normal_(temp.weight)
+            nn.init.zeros_(temp.bias)
 
     def forward(self,input,atemp=None,clapp=False, lay=None):
 
@@ -221,7 +156,6 @@ class network(nn.Module):
                         if 'shape' in ll and 'num_filters' in ll:
                             atemp.input_shape=[ll['num_filters']]+list(ll['shape'])
 
-                     #   out=out.reshape(out.shape[0],ll['num_filters'],)
                     if everything:
                         OUTS[ll['name']]=out
 
@@ -231,38 +165,32 @@ class network(nn.Module):
                      out=getattr(self.layers,ll['name'])(out)
                      if everything:
                          OUTS[ll['name']] = out
+
                 if ('edge' in ll['name']):
                     if atemp.first:
                         self.layers.add_module(ll['name'],Edge(atemp.dv,slope=atemp.slope))
                         out = getattr(self.layers, ll['name'])(out, torch.device('cpu'))
                     else:
                         out=getattr(self.layers,ll['name'])(out)
+
                     if everything:
                         OUTS[ll['name']]=out
+
                 if ('conv' in ll['name']):
+
+                    if atemp.first:
+                        self.process_conv(ll,inp_feats)
+
+
                     if everything:
                         out = OUTS[inp_ind]
                     # Reshape to grid based data with inp_feats features.
                     if len(out.shape)==2:
                         wdim=np.int(np.sqrt(out.shape[1]/inp_feats))
                         out=out.reshape(out.shape[0],inp_feats,wdim,wdim)
-                    if atemp.first:
-                        bis = True
-                        if ('nb' in ll):
-                            bis = False
-                        stride=1;
-                        if 'stride' in ll:
-                            stride=ll['stride']
-                        pd=(ll['filter_size']//stride) // 2
-                        if 'fa' in ll['name'] and not 'ga' in pre and 'Darwin' not in os.uname():
-                                self.layers.add_module(ll['name'],FAConv2d(inp_feats,ll['num_filters'],ll['filter_size'],stride=stride,fa=atemp.fa,padding=pd, bias=bis))
-                                #nn.init.zeros_(p.bias)
-                        else:
-                                self.layers.add_module(ll['name'],nn.Conv2d(inp_feats,ll['num_filters'],ll['filter_size'],stride=stride,padding=pd, bias=bis))
-                        if 'zero' in ll:
-                                temp=getattr(self.layers, ll['name'])
-                                nn.init.xavier_normal_(temp.weight)
-                                nn.init.zeros_(temp.bias)
+
+
+
 
                     out = getattr(self.layers, ll['name'])(out)
                     if everything:
@@ -313,36 +241,14 @@ class network(nn.Module):
 
                 if 'nfl' in ll['name']:
                     if atemp.first:
-                        nu=ll['num_units']
-                        ni=ll['num_inputs']
-                        param_map = nf.nets.MLP([ni, nu, nu, 2*ni], init_zeros=True)
-                        # Add flow layer
-                        self.layers.add_module(ll['name'],nf.flows.AffineCouplingBlock(param_map))
-                        # Swap dimensions
-                        self.layers.add_module(ll['name']+'perm',nf.flows.Permute(2*ni, mode='shuffle'))
+                         self.process_nfl(ll)
                     out,_ = getattr(self.layers, ll['name'])(out)
                     if everything:
                         OUTS[ll['name']] = out
+
                 if ('dense' in ll['name']):
                     if atemp.first:
-                        out_dim=ll['num_units']
-                        bis=True
-                        if ('nb' in ll):
-                            bis=False
-                        if 'fa' in ll['name']:
-                                self.layers.add_module(ll['name'],FALinear(in_dim,out_dim,bias=bis, fa=atemp.fa))
-                        else:
-                            if 'Lin' in ll:
-                                scale=0
-                                if 'scale' in ll:
-                                    scale=ll['scale']
-                                self.layers.add_module(ll['name'],Linear(in_dim,out_dim, scale=scale, iden=False))
-                            else:
-                                self.layers.add_module(ll['name'],nn.Linear(in_dim,out_dim,bias=bis))
-                        if 'zero' in ll:
-                                temp=getattr(self.layers, ll['name'])
-                                nn.init.xavier_normal_(temp.weight)
-                                nn.init.zeros_(temp.bias)
+                        self.process_dense(in_dim,ll)
                     if everything:
                         out=OUTS[inp_ind]
                     if 'Lin' not in ll:
@@ -375,28 +281,8 @@ class network(nn.Module):
 
                 if ('norm') in ll['name']:
                     if atemp.first:
-                        if atemp.bn=='full':
-                            if len(OUTS[old_name].shape)==4 and atemp.bn:
-                                self.layers.add_module(ll['name'],nn.BatchNorm2d(OUTS[old_name].shape[1]))
-                            else:
-                                self.layers.add_module(ll['name'],nn.BatchNorm1d(OUTS[old_name].shape[1]))
-                        elif atemp.bn=='half_full':
-                            if len(OUTS[old_name].shape)==4 and atemp.bn:
-                                self.layers.add_module(ll['name'],nn.BatchNorm2d(OUTS[old_name].shape[1], affine=False))
-                            else:
-                                self.layers.add_module(ll['name'],nn.BatchNorm1d(OUTS[old_name].shape[1], affine=False))
-                        elif atemp.bn=='layerwise':
-                            ss=OUTS[old_name].shape
-                            if len(ss)==2:
-                                self.layers.add_module(ll['name'],nn.LayerNorm(ss[1]))
-                            else:
-                                self.layers.add_module(ll['name'],nn.LayerNorm(ss[1:]))
-                        elif atemp.bn=='instance':
-                            self.layers.add_module(ll['name'], nn.InstanceNorm2d(OUTS[old_name].shape[1],affine=True))
-                        elif atemp.bn=='simple':
-                            self.layers.add_module(ll['name'],diag2d(OUTS[old_name].shape[1]))
-                        else:
-                            self.layers.add_module(ll['name'],Iden())
+                        self.process_norm(ll,atemp.bn,OUTS[old_name].shape)
+
 
                     if not atemp.first:
                         out = getattr(self.layers, ll['name'])(out)
@@ -404,8 +290,6 @@ class network(nn.Module):
                             OUTS[ll['name']] = out
                     else:
                         pass
-
-
                 if ('opr' in ll['name']):
                     if 'add' in ll['name']:
                         out = OUTS[inp_ind[0]]+OUTS[inp_ind[1]]

@@ -2,6 +2,7 @@
 import numpy as np
 import time
 import network
+from network_aux import initialize_model
 import prep
 from data import get_data_pre, get_pre
 import torch
@@ -179,7 +180,7 @@ def train_new_new(args,model,DATA,fout,device,net=None):
         args.update_layers = None
         args.perturb = 0
         args.sched=args.hid_sched
-        net=network.initialize_model(args, trdl.shape, args.hid_layers, device)
+        net=initialize_model(args, trdl.shape, args.hid_layers, device)
         network.get_scheduler(args,net.temp.optimizer)
         if args.hid_model:
 
@@ -237,7 +238,7 @@ def train_new_old(args,train,test,fout,device,net=None):
         args.patch_size=None
         args.perturb=0
         #args.sched=[0,0]
-        net=network.initialize_model(args, train.shape, args.hid_layers, device)
+        net=initialize_model(args, train.shape, args.hid_layers, device)
         network.get_scheduler(args)
         if args.hid_model:
 
