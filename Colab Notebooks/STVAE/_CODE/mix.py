@@ -624,7 +624,7 @@ class STVAE_mix(nn.Module):
 
        num_inp=Input.num
        print('num_inp',num_inp)
-       bsz=int(Input.batch_size/(2*num_samples))
+       bsz=int(Input.batch_size/(num_samples))
        print(bsz)
        #LGS=[]
        LGG=0
