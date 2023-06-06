@@ -166,7 +166,7 @@ class STVAE_mix(nn.Module):
             self.output_cont=args.output_cont #nn.Parameter(torch.tensor(args.output_cont), requires_grad=False)
         else:
             self.output_cont=0.
-
+        print('OUTPUT CONT',self.output_cont)
         self.u_dim = 0
         setup_trans_stuff(self,args,sh, device)
         self.encoder_m = encoder_mix(sh, device, args)
