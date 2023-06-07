@@ -74,6 +74,7 @@ def main_loc_post(args, device, fout, net=None):
       model=prep.copy_from_old_to_new(models[0], args, fout, SMS[0], device, sh)
       model.nti = args.nti
       model.opt_jump = args.opt_jump
+      model=model.to(device)
       train_model(model, args, EX_FILES[0], DATA, fout)
       model_out = model
       if args.hid_nepoch>0:
