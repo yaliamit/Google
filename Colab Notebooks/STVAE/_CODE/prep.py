@@ -158,8 +158,8 @@ def copy_from_old_to_new(model, args, fout, SMS,device, sh):
     model_old.load_state_dict(SMS['model.state.dict'])
     model_old.bn=args.bn
     if args.copy_layers is None and args.update_layers is None and args.no_copy_layers is None:
-        model=model_old
-        return
+        return(model_old)
+
     params_old = model_old.named_parameters()
     params = model.named_parameters()
     dict_params = dict(params)
@@ -199,6 +199,6 @@ def copy_from_old_to_new(model, args, fout, SMS,device, sh):
     if 'crit.pos_weight' in SMS['model.state.dict']:
         dict_params['crit.pos_weight']=SMS['model.state.dict']['crit.pos_weight']
     model.load_state_dict(dict_params)
-    return
+    return model
 
 

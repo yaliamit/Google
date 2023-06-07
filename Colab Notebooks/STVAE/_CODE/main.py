@@ -71,11 +71,11 @@ def main_loc_post(args, device, fout, net=None):
       exit()
 
   if args.cont_training and not args.run_existing:
-      prep.copy_from_old_to_new(models[0], args, fout, SMS[0], device, sh)
-      models[0].nti = args.nti
-      models[0].opt_jump = args.opt_jump
-      train_model(models[0], args, EX_FILES[0], DATA, fout)
-      model_out = models[0]
+      model=prep.copy_from_old_to_new(models[0], args, fout, SMS[0], device, sh)
+      model.nti = args.nti
+      model.opt_jump = args.opt_jump
+      train_model(model, args, EX_FILES[0], DATA, fout)
+      model_out = model
       if args.hid_nepoch>0:
         pre_train_new(model_out,args,device,fout, data=None)
 
