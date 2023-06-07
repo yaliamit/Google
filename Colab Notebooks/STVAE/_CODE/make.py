@@ -140,8 +140,9 @@ def train_model(model, args, ex_file, DATA, fout):
         optimizer=model.temp.optimizer
     #model=model.to(args.temp.dv)
     #model.temp.loss=model.temp.loss.to(model.temp.dv)
+    optimizer.param_groups[0]['lr'] = args.lr
     scheduler=get_scheduler(args,optimizer)
-    optimizer.param_groups[0]['lr']=args.lr
+
 
     for epoch in range(args.nepoch):
 
