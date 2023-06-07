@@ -157,6 +157,9 @@ def copy_from_old_to_new(model, args, fout, SMS,device, sh):
 
     model_old.load_state_dict(SMS['model.state.dict'])
     model_old.bn=args.bn
+    if args.copy_layers is None and args.update_layers is None and args.no_copy_layers is None:
+        model=model_old
+        return
     params_old = model_old.named_parameters()
     params = model.named_parameters()
     dict_params = dict(params)
