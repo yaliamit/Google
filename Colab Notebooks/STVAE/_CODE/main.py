@@ -7,6 +7,8 @@ from images import make_images, show_examples_of_deformed_images, get_embs, defo
 import pylab as py
 import numpy as np
 import sys
+import torch
+from make import fid
 
 
 def make_deformed_images(args, DATA):
@@ -94,6 +96,11 @@ def main_loc_post(args, device, fout, net=None):
           models[0].nti=args.nti
           make_images(DATA[2],models[0],EX_FILES[0],args,datadirs=args.datadirs)
           models[0].opt=oldopt
+          X = models[0].sample_from_z_prior(args, 2000)
+          print(X.shape)
+          image_batches = [batch[0][0] for batch in DATA[2]]
+          image_batches = torch.cat(image_batches).reshape(-1, X.shape[1])
+          fid(X, image_batches)
       elif (args.embedd_type is not None or 'ae' in args.type):
           pre_train_new(models[0], args, device, fout, data=DATA)
       elif args.cluster_hidden:
