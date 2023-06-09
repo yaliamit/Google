@@ -37,7 +37,7 @@ class BN1d(nn.Module):
         if bn=='full':
             self.BN=nn.BatchNorm1d(n)
         else:
-            self.BN=nn.LayerNorm(n)
+            self.BN=nn.LayerNorm(n,elementwise_affine=False)
     def forward(self,x):
         if x.shape[0]==1:
             return x
@@ -113,9 +113,9 @@ class network(nn.Module):
                 self.layers.add_module(ll['name'], nn.BatchNorm1d(ss[1], affine=False))
         elif bn == 'layerwise':
             if len(ss) == 2:
-                self.layers.add_module(ll['name'], nn.LayerNorm(ss[1]))
+                self.layers.add_module(ll['name'], nn.LayerNorm(ss[1],elementwise_affine=False))
             else:
-                self.layers.add_module(ll['name'], nn.LayerNorm(ss[1:]))
+                self.layers.add_module(ll['name'], nn.LayerNorm(ss[1:],elementwise_affine=False))
         elif bn == 'instance':
             self.layers.add_module(ll['name'], nn.InstanceNorm2d(ss[1], affine=True))
         elif bn == 'simple':
