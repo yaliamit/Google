@@ -32,9 +32,12 @@ def get_acc_and_loss(aloss, out, targ):
     acc = torch.sum(mx.eq(targ))
     return loss, acc
 class BN1d(nn.Module):
-    def __init__(self,n):
+    def __init__(self,n,bn):
         super(BN1d,self).__init__()
-        self.BN=nn.BatchNorm1d(n)
+        if bn=='full':
+            self.BN=nn.BatchNorm1d(n)
+        else:
+            self.BN=nn.LayerNorm(n)
     def forward(self,x):
         if x.shape[0]==1:
             return x
@@ -44,16 +47,16 @@ class BN1d(nn.Module):
 
 
 class MLP(nn.Module):
-    def __init__(self,ni,nu,nl):
+    def __init__(self,ni,nu,nl,bn):
         super(MLP,self).__init__()
 
         net = nn.ModuleList([])
         net.append(nn.Linear(ni,nu))
-        net.append(BN1d(nu))
+        net.append(BN1d(nu,bn))
         net.append(nn.ReLU())
         for i in range(nl):
             net.append(nn.Linear(nu,nu))
-            net.append(BN1d(nu))
+            net.append(BN1d(nu,bn))
             net.append(nn.ReLU())
         net.append(nn.Linear(nu,2*ni))
         nn.init.zeros_(net[-1].weight)
@@ -67,11 +70,11 @@ class network(nn.Module):
     def __init__(self):
         super(network, self).__init__()
 
-    def process_nfl(self, ll):
+    def process_nfl(self, ll,bn):
         nu = ll['num_units']
         ni = ll['num_inputs']
         nl = ll['num_layers']
-        param_map = MLP(ni, nu, nl)
+        param_map = MLP(ni, nu, nl,bn)
         # Add flow layer
         self.layers.add_module(ll['name'], nf.flows.AffineCouplingBlock(param_map))
         # Swap dimensions
@@ -271,7 +274,7 @@ class network(nn.Module):
 
                 if 'nfl' in ll['name']:
                     if atemp.first:
-                         self.process_nfl(ll)
+                         self.process_nfl(ll,atemp.bn)
                     out,_ = getattr(self.layers, ll['name'])(out)
                     if everything:
                         OUTS[ll['name']] = out
