@@ -188,7 +188,7 @@ def train_model(model, args, ex_file, DATA, fout):
             print('rho',np.exp(rho)/np.sum(np.exp(rho)),file=fout)
             X = model.sample_from_z_prior(args, 2000)
             print(X.shape)
-            image_batches = [batch[0][0] for batch in train]
+            image_batches = [batch[0][0] for batch in test]
             image_batches=torch.cat(image_batches).reshape(-1,X.shape[1])
             fid(X,image_batches)
 
